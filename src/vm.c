@@ -1565,7 +1565,6 @@ static SgObject throw_continuation_body(SgObject handlers,
       }
       vm->valuesCount = argc;
     }
-  
     return vm->ac;
   }
 }
@@ -2632,10 +2631,12 @@ static SgContFrame * print_cont1(SgContFrame *cont, SgVM *vm)
 	    (uintptr_t)cont + offsetof(SgContFrame, prev), cont->prev);
 
   Sg_Printf(vm->logPort, 
-	    UC(";; %p +---------------------------------------------+ < %s"),
-	    cont, (cont == CONT(vm)) ? UC("cont")
-	          : (cont->prev) ? UC("prev")
-	          : UC("prompt"));
+	    UC(";; %p +---------------------------------------------+ < %s%s"),
+	    cont,
+	    (cont == CONT(vm)) ? UC("cont")
+	    : (cont->prev) ? UC("prev")
+	    : UC("prompt"),
+	    !IN_STACK_P((SgObject *)cont, vm) ? UC("/heap") : UC(""));
 
   if (BOUNDARY_FRAME_MARK_P(cont)) Sg_Printf(vm->logPort, UC("(boundary)"));
   if (PROMPT_FRAME_MARK_P(cont))
@@ -2651,8 +2652,8 @@ static SgContFrame * print_cont1(SgContFrame *cont, SgVM *vm)
     }
     if (size > 0) {
       Sg_Printf(vm->logPort, 
-		UC(";; %p +---------------------------------------------+ < args\n"),
-		current);
+	UC(";; %p +---------------------------------------------+ < args\n"),
+	current);
     }
   } else {
     for (i = 0; i < size; i++) {
@@ -2661,11 +2662,10 @@ static SgContFrame * print_cont1(SgContFrame *cont, SgVM *vm)
     }
     if (size > 0) {
       Sg_Printf(vm->logPort, 
-		  UC(";; %p +---------------------------------------------+ < args\n"),
-		cont->env+size);
+	UC(";; %p +---------------------------------------------+ < args/heap\n"),
+	cont->env+size);
     }
   }
-  if (!cont->cl) return NULL;
   return cont->prev;
 }
 
@@ -2673,40 +2673,21 @@ static void print_frames(SgVM *vm, SgContFrame *cont)
 {
   SgObject *stack = vm->stack, *sp = SP(vm);
   SgObject *current = sp-1;
+  Sg_Printf(vm->logPort, UC(";; stack: %p, cont: %p\n"), stack, cont);
 
-  Sg_Printf(vm->logPort, UC(";; stack: %p, cont: %p\n"),
-	    stack, cont);
-  /* first dump cont in heap */
-  if (!IN_STACK_P((SgObject *)cont, vm)) {
-    Sg_Printf(vm->logPort, UC(";; %p +---------------------------------------------+ < sp%s\n"),
-	      cont, vm->fp == current? UC("/fp"): UC(""));
-    while (!IN_STACK_P((SgObject *)cont, vm)) {
-      cont = print_cont1(cont, vm);
-      if (!cont) break;
-    }
-    if (!cont) goto end;
-  }
-
-  Sg_Printf(vm->logPort, UC(";; %p +---------------------------------------------+ < sp%s\n"),
-	    sp-1, vm->fp == current? UC("/fp"): UC(""));
-  
-  /* second we dump from top until cont frame. */
-  while ((stack < current && vm->fp <= current)) {
-    Sg_Printf(vm->logPort, UC(";; %p +   p=%#39p +\n"), current, *current);
-    current--;
-  }
-  if (current != sp-1)
-    Sg_Printf(vm->logPort, UC(";; %p +---------------------------------------------+ < fp\n"), vm->fp);
-  /* now we know we just need to trace cont frames
-     memo: if cont has let frame, we just dump it as pointer.
-   */
-  while (stack < current && current <= sp) {
-    current = (SgObject *)cont;
+  Sg_Printf(vm->logPort, 
+    UC(";; %p +---------------------------------------------+ < cont%s%s%s\n"),
+    cont, 
+    !IN_STACK_P((SgObject *)cont, vm) ? UC("/heap") : UC(""), 
+    (intptr_t)cont == (intptr_t)sp-1 ? UC("/sp") : UC(""), 
+    (intptr_t)vm->fp == (intptr_t)cont ? UC("/fp") : UC(""));
+  while (cont && cont != cont->prev) {
     cont = print_cont1(cont, vm);
-    if (!cont) break;
   }
- end:
-  Sg_Printf(vm->logPort, UC(";; %p +---------------------------------------------+\n"), stack);
+  
+  Sg_Printf(vm->logPort,
+    UC(";; %p +---------------------------------------------+ < bottom\n"),
+    stack);
 }
 
 void Sg_VMPrintFrame()
