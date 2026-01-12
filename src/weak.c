@@ -216,7 +216,7 @@ static int weak_key_compare(const SgHashCore *hc, intptr_t key,
 			    intptr_t entryKey)
 {
   SgWeakHashTable *wh = SG_WEAK_HASHTABLE(hc->data);
-  SgWeakBox *box;  
+  SgWeakBox *box = NULL;
   intptr_t realkey, realentrykey;
   if (SG_WEAK_BOXP(key)) {
     box = (SgWeakBox *)key;
@@ -225,14 +225,18 @@ static int weak_key_compare(const SgHashCore *hc, intptr_t key,
   } else {
     realkey = key;
   }
-  /* entry key must always be weak box */
-  box = (SgWeakBox *)entryKey;
-  realentrykey = (intptr_t)Sg_WeakBoxRef(box);
-  if (Sg_WeakBoxEmptyP(box)) {
-    return FALSE;
+  if (!entryKey) return FALSE;
+  if (SG_WEAK_BOXP(entryKey)) {
+    box = (SgWeakBox *)entryKey;
+    if (Sg_WeakBoxEmptyP(box)) {
+      return FALSE;
+    }
+    realentrykey = (intptr_t)Sg_WeakBoxRef(box);
   } else {
-    return wh->compare(hc, realkey, realentrykey);
+    /* entry key is an immediate value */
+    realentrykey = entryKey;
   }
+  return wh->compare(hc, realkey, realentrykey);
 }
 
 
