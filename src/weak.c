@@ -512,6 +512,8 @@ static void weak_hashtable_create_entry(SgHashCore *core, SgHashEntry *e)
   SgObject table = SG_OBJ(core->data);
   if (SG_WEAK_HASHTABLE_WEAKNESS(table) & SG_WEAK_KEY) {
     volatile SgObject key = SG_OBJ(e->key);
+    if (!SG_PTRP(key)) return; /* immediate value, no weak reference needed */
+    
     e->key = (intptr_t)Sg_MakeWeakBox(key);
     /* needed for managing entryCount... */
     Sg_RegisterFinalizer(key, key_finalizer, table);
