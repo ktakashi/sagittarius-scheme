@@ -30,7 +30,7 @@
 
 #!nounbound
 (library (cache apis)
-    (export <cache>
+    (export <cache> cache?
 	    cache-put!
 	    cache-get
 	    cache-evict!
@@ -61,6 +61,8 @@
    (comparator :init-keyword :comparator :init-value default-comparator)
    (evict-strategy :init-keyword :evict-strategy :init-value #f)
    (on-evict :init-keyword :on-evict :init-value #f)))
+
+(define (cache? o) (is-a? o <cache>))
 
 (define-method initialize ((o <cache>) initargs)
   (call-next-method)

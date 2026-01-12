@@ -31,7 +31,9 @@
 #!nounbound
 (library (cache lru)
     (export make-simple-lru-cache
-	    <lru-cache>)
+	    <lru-cache>
+	    lru-cache?
+	    make-lru-cache)
     (import (rnrs)
 	    (clos user)
 	    (cache apis)
@@ -45,6 +47,10 @@
 (define-class <lru-cache> (<cache>)
   ((queue :init-value '())
    equal?))
+(define (lru-cache? o) (is-a? o <lru-cache>))
+(define (make-lru-cache size :key (comparator default-comparator) (on-evict #f))
+  (make <lru-cache> :evict-strategy (strategy size) :comparator comparator
+	:on-evict on-evict))
 
 (define-method initialize ((o <lru-cache>) initargs)
   (cond ((get-keyword :max-size initargs #f) =>
@@ -78,8 +84,7 @@
 
 (define (make-simple-lru-cache size create 
 			       :optional (comparator default-comparator))
-  (define cache (make <lru-cache> :evict-strategy (strategy size)
-		      :comparator comparator))
+  (define cache (make-lru-cache size :comparator comparator))
   (define mark (list 'not-found))
   (lambda (name)
     (let ((r (cache-get cache name mark)))
