@@ -1377,13 +1377,18 @@ static SgContFrame* save_a_cont(SgContFrame *c)
   return csave;
 }
 
+static int cont_tag_match_p(SgContFrame *c, SgObject tag)
+{
+  return c && PROMPT_FRAME_MARK_P(c) && SG_PAIRP(c->pc) && SG_CAAR(c->pc) == tag;
+}
+
 /*
   save continuation frame to heap.
   we do with 2 passes.
   pass1: save cont frame to heap
   pass2: update cstack etc.
  */
-static void save_cont_rec(SgVM *vm, int partialP)
+static void save_cont_rec(SgVM *vm, int partialP, SgObject tag)
 {
   SgContFrame *c = CONT(vm), *prev = NULL;
   SgCStack *cstk;
@@ -1397,12 +1402,14 @@ static void save_cont_rec(SgVM *vm, int partialP)
     csave = save_a_cont(c);
     /* make the orig frame forwarded */
     if (prev) prev->prev = csave;
-
+    if (tag && cont_tag_match_p(c, tag)) break;
+    
     prev = csave;
     tmp = c->prev;
     c->prev = csave;
     c->size = -1;
     c = tmp;
+    
   } while (IN_STACK_P((SgObject*)c, vm));
 
   if (FORWARDED_CONT_P(vm->cont)) {
@@ -1427,12 +1434,17 @@ static void save_cont_rec(SgVM *vm, int partialP)
 
 static void save_cont(SgVM *vm)
 {
-  save_cont_rec(vm, FALSE);
+  save_cont_rec(vm, FALSE, NULL);
 }
 
 static void save_partial_cont(SgVM *vm)
 {
-  save_cont_rec(vm, TRUE);
+  save_cont_rec(vm, TRUE, NULL);
+}
+
+static void save_cont_to_tag(SgVM *vm, SgObject tag)
+{
+  save_cont_rec(vm, FALSE, tag);
 }
 
 static void expand_stack(SgVM *vm)
@@ -1464,23 +1476,49 @@ static SgWord return_code[1] = {SG_WORD(RET)};
 
 #define PC_TO_RETURN return_code
 
+static SgContFrame * copy_a_cont(SgContFrame *c)
+{
+  const size_t argsize = (c->size > 0) ? (c->size * sizeof(SgObject)) : 0;
+  const size_t size = sizeof(SgContFrame) + argsize;
+  SgContFrame *copy = SG_NEW2(SgContFrame *, size);
+  memcpy(copy, c, size);
+  return copy;
+}
+
+static SgContFrame * splice_cont(SgContFrame *cur, SgContFrame *saved,
+				 SgObject tag)
+{
+  SgContFrame *c = saved->prev, *cp = NULL, *top = NULL;
+  cp = top = copy_a_cont(saved);
+  do {
+    SgContFrame *cs = copy_a_cont(c);
+    cp->prev = cs;
+    cp = cs;
+    c = c->prev;
+  } while (!cont_tag_match_p(cp, tag));
+  cp->prev = cur;
+  return top;
+}
+
 static SgObject throw_continuation_cc(SgObject, void **);
 
 static SgObject throw_continuation_body(SgObject handlers,
 					SgContinuation *c,
-					SgObject args)
+					SgObject args,
+					SgObject tag)
 {
   SgVM *vm = Sg_VM();
   /* (if (not (eq? new (current-dynamic-winders))) perform-dynamic-wind) */
   if (SG_PAIRP(handlers)) {
     SgObject handler, chain;
-    void *data[3];
+    void *data[4];
     handler = SG_CAAR(handlers);
     chain = SG_CDAR(handlers);
     data[0] = (void*)SG_CDR(handlers);
     data[1] = (void*)c;
     data[2] = (void*)args;
-    Sg_VMPushCC(throw_continuation_cc, data, 3);
+    data[3] = tag;
+    Sg_VMPushCC(throw_continuation_cc, data, 4);
     vm->dynamicWinders = chain;
     return Sg_VMApply0(handler);
   } else {
@@ -1491,8 +1529,17 @@ static SgObject throw_continuation_body(SgObject handlers,
        the partial continuation.
     */
     if (c->cstack == NULL) save_cont(vm);
-
-    vm->cont = c->cont;
+    if (tag) {
+      /* if the tag is there, then it's composable continuation
+	 means, we add the continuation frame atop of the current
+	 continuation.
+	 As the continuation is not oneshot, we need to copy the
+	 cont frame from the continuation.
+       */
+      vm->cont = splice_cont(vm->cont, c->cont, tag);
+    } else {
+      vm->cont = c->cont;
+    }
     vm->pc = return_code;
     vm->dynamicWinders = c->winders;
 
@@ -1522,12 +1569,14 @@ static SgObject throw_continuation_body(SgObject handlers,
     return vm->ac;
   }
 }
+
 static SgObject throw_continuation_cc(SgObject result, void **data)
 {
   SgObject handlers = SG_OBJ(data[0]);
   SgContinuation *c = (SgContinuation*)data[1];
   SgObject args = SG_OBJ(data[2]);
-  return throw_continuation_body(handlers, c, args);
+  SgObject tag = SG_OBJ(data[3]);
+  return throw_continuation_body(handlers, c, args, tag);
 }
 
 /* remove and re-order continuation's handlers */
@@ -1566,9 +1615,9 @@ static SgObject throw_continuation_calculate_handlers(SgContinuation *c,
   return h;
 }
 
-static SgObject throw_continuation(SgObject *argframes, int argc, void *data)
+static SgObject throw_continuation(SgObject *argv, int argc, void *data)
 {
-  SgContinuation *c = (SgContinuation*)data;
+  SgContinuation *c = (SgContinuation*)SG_CAR(data);
   SgObject handlers_to_call;
   SgVM *vm = Sg_VM();
 
@@ -1580,14 +1629,25 @@ static SgObject throw_continuation(SgObject *argframes, int argc, void *data)
     if (cs != NULL) {
       vm->escapeReason = SG_VM_ESCAPE_CONT;
       vm->escapeData[0] = c;
-      vm->escapeData[1] = argframes[0];
+      vm->escapeData[1] = Sg_Cons(argv[0], SG_CDR(data));
       longjmp(vm->cstack->jbuf, 1);
     }
     save_cont(vm);
   }
-
   handlers_to_call = throw_continuation_calculate_handlers(c, vm);
-  return throw_continuation_body(handlers_to_call, c, argframes[0]);
+  return throw_continuation_body(handlers_to_call, c, argv[0], SG_CDR(data));
+}
+
+static SgObject sym_continuation = SG_FALSE;
+static SgObject make_cont_subr(SgContinuation *cont, SgObject tag)
+{
+  return Sg_MakeSubr(throw_continuation, Sg_Cons(cont, tag), 0, 1,
+		     sym_continuation);
+}
+
+int Sg_ContinuationP(SgObject o)
+{
+  return SG_SUBRP(o) && SG_EQ(SG_PROCEDURE_NAME(o), sym_continuation);
 }
 
 SgObject Sg_VMCallCC(SgObject proc)
@@ -1605,8 +1665,7 @@ SgObject Sg_VMCallCC(SgObject proc)
   cont->ehandler = SG_FALSE;
 
 
-  contproc = Sg_MakeSubr(throw_continuation, cont, 0, 1,
-			 SG_MAKE_STRING("continuation"));
+  contproc = make_cont_subr(cont, NULL);
   return Sg_VMApply1(proc, contproc);
 }
 
@@ -1639,11 +1698,45 @@ SgObject Sg_VMCallPC(SgObject proc)
   cont->cstack = NULL;		/* so that the partial continuation can be
 				   run on any cstack state. */
 
-  contproc = Sg_MakeSubr(throw_continuation, cont, 0, 1,
-			 SG_MAKE_STRING("partial continuation"));
+  contproc = make_cont_subr(cont, NULL);
   /* Remove the saved continuation chain */
   vm->cont = c;
   return Sg_VMApply1(proc, contproc);  
+}
+
+/* call-with-composable-continuation */
+SgObject Sg_VMCallComp(SgObject proc, SgObject tag)
+{
+  SgContinuation *cont;
+  SgContFrame *c, *cp = NULL;
+  SgObject contproc;
+  SgVM *vm = Sg_VM();
+
+  /*
+    save the continuation up to the tag.
+    here, we save everything even the tag doesn't exist in the continuation.
+
+    If this is too expensive, we can first check, but for now I'm lazy
+   */
+  save_cont_to_tag(vm, tag);
+  for (c = vm->cont; c && !cont_tag_match_p(c, tag); cp = c, c = c->prev) {
+    /* cl == NULL, means top as well */
+    if (c == cp || !c->cl) goto err;
+  }
+
+  cont = SG_NEW(SgContinuation);
+  cont->winders = vm->dynamicWinders;
+  cont->cont = vm->cont;
+  cont->prev = NULL;
+  cont->ehandler = SG_FALSE;
+  cont->cstack = NULL;		/* so that this continuation can be
+				   run on any cstack state. */
+  contproc = make_cont_subr(cont, tag);
+
+  return Sg_VMApply1(proc, contproc);
+ err:
+  Sg_Error(UC("No continuation tag: %S"), tag);
+  return SG_UNDEF;		/* dummy */
 }
 
 /* call-with-continuation-prompt
@@ -2165,12 +2258,10 @@ SgObject Sg_VMAbortCC(SgObject tag, SgObject args)
 
   /* search tag */
   while (TRUE) {
-    if (!cont || cont == cont->prev) {
+    if (!cont || cont == cont->prev || !cont->cl) {
       Sg_Error(UC("No continuation tag: %S"), tag);
     }
-    if (PROMPT_FRAME_MARK_P(cont)) {
-      if (SG_PAIRP(cont->pc) && SG_CAAR(cont->pc) == tag) break;
-    }
+    if (cont_tag_match_p(cont, tag)) break;
     cont = cont->prev;
   }
   winders = SG_CDDR(cont->pc);
@@ -2180,6 +2271,7 @@ SgObject Sg_VMAbortCC(SgObject tag, SgObject args)
     if (!SG_FALSEP(Sg_Memq(SG_CAR(cp), winders))) break;
     SG_APPEND1(h, t, Sg_Cons(SG_CDAR(cp), SG_CDR(cp)));
   }
+
   SG_FOR_EACH(cp, target) {
     SgObject chain = Sg_Memq(SG_CAR(cp), winders);
     SG_APPEND1(h, t, Sg_Cons(SG_CAAR(cp), SG_CDR(chain)));
@@ -2258,8 +2350,9 @@ SgObject evaluate_safe(SgObject program, SgWord *code)
       SgContinuation *c = (SgContinuation*)vm->escapeData[0];
       if (c->cstack == vm->cstack) {
 	SgObject handlers = throw_continuation_calculate_handlers(c, vm);
+	SgObject ed = vm->escapeData[1];
 	PC(vm) = PC_TO_RETURN;
-	AC(vm) = throw_continuation_body(handlers, c, vm->escapeData[1]);
+	AC(vm) = throw_continuation_body(handlers, c, SG_CAR(ed), SG_CDR(ed));
 	goto restart;
       } else {
  	ASSERT(vm->cstack && vm->cstack->prev);
@@ -2538,13 +2631,12 @@ static SgContFrame * print_cont1(SgContFrame *cont, SgVM *vm)
   Sg_Printf(vm->logPort, UC(";; %p + prev=%#38p +\n"),
 	    (uintptr_t)cont + offsetof(SgContFrame, prev), cont->prev);
 
-  if (cont == CONT(vm)) {
-    Sg_Printf(vm->logPort, 
-      UC(";; %p +---------------------------------------------+ < cont"), cont);
-  } else if (cont->prev) {
-    Sg_Printf(vm->logPort, 
-      UC(";; %p +---------------------------------------------+ < prev"), cont);
-  }
+  Sg_Printf(vm->logPort, 
+	    UC(";; %p +---------------------------------------------+ < %s"),
+	    cont, (cont == CONT(vm)) ? UC("cont")
+	          : (cont->prev) ? UC("prev")
+	          : UC("prompt"));
+
   if (BOUNDARY_FRAME_MARK_P(cont)) Sg_Printf(vm->logPort, UC("(boundary)"));
   if (PROMPT_FRAME_MARK_P(cont))
     Sg_Printf(vm->logPort, UC("%S"), SG_CAAR(cont->pc));
@@ -2584,13 +2676,16 @@ static void print_frames(SgVM *vm, SgContFrame *cont)
 
   Sg_Printf(vm->logPort, UC(";; stack: %p, cont: %p\n"),
 	    stack, cont);
-
   /* first dump cont in heap */
-  while (!IN_STACK_P((SgObject *)cont, vm)) {
-    cont = print_cont1(cont, vm);
-    if (!cont) break;
+  if (!IN_STACK_P((SgObject *)cont, vm)) {
+    Sg_Printf(vm->logPort, UC(";; %p +---------------------------------------------+ < sp%s\n"),
+	      cont, vm->fp == current? UC("/fp"): UC(""));
+    while (!IN_STACK_P((SgObject *)cont, vm)) {
+      cont = print_cont1(cont, vm);
+      if (!cont) break;
+    }
+    if (!cont) goto end;
   }
-  if (!cont) goto end;
 
   Sg_Printf(vm->logPort, UC(";; %p +---------------------------------------------+ < sp%s\n"),
 	    sp-1, vm->fp == current? UC("/fp"): UC(""));
@@ -2761,6 +2856,7 @@ void Sg__InitVM()
 #ifdef PROF_INSN
   Sg_AddCleanupHandler(show_inst_count, NULL);
 #endif
+  sym_continuation = Sg_MakeSymbol(SG_MAKE_STRING("continuation"), FALSE);
 }
 
 void Sg__PostInitVM()
