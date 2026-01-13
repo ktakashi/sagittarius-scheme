@@ -1528,7 +1528,7 @@ static SgObject throw_continuation_body(SgObject handlers,
        partial, we must return to the current continuation after executing
        the partial continuation.
     */
-    if (c->cstack == NULL) save_cont(vm);
+    if (!tag && c->cstack == NULL) save_cont(vm);
     if (tag) {
       /* if the tag is there, then it's composable continuation
 	 means, we add the continuation frame atop of the current
@@ -1542,7 +1542,8 @@ static SgObject throw_continuation_body(SgObject handlers,
     }
     vm->pc = return_code;
     vm->dynamicWinders = c->winders;
-
+    print_frames(vm, vm->cont);
+    fprintf(stderr, "********\n");
     /* store arguments of the continuation to ac */
     if (SG_NULLP(args)) {		/* no value */
       /* does this happen? */
@@ -2145,8 +2146,12 @@ static SG_DEFINE_SUBR(default_exception_handler_rec, 1, 0,
       CONT(vm) = cont__->prev;						\
       PC(vm) = cont__->pc;						\
       CL(vm) = cont__->cl;						\
-      FP(vm) = cont__->fp;						\
-      SP(vm) = FP(vm) + cont__->size;					\
+      if (IN_STACK_P((SgObject*)CONT(vm), vm)) {			\
+	FP(vm) = cont__->fp;						\
+	SP(vm) = FP(vm) + cont__->size;					\
+      } else {								\
+	FP(vm) = SP(vm);						\
+      }									\
     } else if (IN_STACK_P((SgObject*)CONT(vm), vm)) {			\
       SgContFrame *cont__ = CONT(vm);					\
       CONT(vm) = cont__->prev;						\
@@ -2598,12 +2603,47 @@ static void process_queued_requests(SgVM *vm)
   to avoid segmentation fault, we need to be careful with let frame.
   so make sure if it's fp or not before touch an stack element.
  */
+static void print_argument(SgVM *vm, SgContFrame *cont,
+			   SgObject *loc, SgObject p)
+{
+  SgString *fmt = SG_MAKE_STRING("+   p=~39,,,,39s +~%");
+  if (cont->fp == C_CONT_MARK) {
+    Sg_Printf(vm->logPort, UC(";; %p +   p=%#39p +\n"), loc, p);
+  } else {
+    Sg_Printf(vm->logPort, UC(";; %p "), loc);
+    Sg_Format(vm->logPort, fmt, SG_LIST1(p), TRUE);
+  }
+}
+
 static SgContFrame * print_cont1(SgContFrame *cont, SgVM *vm)
 {
-  SgObject *current = (SgObject *)cont;
-  int i;
   int size = cont->size;
   SgString *clfmt = SG_MAKE_STRING("+   cl=~38,,,,38s +~%");
+
+  /* cont's size is argc of previous cont frame */
+  /* dump arguments */
+  if (IN_STACK_P((SgObject*)cont, vm)) {
+    SgObject *current = (SgObject *)cont;
+    int i;
+    for (i = 0; i < size; i++, current--) {
+      print_argument(vm, cont, current-1, *(current-1));
+    }
+    if (size > 0) {
+      Sg_Printf(vm->logPort, 
+	UC(";; %p +---------------------------------------------+ < args\n"),
+	current);
+    }
+  } else {
+    int i;
+    for (i = 0; i < size; i++) {
+      print_argument(vm, cont, cont->env+i, *(cont->env+i));
+    }
+    if (size > 0) {
+      Sg_Printf(vm->logPort, 
+	UC(";; %p +---------------------------------------------+ < args/heap\n"),
+	cont->env+size);
+    }
+  }
 
   Sg_Printf(vm->logPort, UC(";; %p +   fp=%#38p +\n"),
 	    (uintptr_t)cont + offsetof(SgContFrame, fp), cont->fp);
@@ -2643,40 +2683,17 @@ static SgContFrame * print_cont1(SgContFrame *cont, SgVM *vm)
     Sg_Printf(vm->logPort, UC("%S"), SG_CAAR(cont->pc));
   Sg_Printf(vm->logPort, UC("\n"));
 
-  /* cont's size is argc of previous cont frame */
-  /* dump arguments */
-  if (IN_STACK_P((SgObject*)cont, vm)) {
-    for (i = 0; i < size; i++, current--) {
-      Sg_Printf(vm->logPort, UC(";; %p +   p=%#39p +\n"), current-1,
-		*(current-1));
-    }
-    if (size > 0) {
-      Sg_Printf(vm->logPort, 
-	UC(";; %p +---------------------------------------------+ < args\n"),
-	current);
-    }
-  } else {
-    for (i = 0; i < size; i++) {
-      Sg_Printf(vm->logPort, UC(";; %p +   p=%#39x +\n"), cont->env+i,
-		*(cont->env+i));
-    }
-    if (size > 0) {
-      Sg_Printf(vm->logPort, 
-	UC(";; %p +---------------------------------------------+ < args/heap\n"),
-	cont->env+size);
-    }
-  }
   return cont->prev;
 }
 
 static void print_frames(SgVM *vm, SgContFrame *cont)
 {
   SgObject *stack = vm->stack, *sp = SP(vm);
-  SgObject *current = sp-1;
-  Sg_Printf(vm->logPort, UC(";; stack: %p, cont: %p\n"), stack, cont);
+  Sg_Printf(vm->logPort, UC(";; stack: %p, cont: %p, sp: %p, fp: %p\n"),
+	    stack, cont, vm->sp, vm->fp);
 
   Sg_Printf(vm->logPort, 
-    UC(";; %p +---------------------------------------------+ < cont%s%s%s\n"),
+    UC(";; %p +---------------------------------------------+ < top%s%s%s\n"),
     cont, 
     !IN_STACK_P((SgObject *)cont, vm) ? UC("/heap") : UC(""), 
     (intptr_t)cont == (intptr_t)sp-1 ? UC("/sp") : UC(""), 
