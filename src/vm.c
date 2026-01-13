@@ -2158,25 +2158,26 @@ static SgContFrame *skip_prompt_frame(SgContFrame *cont)
       CL(vm) = CONT(vm)->cl;						\
       CONT(vm) = CONT(vm)->prev;					\
       AC(vm) = after__(v__, data__);					\
-    } else if (IN_STACK_P((SgObject*)CONT(vm), vm)) {			\
-      SgContFrame *cont__ = skip_prompt_frame(CONT(vm));		\
-      CONT(vm) = cont__->prev;						\
-      PC(vm) = cont__->pc;						\
-      CL(vm) = cont__->cl;						\
-      FP(vm) = cont__->fp;						\
-      SP(vm) = FP(vm) + cont__->size;					\
     } else {								\
       SgContFrame *cont__ = skip_prompt_frame(CONT(vm));		\
-      int size__ = cont__->size;					\
-      FP(vm) = SP(vm) = vm->stack;					\
-      PC(vm) = cont__->pc;						\
-      CL(vm) = cont__->cl;						\
-      CONT(vm) = cont__->prev;						\
-      if (size__) {							\
-	SgObject *s__ = cont__->env, *d__ = SP(vm);			\
-	SP(vm) += size__;						\
-	while (size__-- > 0) {						\
-	  *d__++ = *s__++;						\
+      if (IN_STACK_P((SgObject *)cont__, vm)) {				\
+	CONT(vm) = cont__->prev;					\
+	PC(vm) = cont__->pc;						\
+	CL(vm) = cont__->cl;						\
+	FP(vm) = cont__->fp;						\
+	SP(vm) = FP(vm) + cont__->size;					\
+      } else {								\
+	int size__ = cont__->size;					\
+	FP(vm) = SP(vm) = vm->stack;					\
+	PC(vm) = cont__->pc;						\
+	CL(vm) = cont__->cl;						\
+	CONT(vm) = cont__->prev;					\
+	if (size__) {							\
+	  SgObject *s__ = cont__->env, *d__ = SP(vm);			\
+	  SP(vm) += size__;						\
+	  while (size__-- > 0) {					\
+	    *d__++ = *s__++;						\
+	  }								\
 	}								\
       }									\
     }									\
