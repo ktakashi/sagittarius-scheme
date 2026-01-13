@@ -1409,8 +1409,8 @@ static void save_cont_rec(SgVM *vm, int partialP, SgObject tag)
       c->size = -1;
     }
     c = tmp;
-    
-  } while (c != vm->stack && c != c->prev && c != c->prev->prev);
+  } while (c && (SgObject *)c != vm->stack &&
+	   c != c->prev && c != c->prev->prev);
 
   if (FORWARDED_CONT_P(vm->cont)) {
     vm->cont = FORWARDED_CONT(vm->cont);
@@ -2139,37 +2139,29 @@ static SG_DEFINE_SUBR(default_exception_handler_rec, 1, 0,
       CL(vm) = CONT(vm)->cl;						\
       CONT(vm) = CONT(vm)->prev;					\
       AC(vm) = after__(v__, data__);					\
-    } else if (PROMPT_FRAME_MARK_P(CONT(vm))) {				\
-      SgContFrame *cont__ = CONT(vm)->prev;				\
-      CONT(vm) = cont__->prev;						\
-      PC(vm) = cont__->pc;						\
-      CL(vm) = cont__->cl;						\
-      if (IN_STACK_P((SgObject*)CONT(vm), vm)) {			\
-	FP(vm) = cont__->fp;						\
-	SP(vm) = FP(vm) + cont__->size;					\
-      } else {								\
-	FP(vm) = SP(vm);						\
-      }									\
     } else if (IN_STACK_P((SgObject*)CONT(vm), vm)) {			\
-      SgContFrame *cont__ = CONT(vm);					\
+      SgContFrame *cont__ =						\
+	(PROMPT_FRAME_MARK_P(CONT(vm))) ? CONT(vm)->prev : CONT(vm);	\
       CONT(vm) = cont__->prev;						\
       PC(vm) = cont__->pc;						\
       CL(vm) = cont__->cl;						\
       FP(vm) = cont__->fp;						\
       SP(vm) = FP(vm) + cont__->size;					\
     } else {								\
-      int size__ = CONT(vm)->size;					\
+      SgContFrame *cont__ =						\
+	(PROMPT_FRAME_MARK_P(CONT(vm))) ? CONT(vm)->prev : CONT(vm);	\
+      int size__ = cont__->size;					\
       FP(vm) = SP(vm) = vm->stack;					\
-      PC(vm) = CONT(vm)->pc;						\
-      CL(vm) = CONT(vm)->cl;						\
+      PC(vm) = cont__->pc;						\
+      CL(vm) = cont__->cl;						\
+      CONT(vm) = cont__->prev;						\
       if (size__) {							\
-	SgObject *s__ = CONT(vm)->env, *d__ = SP(vm);			\
+	SgObject *s__ = cont__->env, *d__ = SP(vm);			\
 	SP(vm) += size__;						\
 	while (size__-- > 0) {						\
 	  *d__++ = *s__++;						\
 	}								\
       }									\
-      CONT(vm) = CONT(vm)->prev;					\
     }									\
   } while (0)
 
@@ -2696,7 +2688,7 @@ static void print_frames(SgVM *vm, SgContFrame *cont)
     !IN_STACK_P((SgObject *)cont, vm) ? UC("/heap") : UC(""), 
     (intptr_t)cont == (intptr_t)sp-1 ? UC("/sp") : UC(""), 
     (intptr_t)vm->fp == (intptr_t)cont ? UC("/fp") : UC(""));
-  while (cont && cont != vm->stack &&
+  while (cont && (SgObject *)cont != vm->stack &&
 	 cont != cont->prev && cont != cont->prev->prev) {
     cont = print_cont1(cont, vm);
   }
