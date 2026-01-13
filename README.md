@@ -197,6 +197,12 @@ NB: If you install `gc` without build option, then default is without
 thread support. In such a case, you need to install `gc-threaded` as
 well.
 
+The command below installs the requried dependencies.
+
+```sh
+pkg install curl libffi boehm-gc-threaded cmake openssl bash
+```
+
 ## Building on OpenBSD
 
 For OpenBSD, you can use `pkg_add` command to install dependencies.
