@@ -1388,29 +1388,27 @@ static int cont_tag_match_p(SgContFrame *c, SgObject tag)
   pass1: save cont frame to heap
   pass2: update cstack etc.
  */
-static void save_cont_rec(SgVM *vm, int partialP, SgObject tag)
+static void save_cont_rec(SgVM *vm, int partialP)
 {
   SgContFrame *c = CONT(vm), *prev = NULL;
   SgCStack *cstk;
   SgContinuation *ep;
 
+  if (!(IN_STACK_P((SgObject *)c, vm))) return;
+  
   do {
     SgContFrame *csave, *tmp;
     if (partialP && BOUNDARY_FRAME_MARK_P(c)) break;
-    csave = (IN_STACK_P((SgObject *)c, vm)) ? save_a_cont(c) : c;
+    csave = save_a_cont(c);
     /* make the orig frame forwarded */
     if (prev) prev->prev = csave;
-    if (tag && cont_tag_match_p(c, tag)) break;
     
     prev = csave;
     tmp = c->prev;
-    if (IN_STACK_P((SgObject *)c, vm)) {
-      c->prev = csave;
-      c->size = -1;
-    }
+    c->prev = csave;
+    c->size = -1;
     c = tmp;
-  } while (c && (SgObject *)c != vm->stack &&
-	   c != c->prev && c != c->prev->prev);
+  } while (IN_STACK_P((SgObject *)c, vm));
 
   if (FORWARDED_CONT_P(vm->cont)) {
     vm->cont = FORWARDED_CONT(vm->cont);
@@ -1434,18 +1432,18 @@ static void save_cont_rec(SgVM *vm, int partialP, SgObject tag)
 
 static void save_cont(SgVM *vm)
 {
-  save_cont_rec(vm, FALSE, NULL);
+  save_cont_rec(vm, FALSE);
 }
 
 static void save_partial_cont(SgVM *vm)
 {
-  save_cont_rec(vm, TRUE, NULL);
+  save_cont_rec(vm, TRUE);
 }
 
-static void save_cont_to_tag(SgVM *vm, SgObject tag)
-{
-  save_cont_rec(vm, FALSE, tag);
-}
+/* static void save_cont_to_tag(SgVM *vm, SgObject tag) */
+/* { */
+/*   save_cont_rec(vm, FALSE, tag); */
+/* } */
 
 static void expand_stack(SgVM *vm)
 {
@@ -1711,12 +1709,27 @@ SgObject Sg_VMCallComp(SgObject proc, SgObject tag)
   SgVM *vm = Sg_VM();
 
   /*
+    NOT DOING IT FOR NOW.
     save the continuation up to the tag.
     here, we save everything even the tag doesn't exist in the continuation.
-
-    If this is too expensive, we can first check, but for now I'm lazy
    */
-  save_cont_to_tag(vm, tag);
+  /* save_cont_to_tag(vm, tag); */
+  /*
+    Ideally, we should save only the required continuation frame,
+    to reduce memory usage. Though, the current save_cont expects
+    the continuation frame to be in stack and if it's partially saved,
+    then it won't save the remaining frames next time.
+    e.g.
+      1st [heap][heap][prompt][stack][stack]
+      2nd call will not save [stack], and full continuation created by
+      call/cc would fail to restore.
+    So for now, we save all the continuation frame, then when the saved
+    continuation is invoked, we simply put them on top of the current
+    continuation (as composable continuation requires)
+    
+    If the memory usage becomes a problem, we will revisit.
+   */
+  save_cont(vm);
   for (c = vm->cont; c && !cont_tag_match_p(c, tag); cp = c, c = c->prev) {
     /* cl == NULL, means top as well */
     if (c == cp || !c->cl) goto err;
@@ -2118,6 +2131,12 @@ static SG_DEFINE_SUBR(default_exception_handler_rec, 1, 0,
 
 #define TAIL_POS(vm)  (*PC(vm) == RET)
 
+static SgContFrame *skip_prompt_frame(SgContFrame *cont)
+{
+  while (PROMPT_FRAME_MARK_P(cont)) cont = cont->prev;
+  return cont;
+}
+
 #define POP_CONT()							\
   do {									\
     if (CONT(vm)->fp == C_CONT_MARK) {					\
@@ -2140,16 +2159,14 @@ static SG_DEFINE_SUBR(default_exception_handler_rec, 1, 0,
       CONT(vm) = CONT(vm)->prev;					\
       AC(vm) = after__(v__, data__);					\
     } else if (IN_STACK_P((SgObject*)CONT(vm), vm)) {			\
-      SgContFrame *cont__ =						\
-	(PROMPT_FRAME_MARK_P(CONT(vm))) ? CONT(vm)->prev : CONT(vm);	\
+      SgContFrame *cont__ = skip_prompt_frame(CONT(vm));		\
       CONT(vm) = cont__->prev;						\
       PC(vm) = cont__->pc;						\
       CL(vm) = cont__->cl;						\
       FP(vm) = cont__->fp;						\
       SP(vm) = FP(vm) + cont__->size;					\
     } else {								\
-      SgContFrame *cont__ =						\
-	(PROMPT_FRAME_MARK_P(CONT(vm))) ? CONT(vm)->prev : CONT(vm);	\
+      SgContFrame *cont__ = skip_prompt_frame(CONT(vm));		\
       int size__ = cont__->size;					\
       FP(vm) = SP(vm) = vm->stack;					\
       PC(vm) = cont__->pc;						\
@@ -2679,8 +2696,8 @@ static SgContFrame * print_cont1(SgContFrame *cont, SgVM *vm)
 static void print_frames(SgVM *vm, SgContFrame *cont)
 {
   SgObject *stack = vm->stack, *sp = SP(vm);
-  Sg_Printf(vm->logPort, UC(";; stack: %p, cont: %p, sp: %p, fp: %p\n"),
-	    stack, cont, vm->sp, vm->fp);
+  Sg_Printf(vm->logPort, UC(";; stack: %p, cont: %p\n"), stack, vm->cont);
+  Sg_Printf(vm->logPort, UC(";; sp: %p, fp: %p, pc: %p\n"), sp, vm->fp, vm->pc);
 
   Sg_Printf(vm->logPort, 
     UC(";; %p +---------------------------------------------+ < top%s%s%s\n"),
