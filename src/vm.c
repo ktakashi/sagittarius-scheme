@@ -1394,23 +1394,23 @@ static void save_cont_rec(SgVM *vm, int partialP, SgObject tag)
   SgCStack *cstk;
   SgContinuation *ep;
 
-  if (!IN_STACK_P((SgObject*)c, vm)) return;
-
   do {
     SgContFrame *csave, *tmp;
     if (partialP && BOUNDARY_FRAME_MARK_P(c)) break;
-    csave = save_a_cont(c);
+    csave = (IN_STACK_P((SgObject *)c, vm)) ? save_a_cont(c) : c;
     /* make the orig frame forwarded */
     if (prev) prev->prev = csave;
     if (tag && cont_tag_match_p(c, tag)) break;
     
     prev = csave;
     tmp = c->prev;
-    c->prev = csave;
-    c->size = -1;
+    if (IN_STACK_P((SgObject *)c, vm)) {
+      c->prev = csave;
+      c->size = -1;
+    }
     c = tmp;
     
-  } while (IN_STACK_P((SgObject*)c, vm));
+  } while (c != vm->stack && c != c->prev && c != c->prev->prev);
 
   if (FORWARDED_CONT_P(vm->cont)) {
     vm->cont = FORWARDED_CONT(vm->cont);
@@ -1528,7 +1528,7 @@ static SgObject throw_continuation_body(SgObject handlers,
        partial, we must return to the current continuation after executing
        the partial continuation.
     */
-    if (!tag && c->cstack == NULL) save_cont(vm);
+    if (tag || c->cstack == NULL) save_cont(vm);
     if (tag) {
       /* if the tag is there, then it's composable continuation
 	 means, we add the continuation frame atop of the current
@@ -1542,8 +1542,6 @@ static SgObject throw_continuation_body(SgObject handlers,
     }
     vm->pc = return_code;
     vm->dynamicWinders = c->winders;
-    print_frames(vm, vm->cont);
-    fprintf(stderr, "********\n");
     /* store arguments of the continuation to ac */
     if (SG_NULLP(args)) {		/* no value */
       /* does this happen? */
@@ -2698,7 +2696,8 @@ static void print_frames(SgVM *vm, SgContFrame *cont)
     !IN_STACK_P((SgObject *)cont, vm) ? UC("/heap") : UC(""), 
     (intptr_t)cont == (intptr_t)sp-1 ? UC("/sp") : UC(""), 
     (intptr_t)vm->fp == (intptr_t)cont ? UC("/fp") : UC(""));
-  while (cont && cont != cont->prev) {
+  while (cont && cont != vm->stack &&
+	 cont != cont->prev && cont != cont->prev->prev) {
     cont = print_cont1(cont, vm);
   }
   
