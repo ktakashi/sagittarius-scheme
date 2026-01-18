@@ -15,6 +15,9 @@ have it on your platform, please install it.
 The minimum required version of CMake is 3.12. The older version may
 work but not guaranteed.
 
+The runtime of Sagittarius is written in C. The C compiler must support
+C11 features.
+
 ## Quick build/install (for Unix like environment)
 
 If your environment already has required libraries and just want to
@@ -221,7 +224,7 @@ innosetup for it. Please install it.
 
  - [Inno Setup](http://www.jrsoftware.org/)
 
-You need to install MSVC preferably Visual Studio 2010 or higher. Run
+You need to install MSVC preferably Visual Studio 2019 or higher. Run
 `Visual Studio Command Prompt` and go to the directory which Sagittarius
 source codes are expanded.
 
