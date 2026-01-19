@@ -1487,13 +1487,9 @@ static SgContFrame * splice_cont(SgContFrame *cur, SgContFrame *saved,
 				 SgObject tag)
 {
   SgContFrame *c = saved->prev, *cp = NULL, *top = NULL;
-
-  /* we don't copy prompt frame */
-  if (cont_tag_match_p(saved, tag)) return cur;
-
   cp = top = copy_a_cont(saved);
 
-  while (!cont_tag_match_p(c, tag)) {
+  while (!cont_tag_match_p(cp, tag)) {
     SgContFrame *cs = copy_a_cont(c);
     cp->prev = cs;
     cp = cs;
@@ -1531,7 +1527,7 @@ static SgObject throw_continuation_body(SgObject handlers,
        partial, we must return to the current continuation after executing
        the partial continuation.
     */
-    if (tag || c->cstack == NULL) save_cont(vm);
+    if (c->cstack == NULL) save_cont(vm);
     if (tag) {
       /* if the tag is there, then it's composable continuation
 	 means, we add the continuation frame atop of the current
@@ -2200,18 +2196,18 @@ static SgContFrame *skip_prompt_frame(SgContFrame *cont)
     if ((vm)->finalizerPending) Sg_VMFinalizerRun(vm);	\
   } while (0)
 
-SgObject Sg_VMDefaultAbortHandler(SgObject args)
+SgObject Sg_VMDefaultAbortHandler(SgObject tag, SgObject args)
 {
   /* Racket's default-abort-handler is stricter.
      But we are very lenient :) */
   int nargs = Sg_Length(args);
-
+  Sg_Printf(Sg_StandardErrorPort(), UC("args: %S\n"), args);
   if (nargs == 0) return SG_UNDEF;
 
   if (SG_PROCEDUREP(SG_CAR(args))) {
-    return Sg_VMApply(SG_CAR(args), SG_CDR(args));
+    return Sg_VMCallCP(SG_CAR(args), tag, SG_FALSE, SG_CDR(args));
   }
-  return args;			/* just return */
+  return args;
 }
 
 /*
@@ -2223,20 +2219,21 @@ SgObject Sg_VMDefaultAbortHandler(SgObject args)
  */
 static SgObject abort_cc(SgObject, void **);
 static SgObject abort_end(SgObject, void **);
-static SgObject abort_body(SgObject winders, SgObject handler,
+static SgObject abort_body(SgObject tag, SgObject winders, SgObject handler,
 			   SgCStack *cstack, SgObject args)
 {
   SgVM *vm = theVM;
   if (SG_PAIRP(winders)) {
     SgObject winder, chain;
-    void *data[4];
+    void *data[5];
     winder = SG_CAAR(winders);
     chain = SG_CDAR(winders);
-    data[0] = SG_CDR(winders);
-    data[1] = handler;
-    data[2] = cstack;
-    data[3] = args;
-    Sg_VMPushCC(abort_cc, data, 4);
+    data[0] = tag;
+    data[1] = SG_CDR(winders);
+    data[2] = handler;
+    data[3] = cstack;
+    data[4] = args;
+    Sg_VMPushCC(abort_cc, data, 5);
     vm->dynamicWinders = chain;
     return Sg_VMApply0(winder);
   } else {
@@ -2244,7 +2241,7 @@ static SgObject abort_body(SgObject winders, SgObject handler,
     data[0] = cstack;
     Sg_VMPushCC(abort_end, data, 1);
     if (SG_FALSEP(handler)) {
-      return Sg_VMDefaultAbortHandler(args);
+      return Sg_VMDefaultAbortHandler(tag, args);
     } else {
       return Sg_VMApply(handler, args);
     }
@@ -2253,8 +2250,8 @@ static SgObject abort_body(SgObject winders, SgObject handler,
 
 static SgObject abort_cc(SgObject r, void **data)
 {
-  return abort_body(SG_OBJ(data[0]), SG_OBJ(data[1]),
-		    (SgCStack *)data[2], SG_OBJ(data[3]));
+  return abort_body(SG_OBJ(data[0]), SG_OBJ(data[1]), SG_OBJ(data[2]),
+		    (SgCStack *)data[3], SG_OBJ(data[4]));
 }
 
 static SgObject abort_end(SgObject r, void **data)
@@ -2291,8 +2288,9 @@ SgObject Sg_VMAbortCC(SgObject tag, SgObject args)
     SgObject chain = Sg_Memq(SG_CAR(cp), winders);
     SG_APPEND1(h, t, Sg_Cons(SG_CAAR(cp), SG_CDR(chain)));
   }
-  vm->cont = cont;
-  return abort_body(h, SG_CADR(cont->pc), (SgCStack *)SG_CDAR(cont->pc), args);
+  vm->cont = cont->prev;
+  return abort_body(tag, h, SG_CADR(cont->pc),
+		    (SgCStack *)SG_CDAR(cont->pc), args);
 }
 
 SgObject evaluate_safe(SgObject program, SgWord *code)
@@ -2629,7 +2627,8 @@ static void print_argument(SgVM *vm, SgContFrame *cont,
 static SgContFrame * print_cont1(SgContFrame *cont, SgVM *vm)
 {
   int size = cont->size;
-  SgString *clfmt = SG_MAKE_STRING("+   cl=~38,,,,38s +~%");
+  SgString *pfmt = SG_MAKE_STRING("+   ~a=~38,,,,38s +~%");
+  SgObject cl = SG_INTERN("cl"), pc = SG_INTERN("pc");
 
   /* cont's size is argc of previous cont frame */
   /* dump arguments */
@@ -2661,12 +2660,19 @@ static SgContFrame * print_cont1(SgContFrame *cont, SgVM *vm)
   Sg_Printf(vm->logPort, UC(";; %p "),
 	    (uintptr_t)cont + offsetof(SgContFrame, cl));
   if (cont->cl) {
-    Sg_Format(vm->logPort, clfmt, SG_LIST1(cont->cl), TRUE);
+    Sg_Format(vm->logPort, pfmt, SG_LIST2(cl, cont->cl), TRUE);
   } else {
-    Sg_Format(vm->logPort, clfmt, SG_LIST1(SG_FALSE), TRUE);
+    Sg_Format(vm->logPort, pfmt, SG_LIST2(cl, SG_FALSE), TRUE);
   }
-  Sg_Printf(vm->logPort, UC(";; %p +   pc=%#38p +\n"),
-	    (uintptr_t)cont + offsetof(SgContFrame, pc), cont->pc);
+  if (PROMPT_FRAME_MARK_P(cont)) {
+    Sg_Printf(vm->logPort, UC(";; %p "),
+	      (uintptr_t)cont + offsetof(SgContFrame, pc));
+    Sg_Format(vm->logPort, pfmt,
+	      SG_LIST2(pc, Sg_Cons(SG_CAAR(cont->pc), SG_CADR(cont->pc))), TRUE);
+  } else {
+    Sg_Printf(vm->logPort, UC(";; %p +   pc=%#38p +\n"),
+		(uintptr_t)cont + offsetof(SgContFrame, pc), cont->pc);
+  }
 #if SIZEOF_LONG == 8
   Sg_Printf(vm->logPort, UC(";; %p + type=%#38d +\n"),
 	    (uintptr_t)cont + offsetof(SgContFrame, type), cont->type);

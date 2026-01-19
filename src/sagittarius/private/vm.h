@@ -389,7 +389,7 @@ SG_EXTERN SgObject Sg_VMCallCP(SgObject proc, SgObject tag,
 			       SgObject handler, SgObject args);
 SG_EXTERN SgObject Sg_VMCallComp(SgObject proc, SgObject tag);
 SG_EXTERN SgObject Sg_VMAbortCC(SgObject tag, SgObject args);
-SG_EXTERN SgObject Sg_VMDefaultAbortHandler(SgObject args);
+SG_EXTERN SgObject Sg_VMDefaultAbortHandler(SgObject tag, SgObject args);
 SG_EXTERN int      Sg_ContinuationP(SgObject o);
 SG_EXTERN SgVM*    Sg_VM();	/* get vm */
 SG_EXTERN int      Sg_SetCurrentVM(SgVM *vm);
