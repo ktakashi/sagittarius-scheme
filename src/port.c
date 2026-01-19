@@ -142,8 +142,35 @@ SG_DEFINE_BUILTIN_CLASS(Sg_BytePortClass,
 			port_print, NULL, NULL, NULL,
 			port_cpl);
 
+static void string_port_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
+{
+  SgPort *p = SG_PORT(obj);
+  SG_PORT_LOCK_WRITE(port);
+  Sg_PutuzUnsafe(port, UC("#<string-"));
+
+  if (SG_BIDIRECTIONAL_PORTP(p)) {
+    /* it's debug purpose anyway */
+    Sg_PutuzUnsafe(port, UC("-bidirectional-port"));
+  } else if (SG_IN_OUT_PORTP(p)) {
+    Sg_PutuzUnsafe(port, UC("-input/output-port"));
+  } else if (SG_INPUT_PORTP(p)) {
+    Sg_PutuzUnsafe(port, UC("-input-port"));
+    Sg_Printf(port, UC(" size: %d, index: %d"),
+	      SG_STRING_PORT(obj)->buffer.end - SG_STRING_PORT(obj)->buffer.buf,
+	      SG_STRING_PORT(obj)->buffer.index);
+  } else if (SG_OUTPUT_PORTP(p)) {
+    int size;
+    SG_STREAM_BUFFER_COUNTC(size, SG_STRING_PORT(obj)->buffer.start);
+    Sg_PutuzUnsafe(port, UC("-output-port"));
+    Sg_Printf(port, UC(" size: %d"), size);
+  } 
+
+  Sg_PutcUnsafe(port, '>');
+  SG_PORT_UNLOCK_WRITE(port);
+}
+
 SG_DEFINE_BUILTIN_CLASS(Sg_StringPortClass,
-			port_print, NULL, NULL, NULL,
+			string_port_print, NULL, NULL, NULL,
 			port_cpl);
 
 static void trans_port_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
