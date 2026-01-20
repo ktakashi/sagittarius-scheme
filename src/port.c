@@ -146,7 +146,7 @@ static void string_port_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {
   SgPort *p = SG_PORT(obj);
   SG_PORT_LOCK_WRITE(port);
-  Sg_PutuzUnsafe(port, UC("#<string-"));
+  Sg_PutuzUnsafe(port, UC("#<string"));
 
   if (SG_BIDIRECTIONAL_PORTP(p)) {
     /* it's debug purpose anyway */
