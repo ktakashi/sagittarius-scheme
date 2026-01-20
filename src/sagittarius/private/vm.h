@@ -188,6 +188,26 @@ typedef struct values_buffer_t
     }									\
   } while (0)
 
+/* A prompt will be installed in a PC of cont frame */
+typedef struct SgPromptRec
+{
+  SgObject tag;
+  SgObject handler;
+  SgCStack *cstack;
+  SgObject winders;
+} SgPrompt;
+/* deque of prompt
+   installation -> prepend
+   splice -> append
+*/
+typedef struct SgPromptNodeRec
+{
+  SgPrompt        *prompt;
+  SgContFrame     *frame;
+  struct SgPromptNodeRec *prev;
+  struct SgPromptNodeRec *next;
+} SgPromptNode;
+
 struct SgVMRec
 {
   SG_HEADER;
@@ -212,6 +232,7 @@ struct SgVMRec
   SgObject *fp;			/* frame pointer */
   SgObject *sp;			/* stack pointer */
   SgContFrame  *cont;     	/* saved continuation frame */
+  SgPromptNode *prompts;	/* prompt chain, this is the top */
   /* values buffer */
   int      valuesCount;
   SgObject values[DEFAULT_VALUES_SIZE];
