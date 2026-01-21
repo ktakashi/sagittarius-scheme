@@ -1664,8 +1664,9 @@ static SgObject remove_common_winders(SgObject current, SgObject escapes)
   return r;
 }
 
-static SgObject throw_continuation_calculate_handlers(SgContinuation *c,
-						      SgVM *vm)
+static SgObject throw_cont_compute_handlers(SgContinuation *c,
+					    SgPrompt *prompt,
+					    SgVM *vm)
 {
   SgObject current = vm->dynamicWinders;
   SgObject target = remove_common_winders(current, c->winders);
@@ -1693,6 +1694,7 @@ static SgObject throw_continuation(SgObject *argv, int argc, void *data)
   SgContinuation *c = (SgContinuation*)SG_CAR(data);
   SgObject handlers_to_call;
   SgVM *vm = Sg_VM();
+  SgPrompt *prompt = (SgPrompt *)SG_CDR(data);
 
   if (c->cstack && vm->cstack != c->cstack) {
     SgCStack *cs;
@@ -1702,14 +1704,13 @@ static SgObject throw_continuation(SgObject *argv, int argc, void *data)
     if (cs != NULL) {
       vm->escapeReason = SG_VM_ESCAPE_CONT;
       vm->escapeData[0] = c;
-      vm->escapeData[1] = Sg_Cons(argv[0], SG_CDR(data));
+      vm->escapeData[1] = Sg_Cons(argv[0], prompt);
       longjmp(vm->cstack->jbuf, 1);
     }
     save_cont(vm);
   }
-  handlers_to_call = throw_continuation_calculate_handlers(c, vm);
-  return throw_continuation_body(handlers_to_call, c, argv[0],
-				 (SgPrompt *)SG_CDR(data));
+  handlers_to_call = throw_cont_compute_handlers(c, prompt, vm);
+  return throw_continuation_body(handlers_to_call, c, argv[0], prompt);
 }
 
 static SgObject sym_continuation = SG_FALSE;
@@ -2342,7 +2343,7 @@ SgObject Sg_VMDefaultAbortHandler(SgObject tag, SgObject args)
  */
 static SgObject abort_cc(SgObject, void **);
 static SgObject abort_end(SgObject, void **);
-static SgObject abort_body(SgPrompt *prompt, SgObject winders, SgObject args)
+static SgObject abort_body(SgPromptNode *node, SgObject winders, SgObject args)
 {
   SgVM *vm = theVM;
   if (SG_PAIRP(winders)) {
@@ -2350,7 +2351,7 @@ static SgObject abort_body(SgPrompt *prompt, SgObject winders, SgObject args)
     void *data[3];
     winder = SG_CAAR(winders);
     chain = SG_CDAR(winders);
-    data[0] = prompt;
+    data[0] = node;
     data[1] = SG_CDR(winders);
     data[2] = args;
     Sg_VMPushCC(abort_cc, data, 3);
@@ -2358,6 +2359,11 @@ static SgObject abort_body(SgPrompt *prompt, SgObject winders, SgObject args)
     return Sg_VMApply0(winder);
   } else {
     void *data[1];
+    SgPrompt *prompt = node->prompt;
+    /* reset the cont frame after the winder invocation */
+    vm->cont = node->frame->prev;
+    vm->prompts = node->next;
+    
     data[0] = prompt->cstack;
     Sg_VMPushCC(abort_end, data, 1);
     if (SG_FALSEP(prompt->handler)) {
@@ -2370,7 +2376,7 @@ static SgObject abort_body(SgPrompt *prompt, SgObject winders, SgObject args)
 
 static SgObject abort_cc(SgObject r, void **data)
 {
-  return abort_body((SgPrompt *)(data[0]), SG_OBJ(data[1]), SG_OBJ(data[2]));
+  return abort_body((SgPromptNode *)(data[0]), SG_OBJ(data[1]), SG_OBJ(data[2]));
 }
 
 static SgObject abort_end(SgObject r, void **data)
@@ -2384,7 +2390,6 @@ static SgObject abort_end(SgObject r, void **data)
 SgObject Sg_VMAbortCC(SgObject tag, SgObject args)
 {
   SgVM *vm = theVM;
-  SgContFrame *cont = NULL;
   SgObject h = SG_NIL, t = SG_NIL, cp, target, winders;
   SgPromptNode *node = search_prompt_node_by_tag(vm, tag);
   SgPrompt *prompt = NULL;
@@ -2392,7 +2397,6 @@ SgObject Sg_VMAbortCC(SgObject tag, SgObject args)
   if (!node) Sg_Error(UC("No continuation tag: %S"), tag);
 
   prompt = node->prompt;
-  cont = node->frame;
   
   winders = prompt->winders;
   target = remove_common_winders(vm->dynamicWinders, winders);
@@ -2406,9 +2410,7 @@ SgObject Sg_VMAbortCC(SgObject tag, SgObject args)
     SgObject chain = Sg_Memq(SG_CAR(cp), winders);
     SG_APPEND1(h, t, Sg_Cons(SG_CAAR(cp), SG_CDR(chain)));
   }
-  vm->cont = cont->prev;
-  vm->prompts = node->next;
-  return abort_body(prompt, h, args);
+  return abort_body(node, h, args);
 }
 
 SgObject evaluate_safe(SgObject program, SgWord *code)
@@ -2480,9 +2482,9 @@ SgObject evaluate_safe(SgObject program, SgWord *code)
     if (vm->escapeReason == SG_VM_ESCAPE_CONT) {
       SgContinuation *c = (SgContinuation*)vm->escapeData[0];
       if (c->cstack == vm->cstack) {
-	SgObject handlers = throw_continuation_calculate_handlers(c, vm);
 	SgObject ed = vm->escapeData[1];
 	SgPrompt *p = (SgPrompt *)SG_CDR(ed);
+	SgObject handlers = throw_cont_compute_handlers(c, p, vm);
 	PC(vm) = PC_TO_RETURN;
 	AC(vm) = throw_continuation_body(handlers, c, SG_CAR(ed), p);
 	goto restart;
