@@ -2415,14 +2415,15 @@ static SgObject abort_body(SgPromptNode *node, SgObject winders, SgObject args)
       if (PROMPT_FRAME_MARK_P(cont)) remove_prompt(vm, (SgPrompt *)cont->pc);
       cont = cont->prev;
     }
-    /* reset the cont frame after the winder invocation */
-    remove_prompt(vm, prompt);
+
     if (prompt->cstack != vm->cstack) {
       vm->escapeReason = SG_VM_ESCAPE_ABORT;
       vm->escapeData[0] = node;
       vm->escapeData[1] = args;
       longjmp(prompt->cstack->jbuf, 1);
     }
+    /* reset the cont frame after the winder invocation */
+    remove_prompt(vm, prompt);
     vm->cont = node->frame->prev;
     return abort_invoke_handler(prompt, args);
   }
@@ -2555,6 +2556,7 @@ SgObject evaluate_safe(SgObject program, SgWord *code)
       SgPromptNode *node = (SgPromptNode *)vm->escapeData[0];
       if (node->prompt->cstack == vm->cstack) {
 	SgObject args = SG_OBJ(vm->escapeData[1]);
+	remove_prompt(vm, node->prompt);
 	CONT(vm) = node->frame->prev;
 	PC(vm) = PC_TO_RETURN;
 	AC(vm) = abort_invoke_handler(node->prompt, args);
