@@ -1664,6 +1664,39 @@ static SgObject remove_common_winders(SgObject current, SgObject escapes)
   return r;
 }
 
+/*
+  when the continuation is captured with call/comp, then the prompt
+  is also provided.
+  
+ */
+static SgObject take_prompt_winters(SgPrompt *prompt, SgObject winders)
+{
+  /* now we only need the uncommon winders, e.g.
+     (call/prompt         ;; p1
+       (lambda ()
+         (dynamic-wind
+	   pre1
+	   (lambda ()
+	     (call/prompt ;; p2
+	       (lambda ()
+	         (dynamic-wind
+		   pre2
+		   (lambda () (call/comp (lambda (k) k)))
+		   post2))))
+	   post1)))
+     when the returned `k` is invoked then we only want to invoke
+     winders of below p2
+   */
+  SgObject p;
+  if (SG_NULLP(winders)) return winders;
+
+  SG_FOR_EACH(p, winders) {
+    if (SG_FALSEP(Sg_Memq(SG_CAR(p), prompt->winders))) return p;
+  }
+  /* no uncommon winders */
+  return SG_NIL;
+}
+
 static SgObject throw_cont_compute_handlers(SgContinuation *c,
 					    SgPrompt *prompt,
 					    SgVM *vm)
@@ -1672,6 +1705,8 @@ static SgObject throw_cont_compute_handlers(SgContinuation *c,
   SgObject target = remove_common_winders(current, c->winders);
   SgObject h = SG_NIL, t = SG_NIL, p;
 
+  if (prompt) target = take_prompt_winters(prompt, target);
+  
   /* When the continuation is partial continuation,
      then the after thunk is already installed in the dynamic extent.
      So, skip the current ones.
@@ -1686,6 +1721,7 @@ static SgObject throw_cont_compute_handlers(SgContinuation *c,
     SgObject chain = Sg_Memq(SG_CAR(p), c->winders);
     SG_APPEND1(h, t, Sg_Cons(SG_CAAR(p), SG_CDR(chain)));
   }
+
   return h;
 }
 
@@ -1852,10 +1888,8 @@ static void install_prompt(SgVM *vm, SgPrompt *prompt)
   vm->prompts = node;
 }
 
-static SgObject remove_prompt_cc(SgObject r, void **data)
+static void remove_prompt(SgVM *vm, SgPrompt *prompt)
 {
-  SgVM *vm = theVM;
-  SgPrompt *prompt = (SgPrompt *)data[0];
   SgPromptNode *node = vm->prompts;
   while (node) {
     if (node->prompt == prompt) {
@@ -1874,6 +1908,13 @@ static SgObject remove_prompt_cc(SgObject r, void **data)
     }
     node = node->next;
   }
+}
+ 
+static SgObject remove_prompt_cc(SgObject r, void **data)
+{
+  SgVM *vm = theVM;
+  SgPrompt *prompt = (SgPrompt *)data[0];
+  remove_prompt(vm, prompt);
   return r;
 }
 
@@ -2330,6 +2371,7 @@ SgObject Sg_VMDefaultAbortHandler(SgObject tag, SgObject args)
 
   if (SG_PROCEDUREP(SG_CAR(args))) {
     return Sg_VMCallCP(SG_CAR(args), tag, SG_FALSE, SG_CDR(args));
+    /* return Sg_VMApply(SG_CAR(args), SG_CDR(args)); */
   }
   return args;
 }
@@ -2360,9 +2402,15 @@ static SgObject abort_body(SgPromptNode *node, SgObject winders, SgObject args)
   } else {
     void *data[1];
     SgPrompt *prompt = node->prompt;
+    SgContFrame *cont = vm->cont;
+    /* remove the prompt in the aborting cont frame from the chain */
+    while (cont != node->frame->prev) {
+      if (PROMPT_FRAME_MARK_P(cont)) remove_prompt(vm, (SgPrompt *)cont->pc);
+      cont = cont->prev;
+    }
     /* reset the cont frame after the winder invocation */
     vm->cont = node->frame->prev;
-    vm->prompts = node->next;
+    remove_prompt(vm, prompt);
     
     data[0] = prompt->cstack;
     Sg_VMPushCC(abort_end, data, 1);
@@ -2383,33 +2431,26 @@ static SgObject abort_end(SgObject r, void **data)
 {
   SgVM *vm = theVM;
   vm->escapeReason = SG_VM_ESCAPE_ABORT;
-  vm->escapeData[0] = data[0];	/* a bit of abuse :) */
+  vm->escapeData[0] = data[0];	/* cstack, a bit of abuse :) */
   longjmp(vm->cstack->jbuf, 1);
 }
 
 SgObject Sg_VMAbortCC(SgObject tag, SgObject args)
 {
   SgVM *vm = theVM;
-  SgObject h = SG_NIL, t = SG_NIL, cp, target, winders;
+  SgObject h;
   SgPromptNode *node = search_prompt_node_by_tag(vm, tag);
   SgPrompt *prompt = NULL;
+  SgContinuation c;
 
   if (!node) Sg_Error(UC("No continuation tag: %S"), tag);
 
   prompt = node->prompt;
-  
-  winders = prompt->winders;
-  target = remove_common_winders(vm->dynamicWinders, winders);
-  /* computes winders */
-  SG_FOR_EACH(cp, vm->dynamicWinders) {
-    if (!SG_FALSEP(Sg_Memq(SG_CAR(cp), winders))) break;
-    SG_APPEND1(h, t, Sg_Cons(SG_CDAR(cp), SG_CDR(cp)));
-  }
+  /* compose fake continuation to compute winders */
+  c.winders = prompt->winders;
+  c.cstack = prompt->cstack;
+  h = throw_cont_compute_handlers(&c, prompt, vm);
 
-  SG_FOR_EACH(cp, target) {
-    SgObject chain = Sg_Memq(SG_CAR(cp), winders);
-    SG_APPEND1(h, t, Sg_Cons(SG_CAAR(cp), SG_CDR(chain)));
-  }
   return abort_body(node, h, args);
 }
 
@@ -2856,7 +2897,7 @@ static void print_frames(SgVM *vm, SgContFrame *cont)
 	      node->prompt->tag, node->prompt->handler, node->prompt);
     node = node->next;
     while (node) {
-      Sg_Printf(vm->logPort, UC("->[%S:%S %p]"),
+      Sg_Printf(vm->logPort, UC(" => [%S:%S %p]"),
 		node->prompt->tag, node->prompt->handler, node->prompt);
       node = node->next;
     }
