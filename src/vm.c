@@ -2376,6 +2376,15 @@ SgObject Sg_VMDefaultAbortHandler(SgObject tag, SgObject args)
   return args;
 }
 
+static SgObject abort_invoke_handler(SgPrompt *prompt, SgObject args)
+{
+  if (SG_FALSEP(prompt->handler)) {
+    return Sg_VMDefaultAbortHandler(prompt->tag, args);
+  } else {
+    return Sg_VMApply(prompt->handler, args);
+  }  
+}
+
 /*
   Abort continuation goes 2 pass,
   1. search the tag
@@ -2384,7 +2393,6 @@ SgObject Sg_VMDefaultAbortHandler(SgObject tag, SgObject args)
   If the tag is not found, then an error will be raised
  */
 static SgObject abort_cc(SgObject, void **);
-static SgObject abort_end(SgObject, void **);
 static SgObject abort_body(SgPromptNode *node, SgObject winders, SgObject args)
 {
   SgVM *vm = theVM;
@@ -2400,7 +2408,6 @@ static SgObject abort_body(SgPromptNode *node, SgObject winders, SgObject args)
     vm->dynamicWinders = chain;
     return Sg_VMApply0(winder);
   } else {
-    void *data[1];
     SgPrompt *prompt = node->prompt;
     SgContFrame *cont = vm->cont;
     /* remove the prompt in the aborting cont frame from the chain */
@@ -2409,16 +2416,15 @@ static SgObject abort_body(SgPromptNode *node, SgObject winders, SgObject args)
       cont = cont->prev;
     }
     /* reset the cont frame after the winder invocation */
-    vm->cont = node->frame->prev;
     remove_prompt(vm, prompt);
-    
-    data[0] = prompt->cstack;
-    Sg_VMPushCC(abort_end, data, 1);
-    if (SG_FALSEP(prompt->handler)) {
-      return Sg_VMDefaultAbortHandler(prompt->tag, args);
-    } else {
-      return Sg_VMApply(prompt->handler, args);
+    if (prompt->cstack != vm->cstack) {
+      vm->escapeReason = SG_VM_ESCAPE_ABORT;
+      vm->escapeData[0] = node;
+      vm->escapeData[1] = args;
+      longjmp(prompt->cstack->jbuf, 1);
     }
+    vm->cont = node->frame->prev;
+    return abort_invoke_handler(prompt, args);
   }
 }
 
@@ -2427,29 +2433,19 @@ static SgObject abort_cc(SgObject r, void **data)
   return abort_body((SgPromptNode *)(data[0]), SG_OBJ(data[1]), SG_OBJ(data[2]));
 }
 
-static SgObject abort_end(SgObject r, void **data)
-{
-  SgVM *vm = theVM;
-  vm->escapeReason = SG_VM_ESCAPE_ABORT;
-  vm->escapeData[0] = data[0];	/* cstack, a bit of abuse :) */
-  longjmp(vm->cstack->jbuf, 1);
-}
-
 SgObject Sg_VMAbortCC(SgObject tag, SgObject args)
 {
   SgVM *vm = theVM;
   SgObject h;
   SgPromptNode *node = search_prompt_node_by_tag(vm, tag);
-  SgPrompt *prompt = NULL;
   SgContinuation c;
 
   if (!node) Sg_Error(UC("No continuation tag: %S"), tag);
 
-  prompt = node->prompt;
   /* compose fake continuation to compute winders */
-  c.winders = prompt->winders;
-  c.cstack = prompt->cstack;
-  h = throw_cont_compute_handlers(&c, prompt, vm);
+  c.winders = node->prompt->winders;
+  c.cstack = node->prompt->cstack;
+  h = throw_cont_compute_handlers(&c, node->prompt, vm);
 
   return abort_body(node, h, args);
 }
@@ -2556,12 +2552,20 @@ SgObject evaluate_safe(SgObject program, SgWord *code)
       PC(vm) = PC_TO_RETURN;
       goto restart;
     } else if (vm->escapeReason == SG_VM_ESCAPE_ABORT) {
-      SgCStack *abort_stack = (SgCStack *)vm->escapeData[0];
-      if (abort_stack != vm->cstack) {
-	vm->cstack = abort_stack;
-	longjmp(abort_stack->jbuf, 1);
+      SgPromptNode *node = (SgPromptNode *)vm->escapeData[0];
+      if (node->prompt->cstack == vm->cstack) {
+	SgObject args = SG_OBJ(vm->escapeData[1]);
+	CONT(vm) = node->frame->prev;
+	PC(vm) = PC_TO_RETURN;
+	AC(vm) = abort_invoke_handler(node->prompt, args);
+	goto restart;
+      } else {
+	CONT(vm) = cstack.cont;
+	AC(vm) = vm->ac;
+	POP_CONT();
+	vm->cstack = vm->cstack->prev;
+	longjmp(vm->cstack->jbuf, 1);
       }
-      goto restart;
     } else {
       Sg_Panic("invalid longjmp");
     }
@@ -2786,11 +2790,52 @@ static void print_argument(SgVM *vm, SgContFrame *cont,
   }
 }
 
+#ifdef HAVE_DLFCN_H
+# include <dlfcn.h>
+static int print_c_pc(SgVM *vm, SgObject pfmt, SgContFrame *cont)
+{
+  if (cont->fp == C_CONT_MARK) {
+    Dl_info info;
+    /* pc == after function */
+    if (dladdr((void *)cont->pc, &info) && info.dli_sname) {
+      SgObject pc = SG_INTERN("pc");
+      SgObject name = Sg_Utf8sToUtf32s(info.dli_sname, strlen(info.dli_sname));
+      Sg_Printf(vm->logPort, UC(";; %p "),
+		(uintptr_t)cont + offsetof(SgContFrame, pc));
+      Sg_Format(vm->logPort, pfmt, SG_LIST2(pc, name), TRUE);
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
+#else
+static int print_c_pc(SgVM *vm, SgObject pfmt, SgContFrame *cont)
+{
+  return FALSE;
+}
+#endif
+
+static void print_pc(SgVM *vm, SgObject pfmt, SgContFrame *cont)
+{
+  SgObject pc = SG_INTERN("pc");
+  if (PROMPT_FRAME_MARK_P(cont)) {
+    SgPrompt *p = (SgPrompt *)cont->pc;
+    Sg_Printf(vm->logPort, UC(";; %p "),
+	      (uintptr_t)cont + offsetof(SgContFrame, pc));
+    Sg_Format(vm->logPort, pfmt,
+	      SG_LIST2(pc, Sg_Cons(p->tag, p->handler)), TRUE);
+  } else if (!print_c_pc(vm, pfmt, cont)) {
+    Sg_Printf(vm->logPort, UC(";; %p +   pc=%#38p +\n"),
+	      (uintptr_t)cont + offsetof(SgContFrame, pc), cont->pc);
+  }
+}
+
+
 static SgContFrame * print_cont1(SgContFrame *cont, SgVM *vm)
 {
   int size = cont->size;
   SgString *pfmt = SG_MAKE_STRING("+   ~a=~38,,,,38s +~%");
-  SgObject cl = SG_INTERN("cl"), pc = SG_INTERN("pc");
+  SgObject cl = SG_INTERN("cl");
 
   /* cont's size is argc of previous cont frame */
   /* dump arguments */
@@ -2826,16 +2871,7 @@ static SgContFrame * print_cont1(SgContFrame *cont, SgVM *vm)
   } else {
     Sg_Format(vm->logPort, pfmt, SG_LIST2(cl, SG_FALSE), TRUE);
   }
-  if (PROMPT_FRAME_MARK_P(cont)) {
-    SgPrompt *p = (SgPrompt *)cont->pc;
-    Sg_Printf(vm->logPort, UC(";; %p "),
-	      (uintptr_t)cont + offsetof(SgContFrame, pc));
-    Sg_Format(vm->logPort, pfmt,
-	      SG_LIST2(pc, Sg_Cons(p->tag, p->handler)), TRUE);
-  } else {
-    Sg_Printf(vm->logPort, UC(";; %p +   pc=%#38p +\n"),
-		(uintptr_t)cont + offsetof(SgContFrame, pc), cont->pc);
-  }
+  print_pc(vm, pfmt, cont);
 #if SIZEOF_LONG == 8
   Sg_Printf(vm->logPort, UC(";; %p + type=%#38d +\n"),
 	    (uintptr_t)cont + offsetof(SgContFrame, type), cont->type);
