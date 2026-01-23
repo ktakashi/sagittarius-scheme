@@ -1486,6 +1486,14 @@ static SgContFrame * copy_a_cont(SgContFrame *c)
   return copy;
 }
 
+static int bottom_cont_frame_p(SgVM *vm, SgContFrame *cont)
+{
+  return !cont
+    || (SgObject *)cont == vm->stack
+    || cont == cont->prev
+    || cont == cont->prev->prev;
+}
+
 /* check if the cur is after border frame */
 static int cont_frame_after_p(SgVM *vm, SgContFrame *border, SgContFrame *cur)
 {
@@ -1493,8 +1501,7 @@ static int cont_frame_after_p(SgVM *vm, SgContFrame *border, SgContFrame *cur)
   do {
     if (cont == border) return TRUE;
     cont = cont->prev;
-  } while (cont && (SgObject *)cont != vm->stack &&
-	   cont != cont->prev && cont != cont->prev->prev);
+  } while (!bottom_cont_frame_p(vm, cont));
   return FALSE;
 }
 
@@ -2385,7 +2392,6 @@ static SgObject abort_invoke_handler(SgPrompt *prompt, SgObject args)
   if (SG_FALSEP(prompt->handler)) {
     handler = Sg_MakeSubr(default_abort_handler, prompt->tag, 1, 0,
 			  SG_INTERN("default-abort-handler"));
-    
   } else {
     handler = prompt->handler;
   }
@@ -2399,11 +2405,28 @@ static SgObject abort_invoke_handler(SgPrompt *prompt, SgObject args)
 
   If the tag is not found, then an error will be raised
  */
+static int prompt_winder_in_scope_p(SgPromptNode *node, SgObject winders)
+{
+  SgVM *vm = theVM;
+  SgContFrame *cont = vm->cont;
+
+  /* check if the prompt is in the same dynamic-extent (stack) */
+  while (!bottom_cont_frame_p(vm, cont)) {
+    if (cont == node->frame) return TRUE; /* must be invoked */
+    cont = cont->prev;
+  }
+  /*
+    the prompt is not in the same dynamic-extent
+    check if winder is defined in the same prompt or not
+   */
+  return !SG_NULLP(take_prompt_winters(node->prompt, SG_CAAR(winders)));
+}
+
 static SgObject abort_cc(SgObject, void **);
 static SgObject abort_body(SgPromptNode *node, SgObject winders, SgObject args)
 {
   SgVM *vm = theVM;
-  if (SG_PAIRP(winders)) {
+  if (SG_PAIRP(winders) && prompt_winder_in_scope_p(node, winders)) {
     SgObject winder, chain;
     void *data[3];
     winder = SG_CAAR(winders);
@@ -2418,7 +2441,7 @@ static SgObject abort_body(SgPromptNode *node, SgObject winders, SgObject args)
     SgPrompt *prompt = node->prompt;
     SgContFrame *cont = vm->cont;
     /* remove the prompt in the aborting cont frame from the chain */
-    while (cont != node->frame->prev) {
+    while (!cont_prompt_match_p(cont, prompt)) {
       if (PROMPT_FRAME_MARK_P(cont)) remove_prompt(vm, (SgPrompt *)cont->pc);
       cont = cont->prev;
     }
@@ -2927,8 +2950,7 @@ static void print_frames(SgVM *vm, SgContFrame *cont)
     !IN_STACK_P((SgObject *)cont, vm) ? UC("/heap") : UC(""), 
     (intptr_t)cont == (intptr_t)sp-1 ? UC("/sp") : UC(""), 
     (intptr_t)vm->fp == (intptr_t)cont ? UC("/fp") : UC(""));
-  while (cont && (SgObject *)cont != vm->stack &&
-	 cont != cont->prev && cont != cont->prev->prev) {
+  while (!bottom_cont_frame_p(vm, cont)) {
     cont = print_cont1(cont, vm);
   }
   
