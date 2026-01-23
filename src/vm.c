@@ -1552,6 +1552,22 @@ static SgPromptNode *search_prompt_node_by_tag(SgVM *vm, SgObject tag)
   return NULL;
 }
 
+static SgPromptNode *search_prompt_node_by_prompt(SgVM *vm, SgPrompt *prompt)
+{
+  SgPromptNode *node = vm->prompts;
+  
+  /* search tag */
+  while (node) {
+    if (node->prompt == prompt) {
+      return node;
+    }
+    node = node->next;
+  }
+  /* fallback */
+  return search_prompt_node_by_tag(vm, prompt->tag);
+}
+
+
 static int cont_prompt_match_p(SgContFrame *c, SgPrompt *prompt)
 {
   return c && PROMPT_FRAME_MARK_P(c) && ((SgPrompt *)(c->pc)) == prompt;
@@ -2438,14 +2454,23 @@ static SgObject abort_body(SgPromptNode *node, SgObject winders, SgObject args)
     vm->dynamicWinders = chain;
     return Sg_VMApply0(winder);
   } else {
+    /* make sure the node is in the prompt chain
+
+       NOTE: when this abort_cc frame is captured in a continuation,
+       the captured node is not loger valid.
+
+       search_prompt_node_by_prompt searches prompt first by its identity
+       then tag comparison.
+    */
+    node = search_prompt_node_by_prompt(vm, node->prompt);
     SgPrompt *prompt = node->prompt;
     SgContFrame *cont = vm->cont;
+    
     /* remove the prompt in the aborting cont frame from the chain */
     while (!cont_prompt_match_p(cont, prompt)) {
       if (PROMPT_FRAME_MARK_P(cont)) remove_prompt(vm, (SgPrompt *)cont->pc);
       cont = cont->prev;
     }
-
     if (prompt->cstack != vm->cstack) {
       vm->escapeReason = SG_VM_ESCAPE_ABORT;
       vm->escapeData[0] = node;
@@ -2813,13 +2838,17 @@ static void process_queued_requests(SgVM *vm)
 static void print_argument(SgVM *vm, SgContFrame *cont,
 			   SgObject *loc, SgObject p)
 {
+#if 1
+  Sg_Printf(vm->logPort, UC(";; %p +   p=%#39p +\n"), loc, p);
+#else
   SgString *fmt = SG_MAKE_STRING("+   p=~39,,,,39s +~%");
-  if (cont->fp == C_CONT_MARK) {
+  if (cont->fp == C_CONT_MARK && p) {
     Sg_Printf(vm->logPort, UC(";; %p +   p=%#39p +\n"), loc, p);
   } else {
     Sg_Printf(vm->logPort, UC(";; %p "), loc);
     Sg_Format(vm->logPort, fmt, SG_LIST1(p), TRUE);
   }
+#endif
 }
 
 #ifdef HAVE_DLFCN_H
