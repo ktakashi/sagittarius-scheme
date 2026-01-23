@@ -2462,8 +2462,9 @@ static SgObject abort_body(SgPromptNode *node, SgObject winders, SgObject args)
        search_prompt_node_by_prompt searches prompt first by its identity
        then tag comparison.
     */
-    node = search_prompt_node_by_prompt(vm, node->prompt);
-    SgPrompt *prompt = node->prompt;
+    SgPromptNode *cur_node = search_prompt_node_by_prompt(vm, node->prompt);
+    if (!node) Sg_Error(UC("Stale prompt: %S"), node->prompt->tag);
+    SgPrompt *prompt = cur_node->prompt;
     SgContFrame *cont = vm->cont;
     
     /* remove the prompt in the aborting cont frame from the chain */
@@ -2473,13 +2474,13 @@ static SgObject abort_body(SgPromptNode *node, SgObject winders, SgObject args)
     }
     if (prompt->cstack != vm->cstack) {
       vm->escapeReason = SG_VM_ESCAPE_ABORT;
-      vm->escapeData[0] = node;
+      vm->escapeData[0] = cur_node;
       vm->escapeData[1] = args;
       longjmp(prompt->cstack->jbuf, 1);
     }
     /* reset the cont frame after the winder invocation */
     remove_prompt(vm, prompt);
-    vm->cont = node->frame->prev;
+    vm->cont = cur_node->frame->prev;
     return abort_invoke_handler(prompt, args);
   }
 }
