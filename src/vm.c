@@ -2361,28 +2361,35 @@ static SgContFrame *skip_prompt_frame(SgContFrame *cont)
     if ((vm)->finalizerPending) Sg_VMFinalizerRun(vm);	\
   } while (0)
 
-SgObject Sg_VMDefaultAbortHandler(SgObject tag, SgObject args)
+static SgObject default_abort_handler(SgObject *argv, int argc, void *data)
 {
-  /* Racket's default-abort-handler is stricter.
-     But we are very lenient :) */
-  int nargs = Sg_Length(args);
+  SgObject tag = SG_OBJ(data);
 
-  if (nargs == 0) return SG_UNDEF;
-
-  if (SG_PROCEDUREP(SG_CAR(args))) {
-    return Sg_VMCallCP(SG_CAR(args), tag, SG_FALSE, SG_CDR(args));
-    /* return Sg_VMApply(SG_CAR(args), SG_CDR(args)); */
+  if (argc != 1) {
+    Sg_WrongNumberOfArgumentsAtLeastViolation(SG_INTERN("default-abort-handler"),
+					      1, argc, SG_NIL);
   }
-  return args;
+  
+  if (!SG_PROCEDUREP(argv[0])) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("default-abort-handler"),
+				    SG_MAKE_STRING("procedure"),
+				    argv[0], SG_NIL);
+
+  }
+  return Sg_VMCallCP(argv[0], tag, SG_FALSE, SG_NIL);
 }
 
 static SgObject abort_invoke_handler(SgPrompt *prompt, SgObject args)
 {
+  SgObject handler;
   if (SG_FALSEP(prompt->handler)) {
-    return Sg_VMDefaultAbortHandler(prompt->tag, args);
+    handler = Sg_MakeSubr(default_abort_handler, prompt->tag, 1, 0,
+			  SG_INTERN("default-abort-handler"));
+    
   } else {
-    return Sg_VMApply(prompt->handler, args);
-  }  
+    handler = prompt->handler;
+  }
+  return Sg_VMApply(handler, args);
 }
 
 /*
