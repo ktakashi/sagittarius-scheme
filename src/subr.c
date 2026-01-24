@@ -55,6 +55,9 @@ static void proc_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
   Sg_Printf(port, UC(" %d:%d"),
 	    SG_PROCEDURE_REQUIRED(obj), SG_PROCEDURE_OPTIONAL(obj));
 
+  if (SG_WRITE_MODE(ctx) == SG_WRITE_WRITE) {
+    Sg_Printf(port, UC(" %p"), obj);
+  }
   Sg_Putc(port, '>');
 }
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_ProcedureClass, proc_print);
