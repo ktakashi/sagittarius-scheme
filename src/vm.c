@@ -1599,6 +1599,8 @@ static SgContFrame * splice_cont(SgVM *vm, SgContFrame *saved,
 }
 
 static SgObject throw_continuation_cc(SgObject, void **);
+static SgObject merge_winders(SgObject, SgObject);
+static SgObject take_prompt_winters(SgPrompt *, SgObject);
 
 static SgObject throw_continuation_body(SgObject handlers,
 					SgContinuation *c,
@@ -1617,7 +1619,10 @@ static SgObject throw_continuation_body(SgObject handlers,
     data[2] = (void*)args;
     data[3] = prompt;
     Sg_VMPushCC(throw_continuation_cc, data, 4);
-    vm->dynamicWinders = chain;
+    /* FIXME best to reconstruct chain itself during the computation... */
+    vm->dynamicWinders = (prompt)
+      ? merge_winders(chain, vm->dynamicWinders)
+      : chain;
     return Sg_VMApply0(handler);
   } else {
     /* 
@@ -1635,11 +1640,23 @@ static SgObject throw_continuation_body(SgObject handlers,
 	 cont frame from the continuation.
        */
       vm->cont = splice_cont(vm, c->cont, prompt);
+      if (c->winders == vm->dynamicWinders) {
+	/* continuation is invoked in the same dynamic extent
+	   just replace it.
+	 */
+	vm->dynamicWinders = c->winders;
+      } else {
+	/* continuation is invoked outside of the winder's dynamic extent.
+	   Merge it and take only the prompt ones.
+	 */
+	SgObject merged = merge_winders(c->winders, vm->dynamicWinders);
+	vm->dynamicWinders = take_prompt_winters(prompt, merged);
+      }
     } else {
       vm->cont = c->cont;
+      vm->dynamicWinders = c->winders;
     }
     vm->pc = return_code;
-    vm->dynamicWinders = c->winders;
     /* store arguments of the continuation to ac */
     if (SG_NULLP(args)) {		/* no value */
       /* does this happen? */
@@ -1678,13 +1695,42 @@ static SgObject throw_continuation_cc(SgObject result, void **data)
 /* remove and re-order continuation's handlers */
 static SgObject remove_common_winders(SgObject current, SgObject escapes)
 {
-  SgObject r = SG_NIL, p;
+  SgObject r = SG_NIL, p, cr = Sg_Reverse(current);
   SG_FOR_EACH(p, escapes) {
-    if (SG_FALSEP(Sg_Memq(SG_CAR(p), current))) {
+    if (SG_FALSEP(Sg_Memq(SG_CAR(p), cr))) {
       r = Sg_Cons(SG_CAR(p), r);
     }
   }
   return r;
+}
+
+/* Reconstruct escape winders
+   When 2 composable continuation is invoked, then the latter continuation
+   must have the winders during the invocation. However, if we simply
+   let the process go, then before thunk may not get into the list.
+ */
+static SgObject merge_winders(SgObject current, SgObject escapes)
+{
+  SgObject h = SG_NIL, t = SG_NIL;
+  /* merge first current, then escape */
+#define do_merge(source, checker)			\
+  while (!SG_NULLP(source)) {				\
+    if (SG_FALSEP(Sg_Memq(SG_CAR(source), checker))) {	\
+      SG_APPEND1(h, t, SG_CAR(source));			\
+      source = SG_CDR(source);				\
+      continue;						\
+    }							\
+    break;						\
+  }
+
+  do_merge(current, escapes);
+  do_merge(escapes, current);
+  while (!SG_NULLP(escapes)) {
+    SG_APPEND1(h, t, SG_CAR(escapes));
+    escapes = SG_CDR(escapes);
+  }
+
+  return h;
 }
 
 /*
@@ -1720,31 +1766,42 @@ static SgObject take_prompt_winters(SgPrompt *prompt, SgObject winders)
   return SG_NIL;
 }
 
+/* TODO clean up */
 static SgObject throw_cont_compute_handlers(SgContinuation *c,
 					    SgPrompt *prompt,
 					    SgVM *vm)
 {
   SgObject current = vm->dynamicWinders;
-  SgObject target = remove_common_winders(current, c->winders);
+  SgObject escapes = c->winders;
+  SgObject target = remove_common_winders(current, escapes);
   SgObject h = SG_NIL, t = SG_NIL, p;
 
   if (prompt) target = take_prompt_winters(prompt, target);
-  
+
   /* When the continuation is partial continuation,
      then the after thunk is already installed in the dynamic extent.
      So, skip the current ones.
    */
   if (c->cstack) {
+    if (prompt) current = take_prompt_winters(prompt, current);
     SG_FOR_EACH(p, current) {
-      if (!SG_FALSEP(Sg_Memq(SG_CAR(p), c->winders))) break;
+      if (!SG_FALSEP(Sg_Memq(SG_CAR(p), escapes))) break;
       SG_APPEND1(h, t, Sg_Cons(SG_CDAR(p), SG_CDR(p)));
     }
   }
   SG_FOR_EACH(p, target) {
-    SgObject chain = Sg_Memq(SG_CAR(p), c->winders);
+    SgObject chain = Sg_Memq(SG_CAR(p), escapes);
     SG_APPEND1(h, t, Sg_Cons(SG_CAAR(p), SG_CDR(chain)));
   }
 
+#if 0
+  Sg_Printf(Sg_StandardErrorPort(), UC("current: %A\n"), current);
+  Sg_Printf(Sg_StandardErrorPort(), UC("c->winders: %A\n"), c->winders);
+  Sg_Printf(Sg_StandardErrorPort(), UC("p->winders: %A\n"), prompt->winders);
+  Sg_Printf(Sg_StandardErrorPort(), UC("target: %A\n"), target);
+  Sg_Printf(Sg_StandardErrorPort(), UC("escapes: %A\n"), escapes);
+  Sg_Printf(Sg_StandardErrorPort(), UC("result: %A\n\n"), h);
+#endif
   return h;
 }
 
@@ -2451,6 +2508,7 @@ static SgObject abort_body(SgPromptNode *node, SgObject winders, SgObject args)
     data[1] = SG_CDR(winders);
     data[2] = args;
     Sg_VMPushCC(abort_cc, data, 3);
+
     vm->dynamicWinders = chain;
     return Sg_VMApply0(winder);
   } else {
@@ -2466,7 +2524,7 @@ static SgObject abort_body(SgPromptNode *node, SgObject winders, SgObject args)
     if (!node) Sg_Error(UC("Stale prompt: %S"), node->prompt->tag);
     SgPrompt *prompt = cur_node->prompt;
     SgContFrame *cont = vm->cont;
-    
+
     /* remove the prompt in the aborting cont frame from the chain */
     while (!cont_prompt_match_p(cont, prompt)) {
       if (PROMPT_FRAME_MARK_P(cont)) remove_prompt(vm, (SgPrompt *)cont->pc);
