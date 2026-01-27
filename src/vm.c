@@ -1794,14 +1794,6 @@ static SgObject throw_cont_compute_handlers(SgContinuation *c,
     SG_APPEND1(h, t, Sg_Cons(SG_CAAR(p), SG_CDR(chain)));
   }
 
-#if 0
-  Sg_Printf(Sg_StandardErrorPort(), UC("current: %A\n"), current);
-  Sg_Printf(Sg_StandardErrorPort(), UC("c->winders: %A\n"), c->winders);
-  Sg_Printf(Sg_StandardErrorPort(), UC("p->winders: %A\n"), prompt->winders);
-  Sg_Printf(Sg_StandardErrorPort(), UC("target: %A\n"), target);
-  Sg_Printf(Sg_StandardErrorPort(), UC("escapes: %A\n"), escapes);
-  Sg_Printf(Sg_StandardErrorPort(), UC("result: %A\n\n"), h);
-#endif
   return h;
 }
 
