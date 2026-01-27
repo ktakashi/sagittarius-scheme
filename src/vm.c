@@ -2893,7 +2893,10 @@ static void print_argument(SgVM *vm, SgContFrame *cont,
 #endif
 }
 
-#ifdef HAVE_DLFCN_H
+/* dladdr is not in POSIX, for now enable it only on Mac
+   NOTE: It should also be available on BSD systems, but I'm lazy
+ */
+#if defined(HAVE_DLFCN_H) && __APPLE__
 # include <dlfcn.h>
 static int print_c_pc(SgVM *vm, SgObject pfmt, SgContFrame *cont)
 {
