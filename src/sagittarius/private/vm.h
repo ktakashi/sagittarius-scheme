@@ -65,8 +65,8 @@ typedef struct SgContFrameRec
   int            size;
   int            type;
 #else
-  int            size: 30;	/* size of argument frame */
-  int            type:  2;
+  int            size: 29;	/* size of argument frame */
+  int            type:  3;
 #endif
   SgWord        *pc;		/* next PC */
   SgObject       cl;		/* cl register value */
