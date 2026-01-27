@@ -204,7 +204,6 @@ typedef struct SgPromptNodeRec
 {
   SgPrompt        *prompt;
   SgContFrame     *frame;
-  struct SgPromptNodeRec *prev;
   struct SgPromptNodeRec *next;
 } SgPromptNode;
 

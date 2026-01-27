@@ -1528,9 +1528,7 @@ static SgPromptNode *insert_prompt(SgVM *vm, SgPromptNode *node,
     /* [ node )->[ next ) <= (c)
        [ node )->[ c )->[ next)
      */
-    n->prev = node;
     n->next = node->next;
-    if (node->next) node->next->prev = n;
     node->next = n;
   } else {
     vm->prompts = n;
@@ -1954,30 +1952,23 @@ static void install_prompt(SgVM *vm, SgPrompt *prompt)
   SgPromptNode *node = SG_NEW(SgPromptNode);
   node->prompt = prompt;
   node->frame = vm->cont;
-  node->prev = NULL;
   node->next = vm->prompts;
-  if (vm->prompts) vm->prompts->prev = node;
   vm->prompts = node;
 }
 
 static void remove_prompt(SgVM *vm, SgPrompt *prompt)
 {
-  SgPromptNode *node = vm->prompts;
+  SgPromptNode *node = vm->prompts, *prev = NULL;
   while (node) {
     if (node->prompt == prompt) {
-      if (node->prev) {
-	node->prev->next = node->next;
+      if (prev) {
+	prev->next = node->next;
       } else {
 	vm->prompts = node->next;
-	if (node->next) node->next->prev = NULL;
-      }
-      if (node->next) {
-	node->next->prev = node->prev;
-      } else {
-	if (node->prev) node->prev->next = NULL;
       }
       break;
     }
+    prev = node;
     node = node->next;
   }
 }
