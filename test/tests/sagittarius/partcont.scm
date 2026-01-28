@@ -1,5 +1,6 @@
 (import (rnrs)
 	(sagittarius partcont)
+	(srfi :39)
 	(srfi :64 testing))
 
 (test-begin "partial continuation")
@@ -99,5 +100,25 @@
   (test-equal "inversion" (eof-object) (iter))
   (test-equal "inversion" (eof-object) (iter)))
 
+(define (with-output-to-string thunk)
+  (let-values (((out e) (open-string-output-port)))
+    (parameterize ((current-output-port out))
+      (thunk)
+      (e))))
+
+(test-equal "before,thunk,reset,after,"
+	    (with-output-to-string
+		(lambda ()
+		  (define (f k)
+		    (dynamic-wind
+			(lambda () (display "before,"))
+			(lambda () (display "thunk,") (k))
+			(lambda () (display "after,"))))
+
+		  (define (proc)
+		    (reset (shift k (f k))
+			   (display "reset,")))
+
+		  (proc))))
 
 (test-end)
