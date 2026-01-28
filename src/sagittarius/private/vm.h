@@ -65,8 +65,8 @@ typedef struct SgContFrameRec
   int            size;
   int            type;
 #else
-  int            size: 30;	/* size of argument frame */
-  int            type:  2;
+  int            size: 29;	/* size of argument frame */
+  int            type:  3;
 #endif
   SgWord        *pc;		/* next PC */
   SgObject       cl;		/* cl register value */
@@ -188,6 +188,25 @@ typedef struct values_buffer_t
     }									\
   } while (0)
 
+/* A prompt will be installed in a PC of cont frame */
+typedef struct SgPromptRec
+{
+  SgObject tag;
+  SgObject handler;
+  SgCStack *cstack;
+  SgObject winders;
+} SgPrompt;
+/* deque of prompt
+   installation -> prepend
+   splice -> append
+*/
+typedef struct SgPromptNodeRec
+{
+  SgPrompt        *prompt;
+  SgContFrame     *frame;
+  struct SgPromptNodeRec *next;
+} SgPromptNode;
+
 struct SgVMRec
 {
   SG_HEADER;
@@ -212,6 +231,7 @@ struct SgVMRec
   SgObject *fp;			/* frame pointer */
   SgObject *sp;			/* stack pointer */
   SgContFrame  *cont;     	/* saved continuation frame */
+  SgPromptNode *prompts;	/* prompt chain, this is the top */
   /* values buffer */
   int      valuesCount;
   SgObject values[DEFAULT_VALUES_SIZE];
@@ -387,8 +407,9 @@ SG_EXTERN SgObject Sg_VMCallPC(SgObject proc);
 /* call-with-continuation-prompt */
 SG_EXTERN SgObject Sg_VMCallCP(SgObject proc, SgObject tag,
 			       SgObject handler, SgObject args);
+SG_EXTERN SgObject Sg_VMCallComp(SgObject proc, SgObject tag);
 SG_EXTERN SgObject Sg_VMAbortCC(SgObject tag, SgObject args);
-SG_EXTERN SgObject Sg_VMDefaultAbortHandler(SgObject args);
+SG_EXTERN int      Sg_ContinuationP(SgObject o);
 SG_EXTERN SgVM*    Sg_VM();	/* get vm */
 SG_EXTERN int      Sg_SetCurrentVM(SgVM *vm);
 SG_EXTERN int      Sg_AttachVM(SgVM *vm);

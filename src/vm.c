@@ -174,6 +174,7 @@ SgVM* Sg_NewThreadVM(SgVM *proto, SgObject name)
   v->escapeData[1] = NULL;
   v->cache = SG_NIL;
   v->cstack = NULL;
+  v->prompts = NULL;
 
   v->dynamicWinders = SG_NIL;
   v->exceptionHandlers = DEFAULT_EXCEPTION_HANDLER;
@@ -1388,22 +1389,23 @@ static void save_cont_rec(SgVM *vm, int partialP)
   SgContFrame *c = CONT(vm), *prev = NULL;
   SgCStack *cstk;
   SgContinuation *ep;
+  SgPromptNode *node;
 
-  if (!IN_STACK_P((SgObject*)c, vm)) return;
-
+  if (!(IN_STACK_P((SgObject *)c, vm))) return;
+  
   do {
     SgContFrame *csave, *tmp;
     if (partialP && BOUNDARY_FRAME_MARK_P(c)) break;
     csave = save_a_cont(c);
     /* make the orig frame forwarded */
     if (prev) prev->prev = csave;
-
+    
     prev = csave;
     tmp = c->prev;
     c->prev = csave;
     c->size = -1;
     c = tmp;
-  } while (IN_STACK_P((SgObject*)c, vm));
+  } while (IN_STACK_P((SgObject *)c, vm));
 
   if (FORWARDED_CONT_P(vm->cont)) {
     vm->cont = FORWARDED_CONT(vm->cont);
@@ -1413,6 +1415,12 @@ static void save_cont_rec(SgVM *vm, int partialP)
       cstk->cont = FORWARDED_CONT(cstk->cont);
     }
   }
+  for (node = vm->prompts; node; node = node->next) {
+    if (FORWARDED_CONT_P(node->frame)) {
+      node->frame = FORWARDED_CONT(node->frame);
+    }
+  }
+  
   for (ep = vm->escapePoint; ep; ep = ep->prev) {
     if (FORWARDED_CONT_P(ep->cont)) {
       ep->cont = FORWARDED_CONT(ep->cont);
@@ -1434,6 +1442,11 @@ static void save_partial_cont(SgVM *vm)
 {
   save_cont_rec(vm, TRUE);
 }
+
+/* static void save_cont_to_tag(SgVM *vm, SgObject tag) */
+/* { */
+/*   save_cont_rec(vm, FALSE, tag); */
+/* } */
 
 static void expand_stack(SgVM *vm)
 {
@@ -1464,24 +1477,150 @@ static SgWord return_code[1] = {SG_WORD(RET)};
 
 #define PC_TO_RETURN return_code
 
+static SgContFrame * copy_a_cont(SgContFrame *c)
+{
+  const size_t argsize = (c->size > 0) ? (c->size * sizeof(SgObject)) : 0;
+  const size_t size = sizeof(SgContFrame) + argsize;
+  SgContFrame *copy = SG_NEW2(SgContFrame *, size);
+  memcpy(copy, c, size);
+  return copy;
+}
+
+static int bottom_cont_frame_p(SgVM *vm, SgContFrame *cont)
+{
+  return !cont
+    || (SgObject *)cont == vm->stack
+    || cont == cont->prev
+    || cont == cont->prev->prev;
+}
+
+/* check if the cur is after border frame */
+static int cont_frame_after_p(SgVM *vm, SgContFrame *border, SgContFrame *cur)
+{
+  SgContFrame *cont = cur;
+  do {
+    if (cont == border) return TRUE;
+    cont = cont->prev;
+  } while (!bottom_cont_frame_p(vm, cont));
+  return FALSE;
+}
+
+static SgPromptNode *search_prompt_node(SgVM *vm)
+{
+  SgPromptNode *node = vm->prompts;
+  SgContFrame *cont = vm->cont;
+  if (!node) return NULL;	/* no prompt */
+  
+  while (node->next) {
+    if (cont_frame_after_p(vm, node->frame, cont)) break;
+    node = node->next;
+  }
+  return node;			/* return the last node */
+}
+
+static SgPromptNode *insert_prompt(SgVM *vm, SgPromptNode *node,
+				   SgPrompt *prompt, SgContFrame *frame)
+{
+  SgPromptNode *n = SG_NEW(SgPromptNode);
+  n->prompt = prompt;
+  n->frame = frame;
+  if (node) {
+    /* [ node )->[ next ) <= (c)
+       [ node )->[ c )->[ next)
+     */
+    n->next = node->next;
+    node->next = n;
+  } else {
+    vm->prompts = n;
+  }
+  return n;
+}
+
+static SgPromptNode *search_prompt_node_by_tag(SgVM *vm, SgObject tag)
+{
+  SgPromptNode *node = vm->prompts;
+  
+  /* search tag */
+  while (node) {
+    if (node->prompt->tag == tag) {
+      return node;
+    }
+    node = node->next;
+  }
+  return NULL;
+}
+
+static SgPromptNode *search_prompt_node_by_prompt(SgVM *vm, SgPrompt *prompt)
+{
+  SgPromptNode *node = vm->prompts;
+  
+  /* search tag */
+  while (node) {
+    if (node->prompt == prompt) {
+      return node;
+    }
+    node = node->next;
+  }
+  /* fallback */
+  return search_prompt_node_by_tag(vm, prompt->tag);
+}
+
+
+static int cont_prompt_match_p(SgContFrame *c, SgPrompt *prompt)
+{
+  return c && PROMPT_FRAME_MARK_P(c) && ((SgPrompt *)(c->pc)) == prompt;
+}
+
+
+static SgContFrame * splice_cont(SgVM *vm, SgContFrame *saved,
+				 SgPrompt *prompt)
+{
+  SgContFrame *cur = vm->cont, *c = saved->prev, *cp = NULL, *top = NULL;
+  SgPromptNode *node = search_prompt_node(vm);
+  cp = top = copy_a_cont(saved);
+
+  if (PROMPT_FRAME_MARK_P(top)) {
+    node = insert_prompt(vm, node, (SgPrompt *)top->pc, top);
+  }
+  
+  while (!cont_prompt_match_p(cp, prompt)) {
+    SgContFrame *cs = copy_a_cont(c);
+    if (PROMPT_FRAME_MARK_P(cs)) {
+      node = insert_prompt(vm, node, (SgPrompt *)cs->pc, cs);
+    }
+    cp->prev = cs;
+    cp = cs;
+    c = c->prev;
+  }
+  cp->prev = cur;
+  return top;
+}
+
 static SgObject throw_continuation_cc(SgObject, void **);
+static SgObject merge_winders(SgObject, SgObject);
+static SgObject take_prompt_winters(SgPrompt *, SgObject);
 
 static SgObject throw_continuation_body(SgObject handlers,
 					SgContinuation *c,
-					SgObject args)
+					SgObject args,
+					SgPrompt *prompt)
 {
   SgVM *vm = Sg_VM();
   /* (if (not (eq? new (current-dynamic-winders))) perform-dynamic-wind) */
   if (SG_PAIRP(handlers)) {
     SgObject handler, chain;
-    void *data[3];
+    void *data[4];
     handler = SG_CAAR(handlers);
     chain = SG_CDAR(handlers);
     data[0] = (void*)SG_CDR(handlers);
     data[1] = (void*)c;
     data[2] = (void*)args;
-    Sg_VMPushCC(throw_continuation_cc, data, 3);
-    vm->dynamicWinders = chain;
+    data[3] = prompt;
+    Sg_VMPushCC(throw_continuation_cc, data, 4);
+    /* FIXME best to reconstruct chain itself during the computation... */
+    vm->dynamicWinders = (prompt)
+      ? merge_winders(chain, vm->dynamicWinders)
+      : chain;
     return Sg_VMApply0(handler);
   } else {
     /* 
@@ -1491,11 +1630,31 @@ static SgObject throw_continuation_body(SgObject handlers,
        the partial continuation.
     */
     if (c->cstack == NULL) save_cont(vm);
-
-    vm->cont = c->cont;
+    if (prompt) {
+      /* if the tag is there, then it's composable continuation
+	 means, we add the continuation frame atop of the current
+	 continuation.
+	 As the continuation is not oneshot, we need to copy the
+	 cont frame from the continuation.
+       */
+      vm->cont = splice_cont(vm, c->cont, prompt);
+      if (c->winders == vm->dynamicWinders) {
+	/* continuation is invoked in the same dynamic extent
+	   just replace it.
+	 */
+	vm->dynamicWinders = c->winders;
+      } else {
+	/* continuation is invoked outside of the winder's dynamic extent.
+	   Merge it and take only the prompt ones.
+	 */
+	SgObject merged = merge_winders(c->winders, vm->dynamicWinders);
+	vm->dynamicWinders = take_prompt_winters(prompt, merged);
+      }
+    } else {
+      vm->cont = c->cont;
+      vm->dynamicWinders = c->winders;
+    }
     vm->pc = return_code;
-    vm->dynamicWinders = c->winders;
-
     /* store arguments of the continuation to ac */
     if (SG_NULLP(args)) {		/* no value */
       /* does this happen? */
@@ -1518,59 +1677,130 @@ static SgObject throw_continuation_body(SgObject handlers,
       }
       vm->valuesCount = argc;
     }
-  
     return vm->ac;
   }
 }
+
 static SgObject throw_continuation_cc(SgObject result, void **data)
 {
   SgObject handlers = SG_OBJ(data[0]);
   SgContinuation *c = (SgContinuation*)data[1];
   SgObject args = SG_OBJ(data[2]);
-  return throw_continuation_body(handlers, c, args);
+  SgObject tag = SG_OBJ(data[3]);
+  return throw_continuation_body(handlers, c, args, tag);
 }
 
 /* remove and re-order continuation's handlers */
 static SgObject remove_common_winders(SgObject current, SgObject escapes)
 {
-  SgObject r = SG_NIL, p;
+  SgObject r = SG_NIL, p, cr = Sg_Reverse(current);
   SG_FOR_EACH(p, escapes) {
-    if (SG_FALSEP(Sg_Memq(SG_CAR(p), current))) {
+    if (SG_FALSEP(Sg_Memq(SG_CAR(p), cr))) {
       r = Sg_Cons(SG_CAR(p), r);
     }
   }
   return r;
 }
 
-static SgObject throw_continuation_calculate_handlers(SgContinuation *c,
-						      SgVM *vm)
+/* Reconstruct escape winders
+   When 2 composable continuation is invoked, then the latter continuation
+   must have the winders during the invocation. However, if we simply
+   let the process go, then before thunk may not get into the list.
+ */
+static SgObject merge_winders(SgObject current, SgObject escapes)
+{
+  SgObject h = SG_NIL, t = SG_NIL;
+  /* merge first current, then escape */
+#define do_merge(source, checker)			\
+  while (!SG_NULLP(source)) {				\
+    if (SG_FALSEP(Sg_Memq(SG_CAR(source), checker))) {	\
+      SG_APPEND1(h, t, SG_CAR(source));			\
+      source = SG_CDR(source);				\
+      continue;						\
+    }							\
+    break;						\
+  }
+
+  do_merge(current, escapes);
+  do_merge(escapes, current);
+  while (!SG_NULLP(escapes)) {
+    SG_APPEND1(h, t, SG_CAR(escapes));
+    escapes = SG_CDR(escapes);
+  }
+
+  return h;
+}
+
+/*
+  when the continuation is captured with call/comp, then the prompt
+  is also provided.
+  
+ */
+static SgObject take_prompt_winters(SgPrompt *prompt, SgObject winders)
+{
+  /* now we only need the uncommon winders, e.g.
+     (call/prompt         ;; p1
+       (lambda ()
+         (dynamic-wind
+	   pre1
+	   (lambda ()
+	     (call/prompt ;; p2
+	       (lambda ()
+	         (dynamic-wind
+		   pre2
+		   (lambda () (call/comp (lambda (k) k)))
+		   post2))))
+	   post1)))
+     when the returned `k` is invoked then we only want to invoke
+     winders of below p2
+   */
+  SgObject p;
+  if (SG_NULLP(winders)) return winders;
+
+  SG_FOR_EACH(p, winders) {
+    if (SG_FALSEP(Sg_Memq(SG_CAR(p), prompt->winders))) return p;
+  }
+  /* no uncommon winders */
+  return SG_NIL;
+}
+
+/* TODO clean up */
+static SgObject throw_cont_compute_handlers(SgContinuation *c,
+					    SgPrompt *prompt,
+					    SgVM *vm)
 {
   SgObject current = vm->dynamicWinders;
-  SgObject target = remove_common_winders(current, c->winders);
+  SgObject escapes = c->winders;
+  SgObject target = remove_common_winders(current, escapes);
   SgObject h = SG_NIL, t = SG_NIL, p;
+
+  if (prompt) target = take_prompt_winters(prompt, target);
 
   /* When the continuation is partial continuation,
      then the after thunk is already installed in the dynamic extent.
      So, skip the current ones.
    */
   if (c->cstack) {
+    if (prompt) current = take_prompt_winters(prompt, current);
     SG_FOR_EACH(p, current) {
-      if (!SG_FALSEP(Sg_Memq(SG_CAR(p), c->winders))) break;
+      if (!SG_FALSEP(Sg_Memq(SG_CAR(p), escapes))) break;
       SG_APPEND1(h, t, Sg_Cons(SG_CDAR(p), SG_CDR(p)));
     }
   }
   SG_FOR_EACH(p, target) {
-    SgObject chain = Sg_Memq(SG_CAR(p), c->winders);
+    SgObject chain = Sg_Memq(SG_CAR(p), escapes);
     SG_APPEND1(h, t, Sg_Cons(SG_CAAR(p), SG_CDR(chain)));
   }
+
   return h;
 }
 
-static SgObject throw_continuation(SgObject *argframes, int argc, void *data)
+static SgObject throw_continuation(SgObject *argv, int argc, void *data)
 {
-  SgContinuation *c = (SgContinuation*)data;
+  SgContinuation *c = (SgContinuation*)SG_CAR(data);
   SgObject handlers_to_call;
   SgVM *vm = Sg_VM();
+  SgPrompt *prompt = (SgPrompt *)SG_CDR(data);
 
   if (c->cstack && vm->cstack != c->cstack) {
     SgCStack *cs;
@@ -1580,14 +1810,25 @@ static SgObject throw_continuation(SgObject *argframes, int argc, void *data)
     if (cs != NULL) {
       vm->escapeReason = SG_VM_ESCAPE_CONT;
       vm->escapeData[0] = c;
-      vm->escapeData[1] = argframes[0];
+      vm->escapeData[1] = Sg_Cons(argv[0], prompt);
       longjmp(vm->cstack->jbuf, 1);
     }
     save_cont(vm);
   }
+  handlers_to_call = throw_cont_compute_handlers(c, prompt, vm);
+  return throw_continuation_body(handlers_to_call, c, argv[0], prompt);
+}
 
-  handlers_to_call = throw_continuation_calculate_handlers(c, vm);
-  return throw_continuation_body(handlers_to_call, c, argframes[0]);
+static SgObject sym_continuation = SG_FALSE;
+static SgObject make_cont_subr(SgContinuation *cont, SgPrompt *prompt)
+{
+  return Sg_MakeSubr(throw_continuation, Sg_Cons(cont, prompt), 0, 1,
+		     sym_continuation);
+}
+
+int Sg_ContinuationP(SgObject o)
+{
+  return SG_SUBRP(o) && SG_EQ(SG_PROCEDURE_NAME(o), sym_continuation);
 }
 
 SgObject Sg_VMCallCC(SgObject proc)
@@ -1605,8 +1846,7 @@ SgObject Sg_VMCallCC(SgObject proc)
   cont->ehandler = SG_FALSE;
 
 
-  contproc = Sg_MakeSubr(throw_continuation, cont, 0, 1,
-			 SG_MAKE_STRING("continuation"));
+  contproc = make_cont_subr(cont, NULL);
   return Sg_VMApply1(proc, contproc);
 }
 
@@ -1639,11 +1879,57 @@ SgObject Sg_VMCallPC(SgObject proc)
   cont->cstack = NULL;		/* so that the partial continuation can be
 				   run on any cstack state. */
 
-  contproc = Sg_MakeSubr(throw_continuation, cont, 0, 1,
-			 SG_MAKE_STRING("partial continuation"));
+  contproc = make_cont_subr(cont, NULL);
   /* Remove the saved continuation chain */
   vm->cont = c;
   return Sg_VMApply1(proc, contproc);  
+}
+
+/* call-with-composable-continuation */
+SgObject Sg_VMCallComp(SgObject proc, SgObject tag)
+{
+  SgContinuation *cont;
+  SgObject contproc;
+  SgVM *vm = Sg_VM();
+  SgPromptNode *node = search_prompt_node_by_tag(vm, tag);
+
+  if (!node) goto err;
+  /*
+    NOT DOING IT FOR NOW.
+    save the continuation up to the tag.
+    here, we save everything even the tag doesn't exist in the continuation.
+   */
+  /* save_cont_to_tag(vm, tag); */
+  /*
+    Ideally, we should save only the required continuation frame,
+    to reduce memory usage. Though, the current save_cont expects
+    the continuation frame to be in stack and if it's partially saved,
+    then it won't save the remaining frames next time.
+    e.g.
+      1st [heap][heap][prompt][stack][stack]
+      2nd call will not save [stack], and full continuation created by
+      call/cc would fail to restore.
+    So for now, we save all the continuation frame, then when the saved
+    continuation is invoked, we simply put them on top of the current
+    continuation (as composable continuation requires)
+    
+    If the memory usage becomes a problem, we will revisit.
+   */
+  save_cont(vm);
+
+  cont = SG_NEW(SgContinuation);
+  cont->winders = vm->dynamicWinders;
+  cont->cont = vm->cont;
+  cont->prev = NULL;
+  cont->ehandler = SG_FALSE;
+  cont->cstack = NULL;		/* so that this continuation can be
+				   run on any cstack state. */
+  contproc = make_cont_subr(cont, node->prompt);
+
+  return Sg_VMApply1(proc, contproc);
+ err:
+  Sg_Error(UC("No continuation tag: %S"), tag);
+  return SG_UNDEF;		/* dummy */
 }
 
 /* call-with-continuation-prompt
@@ -1651,21 +1937,68 @@ SgObject Sg_VMCallPC(SgObject proc)
    This is basically just put a boundary continuation
    before executing the `proc`.
  */
+static SgPrompt *make_prompt(SgObject tag, SgObject handler, SgVM *vm)
+{
+  SgPrompt *prompt = SG_NEW(SgPrompt);
+  prompt->tag = tag;
+  prompt->handler = handler;
+  prompt->cstack = vm->cstack;
+  prompt->winders = vm->dynamicWinders;
+  return prompt;
+}
+
+static void install_prompt(SgVM *vm, SgPrompt *prompt)
+{
+  SgPromptNode *node = SG_NEW(SgPromptNode);
+  node->prompt = prompt;
+  node->frame = vm->cont;
+  node->next = vm->prompts;
+  vm->prompts = node;
+}
+
+static void remove_prompt(SgVM *vm, SgPrompt *prompt)
+{
+  SgPromptNode *node = vm->prompts, *prev = NULL;
+  while (node) {
+    if (node->prompt == prompt) {
+      if (prev) {
+	prev->next = node->next;
+      } else {
+	vm->prompts = node->next;
+      }
+      break;
+    }
+    prev = node;
+    node = node->next;
+  }
+}
+ 
+static SgObject remove_prompt_cc(SgObject r, void **data)
+{
+  SgVM *vm = theVM;
+  SgPrompt *prompt = (SgPrompt *)data[0];
+  remove_prompt(vm, prompt);
+  return r;
+}
+
 SgObject Sg_VMCallCP(SgObject proc, SgObject tag,
 		     SgObject handler, SgObject args)
 {
   SgVM *vm = theVM;
   int nargs = (int)Sg_Length(args);
-  SgObject boundary = Sg_Cons(Sg_Cons(tag, vm->cstack),
-			      Sg_Cons(handler, vm->dynamicWinders));
+  SgPrompt *prompt = make_prompt(tag, handler, vm);
   
   if (nargs < 0) {
     Sg_Error(UC("improper list not allowed: %S"), args);
   }
 
   CHECK_STACK(CONT_FRAME_SIZE, vm);
-  PUSH_PROMPT_CONT(vm, boundary);
+  PUSH_PROMPT_CONT(vm, prompt);
   FP(vm) = SP(vm);
+  install_prompt(vm, prompt);
+
+  Sg_VMPushCC(remove_prompt_cc, (void **)&prompt, 1);
+  
   return Sg_VMApply(proc, args);
 }
 
@@ -2027,54 +2360,53 @@ static SG_DEFINE_SUBR(default_exception_handler_rec, 1, 0,
 
 #define TAIL_POS(vm)  (*PC(vm) == RET)
 
+static SgContFrame *skip_prompt_frame(SgContFrame *cont)
+{
+  while (PROMPT_FRAME_MARK_P(cont)) cont = cont->prev;
+  return cont;
+}
+
 #define POP_CONT()							\
   do {									\
-    if (CONT(vm)->fp == C_CONT_MARK) {					\
+    SgContFrame *cont__ = skip_prompt_frame(CONT(vm));			\
+    if (cont__->fp == C_CONT_MARK) {					\
       void *data__[SG_CCONT_DATA_SIZE];					\
       SgObject v__ = AC(vm);						\
       SgCContinuationProc *after__;					\
       void **d__ = data__;						\
-      void **s__ = (void**)((SgObject*)CONT(vm) + CONT_FRAME_SIZE);	\
-      int i__ = CONT(vm)->size;						\
+      void **s__ = (void**)((SgObject*)cont__ + CONT_FRAME_SIZE);	\
+      int i__ = cont__->size;						\
       while (i__-- > 0) {						\
 	*d__++ = *s__++;						\
       }									\
-      after__ = ((SgCContinuationProc*)CONT(vm)->pc);			\
-      if (IN_STACK_P((SgObject*)CONT(vm), vm)) {			\
-	SP(vm) = (SgObject*)CONT(vm);					\
+      after__ = ((SgCContinuationProc*)cont__->pc);			\
+      if (IN_STACK_P((SgObject*)cont__, vm)) {				\
+	SP(vm) = (SgObject*)cont__;					\
       }									\
       FP(vm) = SP(vm);							\
       PC(vm) = PC_TO_RETURN;						\
-      CL(vm) = CONT(vm)->cl;						\
-      CONT(vm) = CONT(vm)->prev;					\
-      AC(vm) = after__(v__, data__);					\
-    } else if (PROMPT_FRAME_MARK_P(CONT(vm))) {				\
-      SgContFrame *cont__ = CONT(vm)->prev;				\
-      CONT(vm) = cont__->prev;						\
-      PC(vm) = cont__->pc;						\
       CL(vm) = cont__->cl;						\
-      FP(vm) = cont__->fp;						\
-      SP(vm) = FP(vm) + cont__->size;					\
-    } else if (IN_STACK_P((SgObject*)CONT(vm), vm)) {			\
-      SgContFrame *cont__ = CONT(vm);					\
+      CONT(vm) = cont__->prev;						\
+      AC(vm) = after__(v__, data__);					\
+    } else if (IN_STACK_P((SgObject *)cont__, vm)) {			\
       CONT(vm) = cont__->prev;						\
       PC(vm) = cont__->pc;						\
       CL(vm) = cont__->cl;						\
       FP(vm) = cont__->fp;						\
       SP(vm) = FP(vm) + cont__->size;					\
     } else {								\
-      int size__ = CONT(vm)->size;					\
+      int size__ = cont__->size;					\
       FP(vm) = SP(vm) = vm->stack;					\
-      PC(vm) = CONT(vm)->pc;						\
-      CL(vm) = CONT(vm)->cl;						\
+      PC(vm) = cont__->pc;						\
+      CL(vm) = cont__->cl;						\
+      CONT(vm) = cont__->prev;						\
       if (size__) {							\
-	SgObject *s__ = CONT(vm)->env, *d__ = SP(vm);			\
+	SgObject *s__ = cont__->env, *d__ = SP(vm);			\
 	SP(vm) += size__;						\
 	while (size__-- > 0) {						\
 	  *d__++ = *s__++;						\
 	}								\
       }									\
-      CONT(vm) = CONT(vm)->prev;					\
     }									\
   } while (0)
 
@@ -2092,18 +2424,34 @@ static SG_DEFINE_SUBR(default_exception_handler_rec, 1, 0,
     if ((vm)->finalizerPending) Sg_VMFinalizerRun(vm);	\
   } while (0)
 
-SgObject Sg_VMDefaultAbortHandler(SgObject args)
+static SgObject default_abort_handler(SgObject *argv, int argc, void *data)
 {
-  /* Racket's default-abort-handler is stricter.
-     But we are very lenient :) */
-  int nargs = Sg_Length(args);
+  SgObject tag = SG_OBJ(data);
 
-  if (nargs == 0) return SG_UNDEF;
-
-  if (SG_PROCEDUREP(SG_CAR(args))) {
-    return Sg_VMApply(SG_CAR(args), SG_CDR(args));
+  if (argc != 1) {
+    Sg_WrongNumberOfArgumentsAtLeastViolation(SG_INTERN("default-abort-handler"),
+					      1, argc, SG_NIL);
   }
-  return args;			/* just return */
+  
+  if (!SG_PROCEDUREP(argv[0])) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("default-abort-handler"),
+				    SG_MAKE_STRING("procedure"),
+				    argv[0], SG_NIL);
+
+  }
+  return Sg_VMCallCP(argv[0], tag, SG_FALSE, SG_NIL);
+}
+
+static SgObject abort_invoke_handler(SgPrompt *prompt, SgObject args)
+{
+  SgObject handler;
+  if (SG_FALSEP(prompt->handler)) {
+    handler = Sg_MakeSubr(default_abort_handler, prompt->tag, 1, 0,
+			  SG_INTERN("default-abort-handler"));
+  } else {
+    handler = prompt->handler;
+  }
+  return Sg_VMApply(handler, args);
 }
 
 /*
@@ -2113,79 +2461,91 @@ SgObject Sg_VMDefaultAbortHandler(SgObject args)
 
   If the tag is not found, then an error will be raised
  */
-static SgObject abort_cc(SgObject, void **);
-static SgObject abort_end(SgObject, void **);
-static SgObject abort_body(SgObject winders, SgObject handler,
-			   SgCStack *cstack, SgObject args)
+static int prompt_winder_in_scope_p(SgPromptNode *node, SgObject winders)
 {
   SgVM *vm = theVM;
-  if (SG_PAIRP(winders)) {
+  SgContFrame *cont = vm->cont;
+
+  /* check if the prompt is in the same dynamic-extent (stack) */
+  while (!bottom_cont_frame_p(vm, cont)) {
+    if (cont == node->frame) return TRUE; /* must be invoked */
+    cont = cont->prev;
+  }
+  /*
+    the prompt is not in the same dynamic-extent
+    check if winder is defined in the same prompt or not
+   */
+  return !SG_NULLP(take_prompt_winters(node->prompt, SG_CAAR(winders)));
+}
+
+static SgObject abort_cc(SgObject, void **);
+static SgObject abort_body(SgPromptNode *node, SgObject winders, SgObject args)
+{
+  SgVM *vm = theVM;
+  if (SG_PAIRP(winders) && prompt_winder_in_scope_p(node, winders)) {
     SgObject winder, chain;
-    void *data[4];
+    void *data[3];
     winder = SG_CAAR(winders);
     chain = SG_CDAR(winders);
-    data[0] = SG_CDR(winders);
-    data[1] = handler;
-    data[2] = cstack;
-    data[3] = args;
-    Sg_VMPushCC(abort_cc, data, 4);
+    data[0] = node;
+    data[1] = SG_CDR(winders);
+    data[2] = args;
+    Sg_VMPushCC(abort_cc, data, 3);
+
     vm->dynamicWinders = chain;
     return Sg_VMApply0(winder);
   } else {
-    void *data[1];
-    data[0] = cstack;
-    Sg_VMPushCC(abort_end, data, 1);
-    if (SG_FALSEP(handler)) {
-      return Sg_VMDefaultAbortHandler(args);
-    } else {
-      return Sg_VMApply(handler, args);
+    /* make sure the node is in the prompt chain
+
+       NOTE: when this abort_cc frame is captured in a continuation,
+       the captured node is not loger valid.
+
+       search_prompt_node_by_prompt searches prompt first by its identity
+       then tag comparison.
+    */
+    SgPromptNode *cur_node = search_prompt_node_by_prompt(vm, node->prompt);
+    if (!node) Sg_Error(UC("Stale prompt: %S"), node->prompt->tag);
+    SgPrompt *prompt = cur_node->prompt;
+    SgContFrame *cont = vm->cont;
+
+    /* remove the prompt in the aborting cont frame from the chain */
+    while (!cont_prompt_match_p(cont, prompt)) {
+      if (PROMPT_FRAME_MARK_P(cont)) remove_prompt(vm, (SgPrompt *)cont->pc);
+      cont = cont->prev;
     }
+    if (prompt->cstack != vm->cstack) {
+      vm->escapeReason = SG_VM_ESCAPE_ABORT;
+      vm->escapeData[0] = cur_node;
+      vm->escapeData[1] = args;
+      longjmp(prompt->cstack->jbuf, 1);
+    }
+    /* reset the cont frame after the winder invocation */
+    remove_prompt(vm, prompt);
+    vm->cont = cur_node->frame->prev;
+    return abort_invoke_handler(prompt, args);
   }
 }
 
 static SgObject abort_cc(SgObject r, void **data)
 {
-  return abort_body(SG_OBJ(data[0]), SG_OBJ(data[1]),
-		    (SgCStack *)data[2], SG_OBJ(data[3]));
-}
-
-static SgObject abort_end(SgObject r, void **data)
-{
-  SgVM *vm = theVM;
-  vm->escapeReason = SG_VM_ESCAPE_ABORT;
-  vm->escapeData[0] = data[0];	/* a bit of abuse :) */
-  longjmp(vm->cstack->jbuf, 1);
+  return abort_body((SgPromptNode *)(data[0]), SG_OBJ(data[1]), SG_OBJ(data[2]));
 }
 
 SgObject Sg_VMAbortCC(SgObject tag, SgObject args)
 {
   SgVM *vm = theVM;
-  SgContFrame *cont = CONT(vm);
-  SgObject h = SG_NIL, t = SG_NIL, cp, target, winders;
+  SgObject h;
+  SgPromptNode *node = search_prompt_node_by_tag(vm, tag);
+  SgContinuation c;
 
-  /* search tag */
-  while (TRUE) {
-    if (!cont || cont == cont->prev) {
-      Sg_Error(UC("No continuation tag: %S"), tag);
-    }
-    if (PROMPT_FRAME_MARK_P(cont)) {
-      if (SG_PAIRP(cont->pc) && SG_CAAR(cont->pc) == tag) break;
-    }
-    cont = cont->prev;
-  }
-  winders = SG_CDDR(cont->pc);
-  target = remove_common_winders(vm->dynamicWinders, winders);
-  /* computes winders */
-  SG_FOR_EACH(cp, vm->dynamicWinders) {
-    if (!SG_FALSEP(Sg_Memq(SG_CAR(cp), winders))) break;
-    SG_APPEND1(h, t, Sg_Cons(SG_CDAR(cp), SG_CDR(cp)));
-  }
-  SG_FOR_EACH(cp, target) {
-    SgObject chain = Sg_Memq(SG_CAR(cp), winders);
-    SG_APPEND1(h, t, Sg_Cons(SG_CAAR(cp), SG_CDR(chain)));
-  }
-  vm->cont = cont;
-  return abort_body(h, SG_CADR(cont->pc), (SgCStack *)SG_CDAR(cont->pc), args);
+  if (!node) Sg_Error(UC("No continuation tag: %S"), tag);
+
+  /* compose fake continuation to compute winders */
+  c.winders = node->prompt->winders;
+  c.cstack = node->prompt->cstack;
+  h = throw_cont_compute_handlers(&c, node->prompt, vm);
+
+  return abort_body(node, h, args);
 }
 
 SgObject evaluate_safe(SgObject program, SgWord *code)
@@ -2257,9 +2617,11 @@ SgObject evaluate_safe(SgObject program, SgWord *code)
     if (vm->escapeReason == SG_VM_ESCAPE_CONT) {
       SgContinuation *c = (SgContinuation*)vm->escapeData[0];
       if (c->cstack == vm->cstack) {
-	SgObject handlers = throw_continuation_calculate_handlers(c, vm);
+	SgObject ed = vm->escapeData[1];
+	SgPrompt *p = (SgPrompt *)SG_CDR(ed);
+	SgObject handlers = throw_cont_compute_handlers(c, p, vm);
 	PC(vm) = PC_TO_RETURN;
-	AC(vm) = throw_continuation_body(handlers, c, vm->escapeData[1]);
+	AC(vm) = throw_continuation_body(handlers, c, SG_CAR(ed), p);
 	goto restart;
       } else {
  	ASSERT(vm->cstack && vm->cstack->prev);
@@ -2288,12 +2650,21 @@ SgObject evaluate_safe(SgObject program, SgWord *code)
       PC(vm) = PC_TO_RETURN;
       goto restart;
     } else if (vm->escapeReason == SG_VM_ESCAPE_ABORT) {
-      SgCStack *abort_stack = (SgCStack *)vm->escapeData[0];
-      if (abort_stack != vm->cstack) {
-	vm->cstack = abort_stack;
-	longjmp(abort_stack->jbuf, 1);
+      SgPromptNode *node = (SgPromptNode *)vm->escapeData[0];
+      if (node->prompt->cstack == vm->cstack) {
+	SgObject args = SG_OBJ(vm->escapeData[1]);
+	remove_prompt(vm, node->prompt);
+	CONT(vm) = node->frame->prev;
+	PC(vm) = PC_TO_RETURN;
+	AC(vm) = abort_invoke_handler(node->prompt, args);
+	goto restart;
+      } else {
+	CONT(vm) = cstack.cont;
+	AC(vm) = vm->ac;
+	POP_CONT();
+	vm->cstack = vm->cstack->prev;
+	longjmp(vm->cstack->jbuf, 1);
       }
-      goto restart;
     } else {
       Sg_Panic("invalid longjmp");
     }
@@ -2506,24 +2877,107 @@ static void process_queued_requests(SgVM *vm)
   to avoid segmentation fault, we need to be careful with let frame.
   so make sure if it's fp or not before touch an stack element.
  */
+static void print_argument(SgVM *vm, SgContFrame *cont,
+			   SgObject *loc, SgObject p)
+{
+#if 1
+  Sg_Printf(vm->logPort, UC(";; %p +   p=%#39p +\n"), loc, p);
+#else
+  SgString *fmt = SG_MAKE_STRING("+   p=~39,,,,39s +~%");
+  if (cont->fp == C_CONT_MARK && p) {
+    Sg_Printf(vm->logPort, UC(";; %p +   p=%#39p +\n"), loc, p);
+  } else {
+    Sg_Printf(vm->logPort, UC(";; %p "), loc);
+    Sg_Format(vm->logPort, fmt, SG_LIST1(p), TRUE);
+  }
+#endif
+}
+
+/* dladdr is not in POSIX, for now enable it only on Mac
+   NOTE: It should also be available on BSD systems, but I'm lazy
+ */
+#if defined(HAVE_DLFCN_H) && __APPLE__
+# include <dlfcn.h>
+static int print_c_pc(SgVM *vm, SgObject pfmt, SgContFrame *cont)
+{
+  if (cont->fp == C_CONT_MARK) {
+    Dl_info info;
+    /* pc == after function */
+    if (dladdr((void *)cont->pc, &info) && info.dli_sname) {
+      SgObject pc = SG_INTERN("pc");
+      SgObject name = Sg_Utf8sToUtf32s(info.dli_sname, strlen(info.dli_sname));
+      Sg_Printf(vm->logPort, UC(";; %p "),
+		(uintptr_t)cont + offsetof(SgContFrame, pc));
+      Sg_Format(vm->logPort, pfmt, SG_LIST2(pc, name), TRUE);
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
+#else
+static int print_c_pc(SgVM *vm, SgObject pfmt, SgContFrame *cont)
+{
+  return FALSE;
+}
+#endif
+
+static void print_pc(SgVM *vm, SgObject pfmt, SgContFrame *cont)
+{
+  SgObject pc = SG_INTERN("pc");
+  if (PROMPT_FRAME_MARK_P(cont)) {
+    SgPrompt *p = (SgPrompt *)cont->pc;
+    Sg_Printf(vm->logPort, UC(";; %p "),
+	      (uintptr_t)cont + offsetof(SgContFrame, pc));
+    Sg_Format(vm->logPort, pfmt,
+	      SG_LIST2(pc, Sg_Cons(p->tag, p->handler)), TRUE);
+  } else if (!print_c_pc(vm, pfmt, cont)) {
+    Sg_Printf(vm->logPort, UC(";; %p +   pc=%#38p +\n"),
+	      (uintptr_t)cont + offsetof(SgContFrame, pc), cont->pc);
+  }
+}
+
+
 static SgContFrame * print_cont1(SgContFrame *cont, SgVM *vm)
 {
-  SgObject *current = (SgObject *)cont;
-  int i;
   int size = cont->size;
-  SgString *clfmt = SG_MAKE_STRING("+   cl=~38,,,,38s +~%");
+  SgString *pfmt = SG_MAKE_STRING("+   ~a=~38,,,,38s +~%");
+  SgObject cl = SG_INTERN("cl");
+
+  /* cont's size is argc of previous cont frame */
+  /* dump arguments */
+  if (IN_STACK_P((SgObject*)cont, vm)) {
+    SgObject *current = (SgObject *)cont;
+    int i;
+    for (i = 0; i < size; i++, current--) {
+      print_argument(vm, cont, current-1, *(current-1));
+    }
+    if (size > 0) {
+      Sg_Printf(vm->logPort, 
+	UC(";; %p +---------------------------------------------+ < args\n"),
+	current);
+    }
+  } else {
+    int i;
+    for (i = 0; i < size; i++) {
+      print_argument(vm, cont, cont->env+i, *(cont->env+i));
+    }
+    if (size > 0) {
+      Sg_Printf(vm->logPort, 
+	UC(";; %p +---------------------------------------------+ < args/heap\n"),
+	cont->env+size);
+    }
+  }
 
   Sg_Printf(vm->logPort, UC(";; %p +   fp=%#38p +\n"),
 	    (uintptr_t)cont + offsetof(SgContFrame, fp), cont->fp);
   Sg_Printf(vm->logPort, UC(";; %p "),
 	    (uintptr_t)cont + offsetof(SgContFrame, cl));
   if (cont->cl) {
-    Sg_Format(vm->logPort, clfmt, SG_LIST1(cont->cl), TRUE);
+    Sg_Format(vm->logPort, pfmt, SG_LIST2(cl, cont->cl), TRUE);
   } else {
-    Sg_Format(vm->logPort, clfmt, SG_LIST1(SG_FALSE), TRUE);
+    Sg_Format(vm->logPort, pfmt, SG_LIST2(cl, SG_FALSE), TRUE);
   }
-  Sg_Printf(vm->logPort, UC(";; %p +   pc=%#38p +\n"),
-	    (uintptr_t)cont + offsetof(SgContFrame, pc), cont->pc);
+  print_pc(vm, pfmt, cont);
 #if SIZEOF_LONG == 8
   Sg_Printf(vm->logPort, UC(";; %p + type=%#38d +\n"),
 	    (uintptr_t)cont + offsetof(SgContFrame, type), cont->type);
@@ -2538,80 +2992,59 @@ static SgContFrame * print_cont1(SgContFrame *cont, SgVM *vm)
   Sg_Printf(vm->logPort, UC(";; %p + prev=%#38p +\n"),
 	    (uintptr_t)cont + offsetof(SgContFrame, prev), cont->prev);
 
-  if (cont == CONT(vm)) {
-    Sg_Printf(vm->logPort, 
-      UC(";; %p +---------------------------------------------+ < cont"), cont);
-  } else if (cont->prev) {
-    Sg_Printf(vm->logPort, 
-      UC(";; %p +---------------------------------------------+ < prev"), cont);
-  }
+  Sg_Printf(vm->logPort, 
+	    UC(";; %p +---------------------------------------------+ < %s%s"),
+	    cont,
+	    (cont == CONT(vm)) ? UC("cont")
+	    : (cont->prev) ? UC("prev")
+	    : UC("prompt"),
+	    !IN_STACK_P((SgObject *)cont, vm) ? UC("/heap") : UC(""));
+
   if (BOUNDARY_FRAME_MARK_P(cont)) Sg_Printf(vm->logPort, UC("(boundary)"));
-  if (PROMPT_FRAME_MARK_P(cont))
-    Sg_Printf(vm->logPort, UC("%S"), SG_CAAR(cont->pc));
+  if (PROMPT_FRAME_MARK_P(cont)) {
+    Sg_Printf(vm->logPort, UC("%S(%p)"), ((SgPrompt *)(cont->pc))->tag,
+	      cont->pc);
+  }
   Sg_Printf(vm->logPort, UC("\n"));
 
-  /* cont's size is argc of previous cont frame */
-  /* dump arguments */
-  if (IN_STACK_P((SgObject*)cont, vm)) {
-    for (i = 0; i < size; i++, current--) {
-      Sg_Printf(vm->logPort, UC(";; %p +   p=%#39p +\n"), current-1,
-		*(current-1));
-    }
-    if (size > 0) {
-      Sg_Printf(vm->logPort, 
-		UC(";; %p +---------------------------------------------+ < args\n"),
-		current);
-    }
-  } else {
-    for (i = 0; i < size; i++) {
-      Sg_Printf(vm->logPort, UC(";; %p +   p=%#39x +\n"), cont->env+i,
-		*(cont->env+i));
-    }
-    if (size > 0) {
-      Sg_Printf(vm->logPort, 
-		  UC(";; %p +---------------------------------------------+ < args\n"),
-		cont->env+size);
-    }
-  }
-  if (!cont->cl) return NULL;
   return cont->prev;
 }
 
 static void print_frames(SgVM *vm, SgContFrame *cont)
 {
   SgObject *stack = vm->stack, *sp = SP(vm);
-  SgObject *current = sp-1;
+  SgPromptNode *node = vm->prompts;
 
-  Sg_Printf(vm->logPort, UC(";; stack: %p, cont: %p\n"),
-	    stack, cont);
+  Sg_Printf(vm->logPort, UC(";; stack: %p, cont: %p\n"), stack, vm->cont);
+  Sg_Printf(vm->logPort, UC(";; sp: %p, fp: %p, pc: %p\n"), sp, vm->fp, vm->pc);
 
-  /* first dump cont in heap */
-  while (!IN_STACK_P((SgObject *)cont, vm)) {
+  Sg_Printf(vm->logPort, 
+    UC(";; %p +---------------------------------------------+ < top%s%s%s\n"),
+    cont, 
+    !IN_STACK_P((SgObject *)cont, vm) ? UC("/heap") : UC(""), 
+    (intptr_t)cont == (intptr_t)sp-1 ? UC("/sp") : UC(""), 
+    (intptr_t)vm->fp == (intptr_t)cont ? UC("/fp") : UC(""));
+  while (!bottom_cont_frame_p(vm, cont)) {
     cont = print_cont1(cont, vm);
-    if (!cont) break;
   }
-  if (!cont) goto end;
-
-  Sg_Printf(vm->logPort, UC(";; %p +---------------------------------------------+ < sp%s\n"),
-	    sp-1, vm->fp == current? UC("/fp"): UC(""));
   
-  /* second we dump from top until cont frame. */
-  while ((stack < current && vm->fp <= current)) {
-    Sg_Printf(vm->logPort, UC(";; %p +   p=%#39p +\n"), current, *current);
-    current--;
+  Sg_Printf(vm->logPort,
+    UC(";; %p +---------------------------------------------+ < bottom\n"),
+    stack);
+
+  if (node) {
+    Sg_Printf(vm->logPort, UC(";; Prompt chain\n"));
+    Sg_Printf(vm->logPort, UC(";; [%S:%S %p]"),
+	      node->prompt->tag, node->prompt->handler, node->prompt);
+    node = node->next;
+    while (node) {
+      Sg_Printf(vm->logPort, UC(" => [%S:%S %p]"),
+		node->prompt->tag, node->prompt->handler, node->prompt);
+      node = node->next;
+    }
+    Sg_Printf(vm->logPort, UC("\n"));
   }
-  if (current != sp-1)
-    Sg_Printf(vm->logPort, UC(";; %p +---------------------------------------------+ < fp\n"), vm->fp);
-  /* now we know we just need to trace cont frames
-     memo: if cont has let frame, we just dump it as pointer.
-   */
-  while (stack < current && current <= sp) {
-    current = (SgObject *)cont;
-    cont = print_cont1(cont, vm);
-    if (!cont) break;
-  }
- end:
-  Sg_Printf(vm->logPort, UC(";; %p +---------------------------------------------+\n"), stack);
+  
 }
 
 void Sg_VMPrintFrame()
@@ -2761,6 +3194,7 @@ void Sg__InitVM()
 #ifdef PROF_INSN
   Sg_AddCleanupHandler(show_inst_count, NULL);
 #endif
+  sym_continuation = Sg_MakeSymbol(SG_MAKE_STRING("continuation"), FALSE);
 }
 
 void Sg__PostInitVM()
