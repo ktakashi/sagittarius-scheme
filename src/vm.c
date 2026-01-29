@@ -2504,7 +2504,7 @@ static SgObject abort_body(SgPromptNode *node, SgObject winders, SgObject args)
        then tag comparison.
     */
     SgPromptNode *cur_node = search_prompt_node_by_prompt(vm, node->prompt);
-    if (!node) Sg_Error(UC("Stale prompt: %S"), node->prompt->tag);
+    if (!cur_node) Sg_Error(UC("Stale prompt: %S"), node->prompt->tag);
     SgPrompt *prompt = cur_node->prompt;
     SgContFrame *cont = vm->cont;
 
