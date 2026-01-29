@@ -1598,7 +1598,7 @@ static SgContFrame * splice_cont(SgVM *vm, SgContFrame *saved,
 
 static SgObject throw_continuation_cc(SgObject, void **);
 static SgObject merge_winders(SgObject, SgObject);
-static SgObject take_prompt_winters(SgPrompt *, SgObject);
+static SgObject take_prompt_winders(SgPrompt *, SgObject);
 
 static SgObject throw_continuation_body(SgObject handlers,
 					SgContinuation *c,
@@ -1608,7 +1608,7 @@ static SgObject throw_continuation_body(SgObject handlers,
   SgVM *vm = Sg_VM();
   /* (if (not (eq? new (current-dynamic-winders))) perform-dynamic-wind) */
   if (SG_PAIRP(handlers)) {
-    SgObject handler, chain;
+    SgObject handler, chain, next;
     void *data[4];
     handler = SG_CAAR(handlers);
     chain = SG_CDAR(handlers);
@@ -1618,9 +1618,11 @@ static SgObject throw_continuation_body(SgObject handlers,
     data[3] = prompt;
     Sg_VMPushCC(throw_continuation_cc, data, 4);
     /* FIXME best to reconstruct chain itself during the computation... */
-    vm->dynamicWinders = (prompt)
-      ? merge_winders(chain, vm->dynamicWinders)
+    next = (prompt)
+      ? merge_winders(vm->dynamicWinders, chain)
       : chain;
+    vm->dynamicWinders = next;
+    /* Sg_Printf(Sg_StandardErrorPort(), UC("dw: %A\n"), vm->dynamicWinders); */
     return Sg_VMApply0(handler);
   } else {
     /* 
@@ -1648,7 +1650,7 @@ static SgObject throw_continuation_body(SgObject handlers,
 	   Merge it and take only the prompt ones.
 	 */
 	SgObject merged = merge_winders(c->winders, vm->dynamicWinders);
-	vm->dynamicWinders = take_prompt_winters(prompt, merged);
+	vm->dynamicWinders = take_prompt_winders(prompt, merged);
       }
     } else {
       vm->cont = c->cont;
@@ -1736,7 +1738,7 @@ static SgObject merge_winders(SgObject current, SgObject escapes)
   is also provided.
   
  */
-static SgObject take_prompt_winters(SgPrompt *prompt, SgObject winders)
+static SgObject take_prompt_winders(SgPrompt *prompt, SgObject winders)
 {
   /* now we only need the uncommon winders, e.g.
      (call/prompt         ;; p1
@@ -1774,14 +1776,14 @@ static SgObject throw_cont_compute_handlers(SgContinuation *c,
   SgObject target = remove_common_winders(current, escapes);
   SgObject h = SG_NIL, t = SG_NIL, p;
 
-  if (prompt) target = take_prompt_winters(prompt, target);
+  if (prompt) target = take_prompt_winders(prompt, target);
 
   /* When the continuation is partial continuation,
      then the after thunk is already installed in the dynamic extent.
      So, skip the current ones.
    */
   if (c->cstack) {
-    if (prompt) current = take_prompt_winters(prompt, current);
+    if (prompt) current = take_prompt_winders(prompt, current);
     SG_FOR_EACH(p, current) {
       if (!SG_FALSEP(Sg_Memq(SG_CAR(p), escapes))) break;
       SG_APPEND1(h, t, Sg_Cons(SG_CDAR(p), SG_CDR(p)));
@@ -2475,7 +2477,7 @@ static int prompt_winder_in_scope_p(SgPromptNode *node, SgObject winders)
     the prompt is not in the same dynamic-extent
     check if winder is defined in the same prompt or not
    */
-  return !SG_NULLP(take_prompt_winters(node->prompt, SG_CAAR(winders)));
+  return !SG_NULLP(take_prompt_winders(node->prompt, SG_CAAR(winders)));
 }
 
 static SgObject abort_cc(SgObject, void **);
