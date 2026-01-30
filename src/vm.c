@@ -1550,21 +1550,6 @@ static SgPromptNode *search_prompt_node_by_tag(SgVM *vm, SgObject tag)
   return NULL;
 }
 
-static SgPromptNode *search_prompt_node_by_prompt(SgVM *vm, SgPrompt *prompt)
-{
-  SgPromptNode *node = vm->prompts;
-  
-  /* search tag */
-  while (node) {
-    if (node->prompt == prompt) {
-      return node;
-    }
-    node = node->next;
-  }
-  /* fallback */
-  return search_prompt_node_by_tag(vm, prompt->tag);
-}
-
 
 static int cont_prompt_match_p(SgContFrame *c, SgPrompt *prompt)
 {
@@ -1650,7 +1635,7 @@ static SgObject throw_continuation_body(SgObject handlers,
 	   Merge it and take only the prompt ones.
 	 */
 	SgObject merged = merge_winders(c->winders, vm->dynamicWinders);
-	vm->dynamicWinders = take_prompt_winders(prompt, merged);
+	vm->dynamicWinders = merged;
       }
     } else {
       vm->cont = c->cont;
@@ -1818,6 +1803,7 @@ static SgObject throw_continuation(SgObject *argv, int argc, void *data)
     save_cont(vm);
   }
   handlers_to_call = throw_cont_compute_handlers(c, prompt, vm);
+
   return throw_continuation_body(handlers_to_call, c, argv[0], prompt);
 }
 
@@ -1920,7 +1906,8 @@ SgObject Sg_VMCallComp(SgObject proc, SgObject tag)
   save_cont(vm);
 
   cont = SG_NEW(SgContinuation);
-  cont->winders = vm->dynamicWinders;
+  /* For composable continuations, only save winders up to the prompt */
+  cont->winders = take_prompt_winders(node->prompt, vm->dynamicWinders);
   cont->cont = vm->cont;
   cont->prev = NULL;
   cont->ehandler = SG_FALSE;
@@ -2501,11 +2488,8 @@ static SgObject abort_body(SgPromptNode *node, SgObject winders, SgObject args)
 
        NOTE: when this abort_cc frame is captured in a continuation,
        the captured node is not loger valid.
-
-       search_prompt_node_by_prompt searches prompt first by its identity
-       then tag comparison.
     */
-    SgPromptNode *cur_node = search_prompt_node_by_prompt(vm, node->prompt);
+    SgPromptNode *cur_node = search_prompt_node_by_tag(vm, node->prompt->tag);
     if (!cur_node) Sg_Error(UC("Stale prompt: %S"), node->prompt->tag);
     SgPrompt *prompt = cur_node->prompt;
     SgContFrame *cont = vm->cont;
