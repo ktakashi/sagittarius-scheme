@@ -1625,17 +1625,11 @@ static SgObject throw_continuation_body(SgObject handlers,
 	 cont frame from the continuation.
        */
       vm->cont = splice_cont(vm, c->cont, prompt);
-      if (c->winders == vm->dynamicWinders) {
-	/* continuation is invoked in the same dynamic extent
-	   just replace it.
-	 */
-	vm->dynamicWinders = c->winders;
-      } else {
+      if (c->winders != vm->dynamicWinders) {
 	/* continuation is invoked outside of the winder's dynamic extent.
 	   Merge it and take only the prompt ones.
 	 */
-	SgObject merged = merge_winders(c->winders, vm->dynamicWinders);
-	vm->dynamicWinders = merged;
+	vm->dynamicWinders = merge_winders(c->winders, vm->dynamicWinders);
       }
     } else {
       vm->cont = c->cont;
@@ -1697,6 +1691,10 @@ static SgObject remove_common_winders(SgObject current, SgObject escapes)
 static SgObject merge_winders(SgObject current, SgObject escapes)
 {
   SgObject h = SG_NIL, t = SG_NIL;
+
+  if (SG_NULLP(current)) return escapes;
+  if (SG_NULLP(escapes)) return current;
+  
   /* merge first current, then escape */
 #define do_merge(source, checker)			\
   while (!SG_NULLP(source)) {				\
