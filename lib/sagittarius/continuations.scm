@@ -88,6 +88,6 @@
     (syntax-case x ()
       ((_ expr0 expr ...)
        #'(call-with-continuation-prompt
-	(lambda () expr0 expr ...))))))
+	  (lambda () expr0 expr ...))))))
 
 )
