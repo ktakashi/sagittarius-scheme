@@ -1959,14 +1959,6 @@ static void remove_prompt(SgVM *vm, SgPrompt *prompt)
     node = node->next;
   }
 }
- 
-static SgObject remove_prompt_cc(SgObject r, void **data)
-{
-  SgVM *vm = theVM;
-  SgPrompt *prompt = (SgPrompt *)data[0];
-  remove_prompt(vm, prompt);
-  return r;
-}
 
 SgObject Sg_VMCallCP(SgObject proc, SgObject tag,
 		     SgObject handler, SgObject args)
@@ -1983,8 +1975,6 @@ SgObject Sg_VMCallCP(SgObject proc, SgObject tag,
   PUSH_PROMPT_CONT(vm, prompt);
   FP(vm) = SP(vm);
   install_prompt(vm, prompt);
-
-  Sg_VMPushCC(remove_prompt_cc, (void **)&prompt, 1);
   
   return Sg_VMApply(proc, args);
 }
@@ -2349,7 +2339,10 @@ static SG_DEFINE_SUBR(default_exception_handler_rec, 1, 0,
 
 static SgContFrame *skip_prompt_frame(SgContFrame *cont)
 {
-  while (PROMPT_FRAME_MARK_P(cont)) cont = cont->prev;
+  while (PROMPT_FRAME_MARK_P(cont)) {
+    remove_prompt(theVM, (SgPrompt *)cont->pc);
+    cont = cont->prev;
+  }
   return cont;
 }
 
