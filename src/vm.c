@@ -2877,19 +2877,39 @@ static void print_argument(SgVM *vm, SgContFrame *cont,
 # include <dlfcn.h>
 static int print_c_pc(SgVM *vm, SgObject pfmt, SgContFrame *cont)
 {
-  if (cont->fp == C_CONT_MARK) {
-    Dl_info info;
-    /* pc == after function */
-    if (dladdr((void *)cont->pc, &info) && info.dli_sname) {
-      SgObject pc = SG_INTERN("pc");
-      SgObject name = Sg_Utf8sToUtf32s(info.dli_sname, strlen(info.dli_sname));
-      Sg_Printf(vm->logPort, UC(";; %p "),
-		(uintptr_t)cont + offsetof(SgContFrame, pc));
-      Sg_Format(vm->logPort, pfmt, SG_LIST2(pc, name), TRUE);
-      return TRUE;
-    }
+  Dl_info info;
+  /* pc == after function */
+  if (dladdr((void *)cont->pc, &info) && info.dli_sname) {
+    SgObject pc = SG_INTERN("pc");
+    SgObject name = Sg_Utf8sToUtf32s(info.dli_sname, strlen(info.dli_sname));
+    Sg_Printf(vm->logPort, UC(";; %p "),
+	      (uintptr_t)cont + offsetof(SgContFrame, pc));
+    Sg_Format(vm->logPort, pfmt, SG_LIST2(pc, name), TRUE);
+    return TRUE;
   }
   return FALSE;
+}
+#elif _WIN32
+# include <dbghelp.h>
+# pragma comment(lib, "dbghelp.lib")
+static int print_c_pc(SgVM *vm, SgObject pfmt, SgContFrame *cont)
+{
+#define SYM_LEN 256
+  char buffer[sizeof(SYMBOL_INFO) + sizeof(char)*SYM_LEN];
+  SYMBOL_INFO *sym = (SYMBOL_INFO *)buffer;
+  DWORD64 displacement = 0;
+  sym->SizeOfStruct = sizeof(SYMBOL_INFO);
+  sym->MaxNameLen = SYM_LEN;
+  if (SymFromAddr(GetCurrentProcess(), (DWORD64)cont->pc, &displacement, sym)) {
+    SgObject pc = SG_INTERN("pc");
+    SgObject name = Sg_Utf8sToUtf32s(sym->Name, sym->NameLen);
+    Sg_Printf(vm->logPort, UC(";; %p "),
+	      (uintptr_t)cont + offsetof(SgContFrame, pc));
+    Sg_Format(vm->logPort, pfmt, SG_LIST2(pc, name), TRUE);
+    return TRUE;
+  }
+  return FALSE;
+#undef SYM_LEN
 }
 #else
 static int print_c_pc(SgVM *vm, SgObject pfmt, SgContFrame *cont)
@@ -2907,7 +2927,7 @@ static void print_pc(SgVM *vm, SgObject pfmt, SgContFrame *cont)
 	      (uintptr_t)cont + offsetof(SgContFrame, pc));
     Sg_Format(vm->logPort, pfmt,
 	      SG_LIST2(pc, Sg_Cons(p->tag, p->handler)), TRUE);
-  } else if (!print_c_pc(vm, pfmt, cont)) {
+  } else if (cont->fp != C_CONT_MARK || !print_c_pc(vm, pfmt, cont)) {
     Sg_Printf(vm->logPort, UC(";; %p +   pc=%#38p +\n"),
 	      (uintptr_t)cont + offsetof(SgContFrame, pc), cont->pc);
   }
@@ -3172,6 +3192,10 @@ void Sg__InitVM()
   Sg_AddCleanupHandler(show_inst_count, NULL);
 #endif
   sym_continuation = Sg_MakeSymbol(SG_MAKE_STRING("continuation"), FALSE);
+  
+#ifdef _WIN32
+  SymInitialize(GetCurrentProcess(), NULL, TRUE);
+#endif
 }
 
 void Sg__PostInitVM()
