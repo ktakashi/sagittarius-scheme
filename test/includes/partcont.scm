@@ -486,7 +486,7 @@
 ;; srfi226: [d01][d02][d01][d02][d11][d12][d01][d02][d01][d02][d11][d12][d11][d12]
 ;; racket : [d01][d02][d01][d11][d12][d02][d11][d12][d11][d12]
 (test* "dynamic-wind + reset/shift 5"
-       "[d01][d02][d01][d11][d12][d02][d11][d12][d02][d01][d11][d12]"
+       "[d01][d02][d01][d11][d12][d02][d11][d12][d11][d12]"
        (with-output-to-string
          (lambda ()
            (define k1 #f)

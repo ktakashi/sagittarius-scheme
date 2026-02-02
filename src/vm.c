@@ -1584,6 +1584,7 @@ static SgContFrame * splice_cont(SgVM *vm, SgContFrame *saved,
 static SgObject throw_continuation_cc(SgObject, void **);
 static SgObject merge_winders(SgObject, SgObject);
 static SgObject take_prompt_winders(SgPrompt *, SgObject);
+static SgObject capture_prompt_winders(SgPrompt *, SgObject);
 
 static SgObject throw_continuation_body(SgObject handlers,
 					SgContinuation *c,
@@ -1627,9 +1628,11 @@ static SgObject throw_continuation_body(SgObject handlers,
       vm->cont = splice_cont(vm, c->cont, prompt);
       if (c->winders != vm->dynamicWinders) {
 	/* continuation is invoked outside of the winder's dynamic extent.
-	   Merge it and take only the prompt ones.
+	   Merge only winders that are inside the continuation's scope
+	   (not the ones that were in place at prompt creation time).
 	 */
-	vm->dynamicWinders = merge_winders(c->winders, vm->dynamicWinders);
+	SgObject to_merge = capture_prompt_winders(prompt, c->winders);
+	vm->dynamicWinders = merge_winders(to_merge, vm->dynamicWinders);
       }
     } else {
       vm->cont = c->cont;
@@ -1667,8 +1670,8 @@ static SgObject throw_continuation_cc(SgObject result, void **data)
   SgObject handlers = SG_OBJ(data[0]);
   SgContinuation *c = (SgContinuation*)data[1];
   SgObject args = SG_OBJ(data[2]);
-  SgObject tag = SG_OBJ(data[3]);
-  return throw_continuation_body(handlers, c, args, tag);
+  SgPrompt *prompt = (SgPrompt*)data[3];
+  return throw_continuation_body(handlers, c, args, prompt);
 }
 
 /* remove and re-order continuation's handlers */
@@ -1721,6 +1724,30 @@ static SgObject merge_winders(SgObject current, SgObject escapes)
   is also provided.
   
  */
+
+/* Returns only winders from the input list that are NOT in prompt->winders.
+   Stops when we reach a winder that IS in prompt->winders.
+   This is used when capturing a composable continuation to only include
+   winders installed after the prompt. Returns a new list (copies winders). */
+static SgObject capture_prompt_winders(SgPrompt *prompt, SgObject winders)
+{
+  SgObject p, h = SG_NIL, t = SG_NIL;
+  if (SG_NULLP(winders)) return winders;
+
+  SG_FOR_EACH(p, winders) {
+    if (SG_FALSEP(Sg_Memq(SG_CAR(p), prompt->winders))) {
+      SG_APPEND1(h, t, SG_CAR(p));
+    } else {
+      /* Found a winder that's in the prompt's winders - stop here */
+      break;
+    }
+  }
+  return h;
+}
+
+/* Returns the tail of the winders list starting from the first winder
+   that is NOT in prompt->winders. This preserves list structure for
+   chain computation in handler invocation. */
 static SgObject take_prompt_winders(SgPrompt *prompt, SgObject winders)
 {
   /* now we only need the uncommon winders, e.g.
@@ -1759,6 +1786,11 @@ static SgObject throw_cont_compute_handlers(SgContinuation *c,
   SgObject target = remove_common_winders(current, escapes);
   SgObject h = SG_NIL, t = SG_NIL, p;
 
+  /* Sg_Printf(Sg_StandardErrorPort(), UC("targt: %S\n"), target);
+  Sg_Printf(Sg_StandardErrorPort(), UC("p->dw: %S\n"), prompt ? prompt->winders : SG_FALSE);
+  Sg_Printf(Sg_StandardErrorPort(), UC("c->dw: %S\n"), c->winders);
+  Sg_Printf(Sg_StandardErrorPort(), UC("v->dw: %S\n\n"), vm->dynamicWinders); */
+
   if (prompt) target = take_prompt_winders(prompt, target);
 
   /* When the continuation is partial continuation,
@@ -1774,7 +1806,17 @@ static SgObject throw_cont_compute_handlers(SgContinuation *c,
   }
   SG_FOR_EACH(p, target) {
     SgObject chain = Sg_Memq(SG_CAR(p), escapes);
-    SG_APPEND1(h, t, Sg_Cons(SG_CAAR(p), SG_CDR(chain)));
+    SgObject next_winders = SG_CDR(chain);
+    /* For composable continuations, don't include winders that were
+       in place when the prompt was created - they're outside the
+       continuation's scope and shouldn't be added to vm->dynamicWinders */
+    if (prompt && SG_PAIRP(next_winders)) {
+      SgObject w = SG_CAR(next_winders);
+      if (!SG_FALSEP(Sg_Memq(w, prompt->winders))) {
+        next_winders = SG_NIL;
+      }
+    }
+    SG_APPEND1(h, t, Sg_Cons(SG_CAAR(p), next_winders));
   }
 
   return h;
