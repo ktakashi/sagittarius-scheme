@@ -2001,14 +2001,6 @@ static void remove_prompt(SgVM *vm, SgPrompt *prompt)
     node = node->next;
   }
 }
- 
-static SgObject remove_prompt_cc(SgObject r, void **data)
-{
-  SgVM *vm = theVM;
-  SgPrompt *prompt = (SgPrompt *)data[0];
-  remove_prompt(vm, prompt);
-  return r;
-}
 
 SgObject Sg_VMCallCP(SgObject proc, SgObject tag,
 		     SgObject handler, SgObject args)
@@ -2025,8 +2017,6 @@ SgObject Sg_VMCallCP(SgObject proc, SgObject tag,
   PUSH_PROMPT_CONT(vm, prompt);
   FP(vm) = SP(vm);
   install_prompt(vm, prompt);
-
-  Sg_VMPushCC(remove_prompt_cc, (void **)&prompt, 1);
   
   return Sg_VMApply(proc, args);
 }
@@ -2391,7 +2381,10 @@ static SG_DEFINE_SUBR(default_exception_handler_rec, 1, 0,
 
 static SgContFrame *skip_prompt_frame(SgContFrame *cont)
 {
-  while (PROMPT_FRAME_MARK_P(cont)) cont = cont->prev;
+  while (PROMPT_FRAME_MARK_P(cont)) {
+    remove_prompt(theVM, (SgPrompt *)cont->pc);
+    cont = cont->prev;
+  }
   return cont;
 }
 
@@ -2926,19 +2919,39 @@ static void print_argument(SgVM *vm, SgContFrame *cont,
 # include <dlfcn.h>
 static int print_c_pc(SgVM *vm, SgObject pfmt, SgContFrame *cont)
 {
-  if (cont->fp == C_CONT_MARK) {
-    Dl_info info;
-    /* pc == after function */
-    if (dladdr((void *)cont->pc, &info) && info.dli_sname) {
-      SgObject pc = SG_INTERN("pc");
-      SgObject name = Sg_Utf8sToUtf32s(info.dli_sname, strlen(info.dli_sname));
-      Sg_Printf(vm->logPort, UC(";; %p "),
-		(uintptr_t)cont + offsetof(SgContFrame, pc));
-      Sg_Format(vm->logPort, pfmt, SG_LIST2(pc, name), TRUE);
-      return TRUE;
-    }
+  Dl_info info;
+  /* pc == after function */
+  if (dladdr((void *)cont->pc, &info) && info.dli_sname) {
+    SgObject pc = SG_INTERN("pc");
+    SgObject name = Sg_Utf8sToUtf32s(info.dli_sname, strlen(info.dli_sname));
+    Sg_Printf(vm->logPort, UC(";; %p "),
+	      (uintptr_t)cont + offsetof(SgContFrame, pc));
+    Sg_Format(vm->logPort, pfmt, SG_LIST2(pc, name), TRUE);
+    return TRUE;
   }
   return FALSE;
+}
+#elif _WIN32
+# include <dbghelp.h>
+# pragma comment(lib, "dbghelp.lib")
+static int print_c_pc(SgVM *vm, SgObject pfmt, SgContFrame *cont)
+{
+#define SYM_LEN 256
+  char buffer[sizeof(SYMBOL_INFO) + sizeof(char)*SYM_LEN];
+  SYMBOL_INFO *sym = (SYMBOL_INFO *)buffer;
+  DWORD64 displacement = 0;
+  sym->SizeOfStruct = sizeof(SYMBOL_INFO);
+  sym->MaxNameLen = SYM_LEN;
+  if (SymFromAddr(GetCurrentProcess(), (DWORD64)cont->pc, &displacement, sym)) {
+    SgObject pc = SG_INTERN("pc");
+    SgObject name = Sg_Utf8sToUtf32s(sym->Name, sym->NameLen);
+    Sg_Printf(vm->logPort, UC(";; %p "),
+	      (uintptr_t)cont + offsetof(SgContFrame, pc));
+    Sg_Format(vm->logPort, pfmt, SG_LIST2(pc, name), TRUE);
+    return TRUE;
+  }
+  return FALSE;
+#undef SYM_LEN
 }
 #else
 static int print_c_pc(SgVM *vm, SgObject pfmt, SgContFrame *cont)
@@ -2956,7 +2969,7 @@ static void print_pc(SgVM *vm, SgObject pfmt, SgContFrame *cont)
 	      (uintptr_t)cont + offsetof(SgContFrame, pc));
     Sg_Format(vm->logPort, pfmt,
 	      SG_LIST2(pc, Sg_Cons(p->tag, p->handler)), TRUE);
-  } else if (!print_c_pc(vm, pfmt, cont)) {
+  } else if (cont->fp != C_CONT_MARK || !print_c_pc(vm, pfmt, cont)) {
     Sg_Printf(vm->logPort, UC(";; %p +   pc=%#38p +\n"),
 	      (uintptr_t)cont + offsetof(SgContFrame, pc), cont->pc);
   }
@@ -3221,6 +3234,10 @@ void Sg__InitVM()
   Sg_AddCleanupHandler(show_inst_count, NULL);
 #endif
   sym_continuation = Sg_MakeSymbol(SG_MAKE_STRING("continuation"), FALSE);
+  
+#ifdef _WIN32
+  SymInitialize(GetCurrentProcess(), NULL, TRUE);
+#endif
 }
 
 void Sg__PostInitVM()
