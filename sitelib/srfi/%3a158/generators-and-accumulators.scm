@@ -39,7 +39,7 @@
 	    gcons* gappend gcombine gfilter gremove
 	    gtake gdrop gtake-while gdrop-while
 	    gflatten ggroup gmerge gmap gstate-filter
-	    gdelete gdelete-neighbor-dups gindex gselect gpath
+	    gdelete gdelete-neighbor-dups gindex gselect
 	    generator->list generator->reverse-list
 	    generator->vector generator->vector!  generator->string
 	    generator-fold generator-map->list generator-for-each generator-find
