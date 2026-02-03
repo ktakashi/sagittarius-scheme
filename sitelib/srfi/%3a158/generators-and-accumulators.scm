@@ -28,6 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+#!nounbound
 (library (srfi :158 generators-and-accumulators)
     (export generator circular-generator make-iota-generator
 	    make-range-generator make-coroutine-generator
@@ -54,11 +55,6 @@
 	    (srfi :133 vectors)
 	    (sagittarius)
 	    (sagittarius generators))
-
-(define (ggroup gen k :optional padding)
-  (if (undefined? padding)
-      (gslices gen k)
-      (gslices gen k #t padding)))
 
 (define (generator-map->list proc gen . opts)
   (generator->list (apply gmap proc gen opts)))
