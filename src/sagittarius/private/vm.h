@@ -403,7 +403,6 @@ SG_EXTERN SgObject Sg_VMApply3(SgObject proc, SgObject arg0, SgObject arg1, SgOb
 SG_EXTERN SgObject Sg_VMApply4(SgObject proc, SgObject arg0, SgObject arg1, SgObject arg2, SgObject arg3);
 SG_EXTERN SgObject Sg_VMApply(SgObject proc, SgObject args);
 SG_EXTERN SgObject Sg_VMCallCC(SgObject proc);
-SG_EXTERN SgObject Sg_VMCallPC(SgObject proc);
 /* call-with-continuation-prompt */
 SG_EXTERN SgObject Sg_VMCallCP(SgObject proc, SgObject tag,
 			       SgObject handler, SgObject args);

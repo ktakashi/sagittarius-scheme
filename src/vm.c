@@ -1384,7 +1384,7 @@ static SgContFrame* save_a_cont(SgContFrame *c)
   pass1: save cont frame to heap
   pass2: update cstack etc.
  */
-static void save_cont_rec(SgVM *vm, int partialP)
+static void save_cont(SgVM *vm)
 {
   SgContFrame *c = CONT(vm), *prev = NULL;
   SgCStack *cstk;
@@ -1395,7 +1395,6 @@ static void save_cont_rec(SgVM *vm, int partialP)
   
   do {
     SgContFrame *csave, *tmp;
-    if (partialP && BOUNDARY_FRAME_MARK_P(c)) break;
     csave = save_a_cont(c);
     /* make the orig frame forwarded */
     if (prev) prev->prev = csave;
@@ -1431,16 +1430,6 @@ static void save_cont_rec(SgVM *vm, int partialP)
       ep->cont = FORWARDED_CONT(ep->cont);
     } 
   }
-}
-
-static void save_cont(SgVM *vm)
-{
-  save_cont_rec(vm, FALSE);
-}
-
-static void save_partial_cont(SgVM *vm)
-{
-  save_cont_rec(vm, TRUE);
 }
 
 /* static void save_cont_to_tag(SgVM *vm, SgObject tag) */
@@ -1876,41 +1865,6 @@ SgObject Sg_VMCallCC(SgObject proc)
 
   contproc = make_cont_subr(cont, NULL);
   return Sg_VMApply1(proc, contproc);
-}
-
-/*
-  call with partial contnuation.
- */
-SgObject Sg_VMCallPC(SgObject proc)
-{
-  SgContinuation *cont;
-  SgContFrame *c, *cp;
-  SgObject contproc;
-  SgVM *vm = Sg_VM();
-
-  /*
-    save the continuation.
-   */
-  save_partial_cont(vm);
-  for (c = vm->cont, cp = NULL;
-       c && !BOUNDARY_FRAME_MARK_P(c);
-       cp = c, c = c->prev)
-    /* do nothing */;
-
-  if (cp != NULL) cp->prev = NULL; /* cut the dynamic chain */
-
-  cont = SG_NEW(SgContinuation);
-  cont->winders = vm->dynamicWinders;
-  cont->cont = (cp? vm->cont : NULL);
-  cont->prev = NULL;
-  cont->ehandler = SG_FALSE;
-  cont->cstack = NULL;		/* so that the partial continuation can be
-				   run on any cstack state. */
-
-  contproc = make_cont_subr(cont, NULL);
-  /* Remove the saved continuation chain */
-  vm->cont = c;
-  return Sg_VMApply1(proc, contproc);  
 }
 
 /* call-with-composable-continuation */
