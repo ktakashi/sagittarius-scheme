@@ -34,6 +34,8 @@
 	    abort-current-continuation abort/cc
 	    call-with-composable-continuation call/comp
 	    
+	    continuation?
+
 	    default-continuation-prompt-tag
 	    make-continuation-prompt-tag continuation-prompt-tag?
 	    shift reset)
