@@ -2,8 +2,42 @@ HACKING
 =======
 
 This file is for those who want s to hask the cutting-edge Sagittarius
-sources from the Git repository. If you just want to compile
-from the distribution, you don't need to read any further.
+sources from the Git repository. If you just want to compile from the
+distribution, you don't need to read any further.
+
+Prerequisites
+-------------
+
+To build the cutting-edge Sagittarius, you need applications blow as
+extra to the usual build:
+
+- Latest release of Sagittarius
+- Git
+
+
+Steps
+-----
+
+1. Checkout repository
+   ```shell
+   git clone https://github.com/ktakashi/sagittarius-scheme
+   ```
+2. Generate code
+   For POSIX
+   ```shell
+   ./dist.sh gen
+   ```
+   For Windows
+   ```bat
+   dist.bat gen
+   ```
+3. The usual build
+
+More details are documented below.
+
+If your PATH doesn't contain the latest Sagittarius, see `Generate
+code` section how to specify the binary path.
+
 
 How to check out from the repository
 ------------------------------------
@@ -89,6 +123,9 @@ To clean the generated code, you need to execute following command;
 ```shell
 ./dist.sh clean
 ```
+
+The clean command is not needed in a usual case. Use it only when
+you need to rebuild data files, such as Unicode files.
 
 #### Using local TZ database and Unicode files
 
