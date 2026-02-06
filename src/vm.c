@@ -957,6 +957,7 @@ SgObject Sg_VMEnvironment(SgObject lib, SgObject spec)
 }
 
 static void print_frames(SgVM *vm, SgContFrame *cont);
+static void print_prompts(SgVM *vm, SgPromptNode *node);
 static void expand_stack(SgVM *vm);
 
 /* it does not improve performance */
@@ -1580,8 +1581,9 @@ static SgObject capture_prompt_winders(SgPrompt *, SgObject);
 
 /* Forward declarations for delimited call/cc support */
 static SgPrompt *make_prompt(SgObject tag, SgObject handler, SgVM *vm);
-static void install_prompt(SgVM *vm, SgPrompt *prompt);
-static void remove_prompt(SgVM *vm, SgPrompt *prompt);
+static void install_prompt(SgVM *, SgPrompt *);
+static void remove_prompt(SgVM *, SgPrompt *);
+static SgPromptNode * remove_prompts(SgVM *, SgObject);
 static SgObject abort_body(SgPromptNode *node, SgObject winders, SgObject args);
 
 static SgObject throw_delimited_continuation_body(SgObject,
@@ -1807,6 +1809,7 @@ static SgObject throw_cont_compute_handlers(SgContinuation *c,
       SG_APPEND1(h, t, Sg_Cons(SG_CDAR(p), SG_CDR(p)));
     }
   }
+
   SG_FOR_EACH(p, target) {
     SgObject chain = Sg_Memq(SG_CAR(p), escapes);
     SgObject next_winders = SG_CDR(chain);
@@ -1846,17 +1849,18 @@ static SgObject throw_continuation(SgObject *argv, int argc, void *data)
     save_cont(vm);
   }
   if (c->type == SG_DELIMIETED_CONTINUATION) {
+    /* here we emulate abort/cc */
     SgContinuation abort_c;
     SgPromptNode *node = search_prompt_node_by_tag(vm, prompt->tag);
     abort_c.winders = node->prompt->winders;
-    abort_c.cstack = node->prompt->cstack;  /* Non-null to enable post-thunks */
-    abort_c.cont = NULL;
-    abort_c.prev = NULL;
-    abort_c.ehandler = SG_FALSE;
+    abort_c.cstack = node->prompt->cstack;
     handlers = throw_cont_compute_handlers(&abort_c, node->prompt, vm);
     return throw_delimited_continuation_body(handlers, c, argv[0], prompt);
   } else {
     handlers = throw_cont_compute_handlers(c, prompt, vm);
+    /* Sg_Printf(Sg_StandardErrorPort(), UC("comp: vm->dw: %A\n"), vm->dynamicWinders); */
+    /* Sg_Printf(Sg_StandardErrorPort(), UC("comp:  c->dw: %A\n"), c->winders); */
+    /* Sg_Printf(Sg_StandardErrorPort(), UC("comp: hndlrs: %A\n"), handlers); */
     return throw_continuation_body(handlers, c, argv[0], prompt);
   }
 }
@@ -1959,8 +1963,7 @@ static SgObject throw_delimited_continuation_body(SgObject handlers,
 						  SgObject args,
 						  SgPrompt *prompt)
 {
-  SgVM *vm = Sg_VM();
-  
+  SgVM *vm = theVM;
   /* Process abort handlers (post-thunks for unwinding) */
   if (SG_PAIRP(handlers)) {
     SgObject handler, chain;
@@ -1982,43 +1985,57 @@ static SgObject throw_delimited_continuation_body(SgObject handlers,
        2. Compute wind-in handlers (pre-thunks) to restore the continuation's
           dynamic extent
        3. Run those handlers, then apply the continuation */
-    
-    SgPrompt *new_prompt;
-    SgPromptNode *node = search_prompt_node_by_tag(vm, prompt->tag);
-    
+    SgPromptNode *node = remove_prompts(vm, prompt->tag);
     if (!node) {
       Sg_Error(UC("Stale prompt in delimited continuation: %S"), prompt->tag);
-    }
-    
-    /* Pop continuation frames up to and including the prompt frame */
-    SgContFrame *cont_frame = vm->cont;
-    while (!cont_prompt_match_p(cont_frame, node->prompt)) {
-      if (PROMPT_FRAME_MARK_P(cont_frame)) {
-        remove_prompt(vm, (SgPrompt *)cont_frame->pc);
-      }
-      cont_frame = cont_frame->prev;
     }
     
     /* Remove the original prompt and set continuation to just before
        the prompt */
     remove_prompt(vm, node->prompt);
     vm->cont = node->frame->prev;
-    
+
     /* Create a new prompt for the continuation */
-    new_prompt = make_prompt(prompt->tag, SG_FALSE, vm);
+    SgPrompt *new_prompt = make_prompt(prompt->tag, SG_FALSE, vm);
     
     CHECK_STACK(CONT_FRAME_SIZE, vm);
     PUSH_PROMPT_CONT(vm, new_prompt);
     install_prompt(vm, new_prompt);
-    
+
     /* Now compute and run wind-in handlers using the composable
        continuation path.  We've already aborted to the prompt, so
        current vm->dynamicWinders is at the prompt's level. We need to
        wind into c's winders. */
     SgObject wind_handlers = throw_cont_compute_handlers(c, prompt, vm);
+
+    /* Sg_Printf(Sg_StandardErrorPort(), UC("delim: vm->dw: %A\n"), vm->dynamicWinders); */
+    /* Sg_Printf(Sg_StandardErrorPort(), UC("delim:  c->dw: %A\n"), c->winders); */
+    /* Sg_Printf(Sg_StandardErrorPort(), UC("delim: hndlrs: %A\n"), wind_handlers); */
+
     /* Use the regular composable continuation body to process these handlers */
     return throw_continuation_body(wind_handlers, c, args, prompt);
   }
+}
+
+/* Strip the delimited cc handlers.
+   If the cont frame is captured, then the captured frame may contain
+   outside of the prompt chain.
+   The VM dynamicWinders should contain only the prompt winders,
+   so the handler is not in the winders, we should strip it.
+ */
+static SgObject strip_delimied_cc_handlers(SgObject handlers)
+{
+  SgVM *vm = theVM;
+  while (!SG_NULLP(handlers)) {
+    SgObject handler = SG_CAAR(handlers);
+    SgObject cp;
+    SG_FOR_EACH(cp, vm->dynamicWinders) {
+      if (SG_EQ(SG_CAAR(cp), handler) || SG_EQ(SG_CDAR(cp), handler)) goto end;
+    }
+    handlers = SG_CDR(handlers);
+  }
+ end:
+  return handlers;
 }
 
 static SgObject throw_delimited_continuation_cc(SgObject result, void **data)
@@ -2027,7 +2044,8 @@ static SgObject throw_delimited_continuation_cc(SgObject result, void **data)
   SgContinuation *c = (SgContinuation*)data[1];
   SgObject args = SG_OBJ(data[2]);
   SgPrompt *prompt = (SgPrompt*)data[3];
-  return throw_delimited_continuation_body(handlers, c, args, prompt);
+  return throw_delimited_continuation_body(strip_delimied_cc_handlers(handlers),
+					   c, args, prompt);
 }
 
 /* call-with-current-continuation with prompt delimiting (Racket-like call/cc) */
@@ -2043,10 +2061,10 @@ SgObject Sg_VMCallDelimitedCC(SgObject proc, SgObject tag)
   save_cont(vm);
 
   cont = SG_NEW(SgContinuation);
-  /* Use capture_prompt_winders to only include winders installed AFTER the prompt.
-     Unlike take_prompt_winders which returns a tail, this returns a NEW list
-     containing only the winders not in prompt->winders, stopping at the first
-     common winder. */
+  /* Use capture_prompt_winders to only include winders installed
+     AFTER the prompt.  Unlike take_prompt_winders which returns a
+     tail, this returns a NEW list containing only the winders not in
+     prompt->winders, stopping at the first common winder. */
   cont->winders = capture_prompt_winders(node->prompt, vm->dynamicWinders);
   cont->cont = vm->cont;
   cont->prev = NULL;
@@ -2102,6 +2120,22 @@ static void remove_prompt(SgVM *vm, SgPrompt *prompt)
     prev = node;
     node = node->next;
   }
+}
+
+/* remove prompts up to the tag */
+static SgPromptNode * remove_prompts(SgVM *vm, SgObject tag)
+{
+  SgPromptNode *cur_node = search_prompt_node_by_tag(vm, tag);
+  if (!cur_node) return NULL;
+  SgPrompt *prompt = cur_node->prompt;
+  SgContFrame *cont = vm->cont;
+  
+  /* remove the prompt in the aborting cont frame from the chain */
+  while (!cont_prompt_match_p(cont, prompt)) {
+    if (PROMPT_FRAME_MARK_P(cont)) remove_prompt(vm, (SgPrompt *)cont->pc);
+    cont = cont->prev;
+  }
+  return cur_node;
 }
 
 SgObject Sg_VMCallCP(SgObject proc, SgObject tag,
@@ -2623,16 +2657,10 @@ static SgObject abort_body(SgPromptNode *node, SgObject winders, SgObject args)
        NOTE: when this abort_cc frame is captured in a continuation,
        the captured node is not loger valid.
     */
-    SgPromptNode *cur_node = search_prompt_node_by_tag(vm, node->prompt->tag);
+    SgPromptNode *cur_node = remove_prompts(vm, node->prompt->tag);
     if (!cur_node) Sg_Error(UC("Stale prompt: %S"), node->prompt->tag);
     SgPrompt *prompt = cur_node->prompt;
-    SgContFrame *cont = vm->cont;
 
-    /* remove the prompt in the aborting cont frame from the chain */
-    while (!cont_prompt_match_p(cont, prompt)) {
-      if (PROMPT_FRAME_MARK_P(cont)) remove_prompt(vm, (SgPrompt *)cont->pc);
-      cont = cont->prev;
-    }
     if (prompt->cstack != vm->cstack) {
       vm->escapeReason = SG_VM_ESCAPE_ABORT;
       vm->escapeData[0] = cur_node;
@@ -3150,6 +3178,22 @@ static SgContFrame * print_cont1(SgContFrame *cont, SgVM *vm)
   return cont->prev;
 }
 
+static void print_prompts(SgVM *vm, SgPromptNode *node)
+{
+  if (node) {
+    Sg_Printf(vm->logPort, UC(";; Prompt chain\n"));
+    Sg_Printf(vm->logPort, UC(";; [%S:%S %p]"),
+	      node->prompt->tag, node->prompt->handler, node->prompt);
+    node = node->next;
+    while (node) {
+      Sg_Printf(vm->logPort, UC(" => [%S:%S %p]"),
+		node->prompt->tag, node->prompt->handler, node->prompt);
+      node = node->next;
+    }
+    Sg_Printf(vm->logPort, UC("\n"));
+  }
+}
+
 static void print_frames(SgVM *vm, SgContFrame *cont)
 {
   SgObject *stack = vm->stack, *sp = SP(vm);
@@ -3172,18 +3216,7 @@ static void print_frames(SgVM *vm, SgContFrame *cont)
     UC(";; %p +---------------------------------------------+ < bottom\n"),
     stack);
 
-  if (node) {
-    Sg_Printf(vm->logPort, UC(";; Prompt chain\n"));
-    Sg_Printf(vm->logPort, UC(";; [%S:%S %p]"),
-	      node->prompt->tag, node->prompt->handler, node->prompt);
-    node = node->next;
-    while (node) {
-      Sg_Printf(vm->logPort, UC(" => [%S:%S %p]"),
-		node->prompt->tag, node->prompt->handler, node->prompt);
-      node = node->next;
-    }
-    Sg_Printf(vm->logPort, UC("\n"));
-  }
+  print_prompts(vm, node);
   
 }
 
