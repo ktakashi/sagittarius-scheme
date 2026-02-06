@@ -10,12 +10,12 @@
     ((_ expect (quote name) expr)
      (call/prompt (lambda () (test-equal 'name expect expr))))
     ((_ expect expr args ...)
-     (test expect 'expr (expr args ...)))))
+     (test expect '(expr expect) (expr args ...)))))
 (define-syntax test-values
   (syntax-rules ()
     ((_ expect expr args ...)
      (let-values ((r (expr args ...)))
-       (test-equal 'expr expect r)))))
+       (test-equal '(expr expect) expect r)))))
 
 (define-syntax err/rt-test
   (syntax-rules ()

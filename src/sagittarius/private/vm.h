@@ -89,6 +89,12 @@ typedef struct SgCStackRec
   jmp_buf      jbuf;
 } SgCStack;
 
+typedef enum {
+  SG_FULL_CONTINUATION,
+  SG_COMPOSABLE_CONTINUATION,
+  SG_DELIMIETED_CONTINUATION
+} SgContType;
+
 typedef struct SgContinucationRec
 {
   struct SgContinucationRec * prev;
@@ -100,6 +106,7 @@ typedef struct SgContinucationRec
   SgObject     xhandler;
   int          errorReporting;
   int          rewindBefore;
+  SgContType   type;
 } SgContinuation;
 
 #define SG_CONTINUATION(obj)  ((SgContinuation*)obj)
