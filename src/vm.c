@@ -1575,6 +1575,12 @@ static SgObject merge_winders(SgObject, SgObject);
 static SgObject take_prompt_winders(SgPrompt *, SgObject);
 static SgObject capture_prompt_winders(SgPrompt *, SgObject);
 
+/* Forward declarations for delimited call/cc support */
+static SgPrompt *make_prompt(SgObject tag, SgObject handler, SgVM *vm);
+static void install_prompt(SgVM *vm, SgPrompt *prompt);
+static void remove_prompt(SgVM *vm, SgPrompt *prompt);
+static SgObject abort_body(SgPromptNode *node, SgObject winders, SgObject args);
+
 static SgObject throw_continuation_body(SgObject handlers,
 					SgContinuation *c,
 					SgObject args,
@@ -1913,6 +1919,188 @@ SgObject Sg_VMCallComp(SgObject proc, SgObject tag)
  err:
   Sg_Error(UC("No continuation tag: %S"), tag);
   return SG_UNDEF;		/* dummy */
+}
+
+/*
+  Delimited call/cc - Racket-like call/cc with prompt support
+
+  This creates a non-composable continuation that:
+  1. When invoked, aborts to the prompt (running post-thunks)
+  2. After abort, reinstalls a new prompt and applies the composable continuation
+
+  The continuation procedure has data: (cont . tag)
+  where cont is the composable continuation and tag identifies the boundary.
+*/
+static SgObject throw_delimited_continuation_cc(SgObject, void **);
+
+static SgObject throw_delimited_continuation_body(SgObject handlers,
+                                                   SgContinuation *c,
+                                                   SgPrompt *capture_prompt,
+                                                   SgObject args,
+                                                   SgObject tag)
+{
+  SgVM *vm = Sg_VM();
+  
+  /* Process abort handlers (post-thunks for unwinding) */
+  if (SG_PAIRP(handlers)) {
+    SgObject handler, chain;
+    void *data[5];
+    handler = SG_CAAR(handlers);
+    chain = SG_CDAR(handlers);
+    data[0] = (void*)SG_CDR(handlers);
+    data[1] = (void*)c;
+    data[2] = (void*)capture_prompt;
+    data[3] = (void*)args;
+    data[4] = (void*)tag;
+    Sg_VMPushCC(throw_delimited_continuation_cc, data, 5);
+    
+    /* For abort/post-thunks, directly SET winders to the chain (not merge)
+       This is like abort_body which also sets vm->dynamicWinders = chain */
+    vm->dynamicWinders = chain;
+    return Sg_VMApply0(handler);
+  } else {
+    /* All abort handlers processed. Now we need to:
+       1. Set up the new prompt
+       2. Compute wind-in handlers (pre-thunks) to restore the continuation's dynamic extent
+       3. Run those handlers, then apply the continuation */
+    
+    SgPrompt *new_prompt;
+    SgPromptNode *node = search_prompt_node_by_tag(vm, tag);
+    
+    if (!node) {
+      Sg_Error(UC("Stale prompt in delimited continuation: %S"), tag);
+    }
+    
+    /* Pop continuation frames up to and including the prompt frame */
+    SgContFrame *cont_frame = vm->cont;
+    while (!cont_prompt_match_p(cont_frame, node->prompt)) {
+      if (PROMPT_FRAME_MARK_P(cont_frame)) {
+        remove_prompt(vm, (SgPrompt *)cont_frame->pc);
+      }
+      cont_frame = cont_frame->prev;
+    }
+    
+    /* Remove the original prompt and set continuation to just before the prompt */
+    remove_prompt(vm, node->prompt);
+    vm->cont = node->frame->prev;
+    
+    /* Create a new prompt for the continuation */
+    new_prompt = make_prompt(tag, SG_FALSE, vm);
+    
+    CHECK_STACK(CONT_FRAME_SIZE, vm);
+    PUSH_PROMPT_CONT(vm, new_prompt);
+    FP(vm) = SP(vm);
+    install_prompt(vm, new_prompt);
+    
+    /* Now compute and run wind-in handlers using the composable continuation path.
+       We've already aborted to the prompt, so current vm->dynamicWinders is at
+       the prompt's level. We need to wind into c's winders. */
+    {
+      SgObject wind_handlers = throw_cont_compute_handlers(c, capture_prompt, vm);
+      /* Use the regular composable continuation body to process these handlers */
+      return throw_continuation_body(wind_handlers, c, args, capture_prompt);
+    }
+  }
+}
+
+static SgObject throw_delimited_continuation_cc(SgObject result, void **data)
+{
+  SgObject handlers = SG_OBJ(data[0]);
+  SgContinuation *c = (SgContinuation*)data[1];
+  SgPrompt *capture_prompt = (SgPrompt*)data[2];
+  SgObject args = SG_OBJ(data[3]);
+  SgObject tag = SG_OBJ(data[4]);
+  return throw_delimited_continuation_body(handlers, c, capture_prompt, args, tag);
+}
+
+static SgObject throw_delimited_continuation(SgObject *argv, int argc, void *data)
+{
+  SgContinuation *c = SG_CONTINUATION(SG_CAAR(data));
+  SgPrompt *capture_prompt = (SgPrompt *)SG_CDAR(data);
+  SgObject tag = SG_CDR(data);
+  SgVM *vm = Sg_VM();
+  SgPromptNode *node = search_prompt_node_by_tag(vm, tag);
+  SgObject h, args;
+
+  if (!node) {
+    Sg_Error(UC("Continuation application: no corresponding prompt for tag ~S"), tag);
+  }
+
+  /* argv[0] is already a list of arguments (folded by optional arg processing) */
+  args = argv[0];
+
+  /* Check for cross-cstack jumps */
+  if (node->prompt->cstack != vm->cstack) {
+    SgCStack *cs;
+    for (cs = vm->cstack; cs; cs = cs->prev) {
+      if (node->prompt->cstack == cs) break;
+    }
+    if (cs != NULL) {
+      /* Need to longjmp */
+      vm->escapeReason = SG_VM_ESCAPE_CONT;
+      vm->escapeData[0] = c;
+      vm->escapeData[1] = Sg_Cons(Sg_Cons(args, (SgObject)capture_prompt), tag);
+      longjmp(vm->cstack->jbuf, 1);
+    }
+  }
+
+  /* call/delimited-cc (call/cc-like): ALWAYS abort to the prompt and reinstall.
+     This is the key difference from composable continuations which just
+     continue from where they are.
+     
+     Run post-thunks to unwind from current to prompt. */
+  {
+    SgContinuation abort_c;
+    abort_c.winders = node->prompt->winders;
+    abort_c.cstack = node->prompt->cstack;  /* Non-null to enable post-thunks */
+    abort_c.cont = NULL;
+    abort_c.prev = NULL;
+    abort_c.ehandler = SG_FALSE;
+    h = throw_cont_compute_handlers(&abort_c, node->prompt, vm);
+  }
+
+  return throw_delimited_continuation_body(h, c, capture_prompt, args, tag);
+}
+
+static SgObject make_delimited_cont_subr(SgContinuation *cont, SgPrompt *prompt, SgObject tag)
+{
+  /* data = ((cont . prompt) . tag) */
+  return Sg_MakeSubr(throw_delimited_continuation,
+                     Sg_Cons(Sg_Cons((SgObject)cont, (SgObject)prompt), tag),
+                     0, 1,
+                     sym_continuation);
+}
+
+/* call-with-current-continuation with prompt delimiting (Racket-like call/cc) */
+SgObject Sg_VMCallDelimitedCC(SgObject proc, SgObject tag)
+{
+  SgContinuation *cont;
+  SgObject contproc;
+  SgVM *vm = Sg_VM();
+  SgPromptNode *node = search_prompt_node_by_tag(vm, tag);
+
+  if (!node) goto err;
+
+  save_cont(vm);
+
+  cont = SG_NEW(SgContinuation);
+  /* Use capture_prompt_winders to only include winders installed AFTER the prompt.
+     Unlike take_prompt_winders which returns a tail, this returns a NEW list
+     containing only the winders not in prompt->winders, stopping at the first
+     common winder. */
+  cont->winders = capture_prompt_winders(node->prompt, vm->dynamicWinders);
+  cont->cont = vm->cont;
+  cont->prev = NULL;
+  cont->ehandler = SG_FALSE;
+  cont->cstack = NULL;
+
+  /* Pass the capture-time prompt so we know where to stop when splicing */
+  contproc = make_delimited_cont_subr(cont, node->prompt, tag);
+
+  return Sg_VMApply1(proc, contproc);
+ err:
+  Sg_Error(UC("No continuation tag: %S"), tag);
+  return SG_UNDEF;
 }
 
 /* call-with-continuation-prompt

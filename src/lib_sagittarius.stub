@@ -1853,6 +1853,8 @@
 
   (define-c-proc %abort/cc (tag args) :no-export Sg_VMAbortCC)
   (define-c-proc %call/comp (proc::<procedure> tag) :no-export Sg_VMCallComp)
+  (define-c-proc %call/delimited-cc (proc::<procedure> tag) :no-export 
+    Sg_VMCallDelimitedCC)
   (define-c-proc continuation? (o) ::<boolean> :no-side-effect Sg_ContinuationP)
 
   (define (make-continuation-prompt-tag :optional (name (gensym))) (list name))
@@ -1874,8 +1876,13 @@
 	   proc :optional ((tag continuation-prompt-tag?)
 			   (default-continuation-prompt-tag)))
     (%call/comp proc tag))
+  (define (call-with-delimited-current-continuation
+	   proc :optional ((tag continuation-prompt-tag?)
+			   (default-continuation-prompt-tag)))
+    (%call/delimited-cc proc tag))
 
   (define call/prompt call-with-continuation-prompt)
   (define abort/cc abort-current-continuation)
   (define call/comp call-with-composable-continuation)
+  (define call/delimited-cc call-with-delimited-current-continuation)
 )
