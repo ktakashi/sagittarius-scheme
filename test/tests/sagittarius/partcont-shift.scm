@@ -4,7 +4,10 @@
         (srfi :39)
 	(srfi :64)
 	(sagittarius)
-        (sagittarius continuations))
+	(rename (sagittarius continuations)
+		(call/delimited-cc call/cc)
+		(call-with-delimited-current-continuation
+		 call-with-current-continuation)))
 
 ;; Compatibility layer
 
@@ -65,17 +68,6 @@
       (e))))
 
 (define (error msg . args) (apply r6rs:error 'partcont msg args))
-
-;; replacing call/cc to take optional argument
-;; similar to Racket's one
-(define (call/cc proc :optional (tag (default-continuation-prompt-tag)))
-  (call-with-composable-continuation
-   (lambda (ck)
-     (define (k . args)
-       (abort-current-continuation tag (lambda () (apply ck args))))
-     (proc k))
-   tag))
-(define call-with-current-continuation call/cc)
 
 ;; replace guard to use above call/cc
 (define-syntax guard

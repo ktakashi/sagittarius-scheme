@@ -34,6 +34,10 @@
 	    abort-current-continuation abort/cc
 	    call-with-composable-continuation call/comp
 	    
+	    (rename (call/cc call/delimited-cc)
+		    (call-with-current-continuation
+		     call-with-delimited-current-continuation))
+
 	    continuation?
 
 	    default-continuation-prompt-tag

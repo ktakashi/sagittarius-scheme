@@ -1,5 +1,8 @@
-(import (rnrs)
-	(sagittarius)
+(import (except (rnrs) call/cc call-with-current-continuation)
+	(rename (sagittarius continuations)
+		(call/delimited-cc call/cc)
+		(call-with-delimited-current-continuation
+		 call-with-current-continuation))
 	(srfi :64))
 
 (define-syntax test
@@ -13,11 +16,6 @@
     ((_ expect expr args ...)
      (let-values ((r (expr args ...)))
        (test-equal 'expr expect r)))))
-
-(define-syntax let/cc
-  (syntax-rules ()
-    ((_ k expr ...)
-     (call/cc (lambda (k) expr ...)))))
 
 (define-syntax err/rt-test
   (syntax-rules ()
@@ -71,18 +69,21 @@
                                    tag
                                    (lambda (thunk) (thunk)))]))
 
-(define (call/cc proc :optional (tag (default-continuation-prompt-tag)))
-  (call-with-composable-continuation
-   (lambda (ck)
-     (define (k . args)
-       (abort-current-continuation tag (lambda () (apply ck args))))
-     (proc k))
-   tag))
 (define-syntax let/cc
   (syntax-rules ()
     ((_ k expr ...)
      (call/cc (lambda (k) expr ...)))))
-(define call-with-current-continuation call/cc)
+
+
+(define-syntax let/prompt
+  (syntax-rules ()
+    ((_ ((var val)  ...) body ...)
+     (let/prompt (default-continuation-prompt-tag) ((var val) ...) body ...))
+    ((_ tag ((var val)  ...) body ...)
+     (call-with-continuation-prompt
+      (lambda ()
+	(let ((var val) ...) body ...))
+      tag))))
 
 (define-syntax with-cc-variants
   (lambda (stx)
@@ -98,23 +99,12 @@
 		 (syntax-rules ()
                    [(_ id bdy (... ...)) 
                     (call/cc (lambda (id) bdy (... ...)))]))
-               body)
-             ;;(a-test call/cc call-with-continuation-prompt)
+	       (let/prompt () body))
+             (a-test call/cc call-with-continuation-prompt)
              (a-test call/cc-via-composable
                      call-with-continuation-prompt-for-composable)
              (a-test call/cc-via-aborted-and-restored-composable
                      call-with-continuation-prompt-for-composable)))])))
-
-(define-syntax let/prompt
-  (syntax-rules ()
-    ((_ ((var val)  ...) body ...)
-     (let/prompt (default-continuation-prompt-tag) ((var val) ...) body ...))
-    ((_ tag ((var val)  ...) body ...)
-     (call-with-continuation-prompt
-      (lambda ()
-	(let ((var val) ...) body ...))
-      tag))))
-	
 
 (define (sub1 n) (- n 1))
 (define (add1 n) (+ n 1))
@@ -194,7 +184,7 @@
                         (default-continuation-prompt-tag)
                         (lambda () 81)))
                      (make-continuation-prompt-tag)))))
-(let ([p (make-continuation-prompt-tag)])
+(let/prompt ([p (make-continuation-prompt-tag)])
   (test 810 call-with-continuation-prompt 
         (lambda () (+ 17
                       (call-with-continuation-prompt 
@@ -226,8 +216,8 @@
 ;;  prompt with the same tag at the continuation-jump site:
 (test 0
       values
-      (let ([p1 (make-continuation-prompt-tag 'p1)]
-            [p2 (make-continuation-prompt-tag 'p2)])
+      (let/prompt ([p1 (make-continuation-prompt-tag 'p1)]
+		   [p2 (make-continuation-prompt-tag 'p2)])
         (let/cc k
           (call-with-continuation-prompt
            (lambda ()
@@ -481,18 +471,18 @@
               (make-continuation-prompt-tag 'px))
              exn:fail:contract:continuation?)
 
-(let ([k (call-with-continuation-prompt
-          (lambda ()
-            (call-with-composable-continuation
-             (lambda (k) k))))])
+(let/prompt ([k (call-with-continuation-prompt
+		 (lambda ()
+		   (call-with-composable-continuation
+		    (lambda (k) k))))])
   (test 12 k 12)
   (test 13 k (k (k (k 13))))
   (test-values '(12 13) (lambda () (k 12 13))))
 
-(let ([k (call-with-continuation-prompt
-          (lambda ()
-            ((call-with-composable-continuation
-              (lambda (k) (lambda () k))))))])
+(let/prompt ([k (call-with-continuation-prompt
+		 (lambda ()
+		   ((call-with-composable-continuation
+		     (lambda (k) (lambda () k))))))])
   (test 12 k (lambda () 12))
   (test-values '(12 13) (lambda () (k (lambda () (values 12 13)))))
   ;; Composition shouldn't introduce a prompt:
@@ -519,16 +509,16 @@
         values))
 
 ;; Etc.
-(let ([k1 (call-with-continuation-prompt
-           (lambda ()
-             ((call-with-composable-continuation
-               (lambda (k)
-                 (lambda () k))))))]
-      [k2 (call-with-continuation-prompt
-           (lambda ()
-             ((call-with-composable-continuation
-               (lambda (k)
-                 (lambda () k))))))])
+(let/prompt ([k1 (call-with-continuation-prompt
+		  (lambda ()
+		    ((call-with-composable-continuation
+		      (lambda (k)
+			(lambda () k))))))]
+	     [k2 (call-with-continuation-prompt
+		  (lambda ()
+		    ((call-with-composable-continuation
+		      (lambda (k)
+			(lambda () k))))))])
   (test 1000
         call-with-continuation-prompt
         (lambda ()
@@ -598,7 +588,7 @@
 ;; Check that escape drops the meta-continuation:
 (test 0
       'esc
-      (let ([p1 (make-continuation-prompt-tag)])
+      (let/prompt ([p1 (make-continuation-prompt-tag)])
         (let/cc esc
           (let ([k
                  (call-with-continuation-prompt
@@ -615,16 +605,16 @@
 
 (test 89
       'dw
-      (let ([k (dynamic-wind
-                   void
-                   (lambda () (let ([k+e (let/cc k (cons k void))])
-                                ((cdr k+e) 89)
-                                (car k+e)))
+      (let/prompt ([k (dynamic-wind
+			  void
+			  (lambda () (let ([k+e (let/cc k (cons k void))])
+                                       ((cdr k+e) 89)
+                                       (car k+e)))
                    void)])
         (let/cc esc
           (k (cons void esc)))))
 
-(let ([l null])
+(let/prompt ([l null])
   (let ([k2
          (dynamic-wind
              (lambda () (set! l (cons 'pre0 l)))
@@ -701,7 +691,7 @@
           (test '(10) values k2)))))
 
 ;; Composable continuations
-(let ([l null])
+(let/prompt ([l null])
   (let ([k2
          (dynamic-wind
              (lambda () (set! l (cons 'pre0 l)))
@@ -872,7 +862,7 @@
 ;; Olivier Danvy's traversal
 
 ;; Shift & reset via composable and abort
-(let ()
+(let/prompt ()
   (define traverse
     (lambda (xs)
       (letrec ((visit
@@ -894,7 +884,7 @@
   (test '(1 2 3 4 5) traverse '(1 2 3 4 5)))
 
 ;; Shift & reset using composable and call/cc
-(let ()
+(let/prompt ()
   (define call-in-application-context
     (call-with-continuation-prompt
      (lambda ()
@@ -920,7 +910,7 @@
   (test '(1 2 3 4 5) traverse '(1 2 3 4 5)))
 
 ;; control and prompt using composable and abort
-(let ()
+(let/prompt ()
   (define traverse
     (lambda (xs)
       (letrec ((visit
@@ -940,7 +930,7 @@
   (test '(5 4 3 2 1) traverse '(1 2 3 4 5)))
 
 ;; control and prompt using composable and call/cc
-(let ()
+(let/prompt ()
   (define call-in-application-context
     (call-with-continuation-prompt
      (lambda ()
@@ -970,7 +960,7 @@
 ;; Some repeats, but ensure a continuation prompt
 ;;  and check d-w interaction.
 
-(let ([output null])
+(let/prompt ([output null])
   (call-with-continuation-prompt
    (lambda () 
      (dynamic-wind
@@ -1007,7 +997,7 @@
    void)
   (test '(out in) values output))
 
-(let ([output null])
+(let/prompt ([output null])
   (call-with-continuation-prompt
    (lambda () 
      (dynamic-wind
@@ -1033,10 +1023,10 @@
 ;; tests invoking delimited captures in dynamic-wind pre- and post-thunks
 
 ;; Again, more checking of output
-(let ([p1 (make-continuation-prompt-tag 'p1)]
-      [p2 (make-continuation-prompt-tag 'p2)]
-      [output null]
-      [exit-k #f])
+(let/prompt ([p1 (make-continuation-prompt-tag 'p1)]
+	     [p2 (make-continuation-prompt-tag 'p2)]
+	     [output null]
+	     [exit-k #f])
     ;; Set up a prompt tp jump to:
     (call-with-continuation-prompt
      (lambda ()
@@ -1085,8 +1075,8 @@
 ;; abort past a tag
 (test 10
       values
-      (let ([p1 (make-continuation-prompt-tag)]
-            [p2 (make-continuation-prompt-tag)])
+      (let/prompt ([p1 (make-continuation-prompt-tag)]
+		   [p2 (make-continuation-prompt-tag)])
         (call-with-continuation-prompt
          (lambda ()
            (call/cc
