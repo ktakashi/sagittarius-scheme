@@ -1590,6 +1590,7 @@ static SgObject throw_delimited_continuation_body(SgObject,
 						  SgContinuation *,
 						  SgObject,
 						  SgPrompt *);
+static SgObject throw_continuation_end(SgVM *, SgObject);
 
 static SgObject throw_continuation_body(SgObject handlers,
 					SgContinuation *c,
@@ -1643,31 +1644,36 @@ static SgObject throw_continuation_body(SgObject handlers,
       vm->cont = c->cont;
       vm->dynamicWinders = c->winders;
     }
-    vm->pc = return_code;
-    /* store arguments of the continuation to ac */
-    if (SG_NULLP(args)) {		/* no value */
-      /* does this happen? */
-      vm->ac = SG_UNDEF;
-      vm->valuesCount = 0;
-    } else if (SG_NULLP(SG_CDR(args))) { /* usual case */
-      vm->ac = SG_CAR(args);
-      vm->valuesCount = 1;
-    } else {			/* multi values */
-      SgObject ap;
-      int argc = (int)Sg_Length(args), i;
-      /* when argc == DEFAULT_VALUES_SIZE+1, it must be in pre-allocated
-	 buffer */
-      if (argc > DEFAULT_VALUES_SIZE+1) {
-	SG_ALLOC_VALUES_BUFFER(vm, argc - DEFAULT_VALUES_SIZE -1);
-      }
-      vm->ac = SG_CAR(args);
-      for (i = 0, ap = SG_CDR(args); SG_PAIRP(ap); i++, ap = SG_CDR(ap)) {
-	SG_VALUES_SET(vm, i, SG_CAR(ap));
-      }
-      vm->valuesCount = argc;
-    }
-    return vm->ac;
+    return throw_continuation_end(vm, args);
   }
+}
+
+static SgObject throw_continuation_end(SgVM *vm, SgObject args)
+{
+  vm->pc = return_code;
+  /* store arguments of the continuation to ac */
+  if (SG_NULLP(args)) {		/* no value */
+    /* does this happen? */
+    vm->ac = SG_UNDEF;
+    vm->valuesCount = 0;
+  } else if (SG_NULLP(SG_CDR(args))) { /* usual case */
+    vm->ac = SG_CAR(args);
+    vm->valuesCount = 1;
+  } else {			/* multi values */
+    SgObject ap;
+    int argc = (int)Sg_Length(args), i;
+    /* when argc == DEFAULT_VALUES_SIZE+1, it must be in pre-allocated
+       buffer */
+    if (argc > DEFAULT_VALUES_SIZE+1) {
+      SG_ALLOC_VALUES_BUFFER(vm, argc - DEFAULT_VALUES_SIZE -1);
+    }
+    vm->ac = SG_CAR(args);
+    for (i = 0, ap = SG_CDR(args); SG_PAIRP(ap); i++, ap = SG_CDR(ap)) {
+      SG_VALUES_SET(vm, i, SG_CAR(ap));
+    }
+    vm->valuesCount = argc;
+  }
+  return vm->ac;
 }
 
 static SgObject throw_continuation_cc(SgObject result, void **data)
@@ -2002,17 +2008,22 @@ static SgObject throw_delimited_continuation_body(SgObject handlers,
     PUSH_PROMPT_CONT(vm, new_prompt);
     install_prompt(vm, new_prompt);
 
-    /* Now compute and run wind-in handlers using the composable
-       continuation path.  We've already aborted to the prompt, so
-       current vm->dynamicWinders is at the prompt's level. We need to
-       wind into c's winders. */
+    /* If the prompt handler is not set, then don't execute winders
+       This behaviour is an emulation of the call/delimited-cc
+       implemented with abort/cc and call/comp.
+       I believe this is *not* a right solution, but it works...
+     */
+    if (!SG_FALSEP(node->prompt->handler)) {
+      /* If the prompts are not the same, then it's not an escape,
+	 so reinstall the continuation by splicing*/
+      if (node->prompt != prompt) {
+	save_cont(vm);
+	vm->cont = splice_cont(vm, c->cont, prompt);
+      }
+      return throw_continuation_end(vm, args);
+    }
+    /* here we invoke the continuation like composable continuation */
     SgObject wind_handlers = throw_cont_compute_handlers(c, prompt, vm);
-
-    /* Sg_Printf(Sg_StandardErrorPort(), UC("delim: vm->dw: %A\n"), vm->dynamicWinders); */
-    /* Sg_Printf(Sg_StandardErrorPort(), UC("delim:  c->dw: %A\n"), c->winders); */
-    /* Sg_Printf(Sg_StandardErrorPort(), UC("delim: hndlrs: %A\n"), wind_handlers); */
-
-    /* Use the regular composable continuation body to process these handlers */
     return throw_continuation_body(wind_handlers, c, args, prompt);
   }
 }

@@ -47,14 +47,16 @@
 	    (core macro)
 	    (sagittarius))
 
-(define (call/cc proc :optional (tag (default-continuation-prompt-tag)))
-  (call-with-composable-continuation
-   (lambda (ck)
-     (define (k . args)
-       (abort-current-continuation tag (lambda () (apply ck args))))
-     (proc k))
-   tag))
-(define call-with-current-continuation call/cc)
+;; (define (call/cc proc :optional (tag (default-continuation-prompt-tag)))
+;;   (call-with-composable-continuation
+;;    (lambda (ck)
+;;      (define (k . args)
+;;        (abort-current-continuation tag (lambda () (apply ck args))))
+;;      (proc k))
+;;    tag))
+;; (define call-with-current-continuation call/cc)
+(define call/cc call/delimited-cc)
+(define call-with-current-continuation call-with-delimited-current-continuation)
 
 (define (abort-current-continuation/keep-prompt tag thunk)
   ((call-with-continuation-prompt
