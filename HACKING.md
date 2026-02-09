@@ -9,10 +9,10 @@ Prerequisites
 -------------
 
 To build the cutting-edge Sagittarius, you need applications blow as
-extra to the usual build:
+extra to the usual build described in [README.md](README.md):
 
-- Latest release of Sagittarius
-- Git
+- Latest release of Sagittarius: [Download](https://github.com/ktakashi/sagittarius-scheme/releases)
+- Git: [How to install](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git)
 
 
 Steps
@@ -23,6 +23,8 @@ Steps
    git clone https://github.com/ktakashi/sagittarius-scheme
    ```
 2. Generate code
+   This step generates necessary C files from the stub files and Scheme files.
+   It must be completed before running the build process, or the build will fail.
    For POSIX
    ```shell
    ./dist.sh gen
@@ -101,7 +103,8 @@ To generate code you need to execute following commands;
 ./dist.sh html
 ```
 
-Or this command does the same;
+Alternatively, you can run the following command to execute all the 
+above steps:
 
 ```shell
 ./dist.sh gen
@@ -110,6 +113,8 @@ Or this command does the same;
 These commands generate C files from stub files and Scheme files
 respectively. This must be run *before* CMake command otherwise CMake
 process will fail.
+
+#### Using different Sagittarius executable
 
 If you set the path to Sagittarius executable to the environment
 variable `SASH` with, then `dist.sh` will use that executable file.
