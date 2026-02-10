@@ -106,4 +106,31 @@
         n) 
       7)
 
+;; Deviation of full call/cc
+;; Full call/cc
+;; (e) = (post mid pre)(post mid pre post mid pre)(post mid pre post mid pre)
+;; v = #<unspecified>
+;; NOTE: Racket's call/cc behaves the same as call/delim-cc
+(let-values (((out e) (open-string-output-port)))
+  (let ((v (call/prompt
+	    (lambda ()
+	      (define l '())
+	      (define k #f)
+	      (define count 0)
+	      (let ((v (call/prompt
+			(lambda ()
+			  (dynamic-wind
+			      (lambda () (set! l (cons 'pre l)))
+			      (lambda ()
+				(call/delim-cc (lambda (k0) (set! k k0)))
+				(set! l (cons 'mid l))
+				l)
+			      (lambda () (set! l (cons 'post l))))))))
+		(display l out)
+		(set! count (+ count 1))
+		(unless (= count 2) (k l))
+		(display l out))))))
+    (test-equal "(post mid pre)" (e))
+    (test-equal '(mid pre post mid pre) v)))
+
 (test-end)
