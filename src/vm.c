@@ -1487,30 +1487,6 @@ static int bottom_cont_frame_p(SgVM *vm, SgContFrame *cont)
     || cont == cont->prev->prev;
 }
 
-/* check if the cur is after border frame */
-static int cont_frame_after_p(SgVM *vm, SgContFrame *border, SgContFrame *cur)
-{
-  SgContFrame *cont = cur;
-  do {
-    if (cont == border) return TRUE;
-    cont = cont->prev;
-  } while (!bottom_cont_frame_p(vm, cont));
-  return FALSE;
-}
-
-static SgPromptNode *search_prompt_node(SgVM *vm)
-{
-  SgPromptNode *node = vm->prompts;
-  SgContFrame *cont = vm->cont;
-  if (!node) return NULL;	/* no prompt */
-  
-  while (node->next) {
-    if (cont_frame_after_p(vm, node->frame, cont)) break;
-    node = node->next;
-  }
-  return node;			/* return the last node */
-}
-
 static SgPromptNode *insert_prompt(SgVM *vm, SgPromptNode *node,
 				   SgPrompt *prompt, SgContFrame *frame)
 {
@@ -1529,7 +1505,7 @@ static SgPromptNode *insert_prompt(SgVM *vm, SgPromptNode *node,
   return n;
 }
 
-static SgPromptNode *search_prompt_node_by_tag(SgVM *vm, SgObject tag)
+static SgPromptNode *search_prompt_node(SgVM *vm, SgObject tag)
 {
   SgPromptNode *node = vm->prompts;
   
@@ -1554,7 +1530,7 @@ static SgContFrame * splice_cont(SgVM *vm, SgContFrame *saved,
 				 SgPrompt *prompt)
 {
   SgContFrame *cur = vm->cont, *c = saved->prev, *cp = NULL, *top = NULL;
-  SgPromptNode *node = search_prompt_node(vm);
+  SgPromptNode *node = vm->prompts;
   cp = top = copy_a_cont(saved);
 
   if (PROMPT_FRAME_MARK_P(top)) {
@@ -1857,7 +1833,7 @@ static SgObject throw_continuation(SgObject *argv, int argc, void *data)
   if (c->type == SG_DELIMIETED_CONTINUATION) {
     /* here we emulate abort/cc */
     SgContinuation abort_c;
-    SgPromptNode *node = search_prompt_node_by_tag(vm, prompt->tag);
+    SgPromptNode *node = search_prompt_node(vm, prompt->tag);
     abort_c.winders = node->prompt->winders;
     abort_c.cstack = node->prompt->cstack;
     handlers = throw_cont_compute_handlers(&abort_c, node->prompt, vm);
@@ -1909,7 +1885,7 @@ SgObject Sg_VMCallComp(SgObject proc, SgObject tag)
   SgContinuation *cont;
   SgObject contproc;
   SgVM *vm = Sg_VM();
-  SgPromptNode *node = search_prompt_node_by_tag(vm, tag);
+  SgPromptNode *node = search_prompt_node(vm, tag);
 
   if (!node) goto err;
   /*
@@ -2065,7 +2041,7 @@ SgObject Sg_VMCallDelimitedCC(SgObject proc, SgObject tag)
   SgContinuation *cont;
   SgObject contproc;
   SgVM *vm = Sg_VM();
-  SgPromptNode *node = search_prompt_node_by_tag(vm, tag);
+  SgPromptNode *node = search_prompt_node(vm, tag);
 
   if (!node) goto err;
 
@@ -2136,7 +2112,7 @@ static void remove_prompt(SgVM *vm, SgPrompt *prompt)
 /* remove prompts up to the tag */
 static SgPromptNode * remove_prompts(SgVM *vm, SgObject tag)
 {
-  SgPromptNode *cur_node = search_prompt_node_by_tag(vm, tag);
+  SgPromptNode *cur_node = search_prompt_node(vm, tag);
   if (!cur_node) return NULL;
   SgPrompt *prompt = cur_node->prompt;
   SgContFrame *cont = vm->cont;
@@ -2694,7 +2670,7 @@ SgObject Sg_VMAbortCC(SgObject tag, SgObject args)
 {
   SgVM *vm = theVM;
   SgObject h;
-  SgPromptNode *node = search_prompt_node_by_tag(vm, tag);
+  SgPromptNode *node = search_prompt_node(vm, tag);
   SgContinuation c;
 
   if (!node) Sg_Error(UC("No continuation tag: %S"), tag);
