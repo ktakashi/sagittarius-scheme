@@ -15,7 +15,7 @@
 	     (continuation?
 	      (call/prompt
 	       (lambda ()
-		 (call/delimited-cc (lambda (k) k))))))
+		 (call/delim-cc (lambda (k) k))))))
 
 (test-assert "continuation? (symbol)" (not (continuation? 'a)))
 (test-assert "continuation? (symbol)" (not (continuation? (lambda args args))))
@@ -27,7 +27,7 @@
   (define (check)
     (let ((k (call-with-continuation-prompt
 	      (lambda ()
-		((call/delimited-cc
+		((call/delim-cc
 		  (lambda (k) (lambda () k))
 		  p1)))
 	      p1

@@ -33,10 +33,9 @@
     (export call-with-continuation-prompt call/prompt
 	    abort-current-continuation abort/cc
 	    call-with-composable-continuation call/comp
-	    
-	    (rename (call/cc call/delimited-cc)
-		    (call-with-current-continuation
-		     call-with-delimited-current-continuation))
+
+	    call/delim-cc
+	    call-with-delimited-current-continuation
 
 	    continuation?
 
@@ -55,13 +54,11 @@
 ;;      (proc k))
 ;;    tag))
 ;; (define call-with-current-continuation call/cc)
-(define call/cc call/delimited-cc)
-(define call-with-current-continuation call-with-delimited-current-continuation)
 
 (define (abort-current-continuation/keep-prompt tag thunk)
   ((call-with-continuation-prompt
     (lambda ()
-      ((call-with-current-continuation
+      ((call-with-delimited-current-continuation
 	(lambda (k) (lambda () k))
 	tag)))
     tag)

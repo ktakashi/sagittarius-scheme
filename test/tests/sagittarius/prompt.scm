@@ -1,6 +1,6 @@
 (import (except (rnrs) call/cc call-with-current-continuation)
 	(rename (sagittarius continuations)
-		(call/delimited-cc call/cc)
+		(call/delim-cc call/cc)
 		(call-with-delimited-current-continuation
 		 call-with-current-continuation))
 	(srfi :64))

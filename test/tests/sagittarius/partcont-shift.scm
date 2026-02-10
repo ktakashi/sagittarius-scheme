@@ -5,7 +5,7 @@
 	(srfi :64)
 	(sagittarius)
 	(rename (sagittarius continuations)
-		(call/delimited-cc call/cc)
+		(call/delim-cc call/cc)
 		(call-with-delimited-current-continuation
 		 call-with-current-continuation)))
 
