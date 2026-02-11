@@ -37,7 +37,7 @@
 	    call/delim-cc
 	    call-with-delimited-current-continuation
 
-	    continuation?
+	    continuation? continuation-prompt-available?
 
 	    default-continuation-prompt-tag
 	    make-continuation-prompt-tag continuation-prompt-tag?

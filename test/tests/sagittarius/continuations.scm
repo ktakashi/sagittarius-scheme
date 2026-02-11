@@ -38,6 +38,31 @@
        (lambda (x) 'outer x))))
   (test-equal 'invoked (check)))
 
+(let ((p1 (make-continuation-prompt-tag 'p1))
+      (p2 (make-continuation-prompt-tag 'p2)))
+  ;; using delim-cc
+  (let ((k (call-with-continuation-prompt
+	    (lambda ()
+	      (test-assert "p1 (#t)" (continuation-prompt-available? p1))
+	      (test-assert "p2 (#f)" (not (continuation-prompt-available? p2)))
+	      (call-with-continuation-prompt
+	       (lambda ()
+		 (call/delim-cc values p2))
+	       p2))
+	    p1)))
+    (test-assert "delim-cc p1 (#f)" (not (continuation-prompt-available? p1 k)))
+    (test-assert "delim-cc p2 (#t)" (continuation-prompt-available? p2 k)))
+
+  ;; using full continuation
+  (let ((k (call-with-continuation-prompt
+	    (lambda ()
+	      (call-with-continuation-prompt
+	       (lambda () (call/cc values))
+	       p2))
+	    p1)))
+    (test-assert "call/cc p1 (#t)" (continuation-prompt-available? p1 k))
+    (test-assert "call/cc p2 (#t)" (continuation-prompt-available? p2 k))))
+
 (define-syntax test
   (lambda (x)
     (syntax-case x ()
