@@ -32,6 +32,15 @@ approximately the same as like this:
 (call-with-continuation-prompt thunk tag #f)
 ```
 
+###### [!Function] `continuation-prompt-available?` _tag_ :optional (_cont_ #f)
+
+Returns if the prompt with _tag_ is available in the continuation.
+
+If _cont_ is `#f` or omit, then it checks the current continuation.__
+Otherwise, _cont_ must satisfy `continuation?`, then check the given
+continuation.
+
+
 ###### [!Function] `abort-current-continuation` _tag_ . _args_
 ###### [!Function] `abort/cc` _tag_ . _args_
 
