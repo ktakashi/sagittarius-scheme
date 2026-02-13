@@ -37,62 +37,52 @@
 	    call/delim-cc
 	    call-with-delimited-current-continuation
 
-	    continuation? continuation-prompt-available?
+	    continuation? composable-continuation?
+	    continuation-prompt-available?
 
 	    default-continuation-prompt-tag
 	    make-continuation-prompt-tag continuation-prompt-tag?
-	    shift reset)
+	    shift reset
+	    prompt control)
     (import (except (core) call/cc call-with-current-continuation)
 	    (core macro)
 	    (sagittarius))
 
-;; (define (call/cc proc :optional (tag (default-continuation-prompt-tag)))
-;;   (call-with-composable-continuation
-;;    (lambda (ck)
-;;      (define (k . args)
-;;        (abort-current-continuation tag (lambda () (apply ck args))))
-;;      (proc k))
-;;    tag))
-;; (define call-with-current-continuation call/cc)
-
-(define (abort-current-continuation/keep-prompt tag thunk)
-  ((call-with-continuation-prompt
-    (lambda ()
-      ((call-with-delimited-current-continuation
-	(lambda (k) (lambda () k))
-	tag)))
-    tag)
-   thunk))
-
-(define (make-call-with-shift abort-cc inserted-handler)
-  (define (call-with-shift f :optional (tag (default-continuation-prompt-tag)))
-    (call-with-composable-continuation
-     (lambda (k)
-       (abort-cc
-	tag
-	(lambda ()
-	  (f (lambda vals
-	       (call-with-continuation-prompt
-		(lambda () (apply k vals))
-		tag
-		inserted-handler))))))))
-  call-with-shift)
-
-(define call-with-shift
-  (make-call-with-shift abort-current-continuation/keep-prompt #f))
+;; From SRFI-226 implementation
+(define-syntax reset
+  (lambda (x)
+    (syntax-case x ()
+      [(reset e1 e2 ...)
+       #'(call-with-continuation-prompt
+	  (lambda ()
+	    e1 e2 ...))])))
 
 (define-syntax shift
   (lambda (x)
     (syntax-case x ()
-      ((_ id expr0 expr ...)
-       (identifier? #'id)
-       #'(call-with-shift (lambda (id) expr0 expr ...))))))
+      [(shift k e1 e2 ...)
+       #'(call-with-composable-continuation
+	  (lambda (c)
+            (define k (lambda args (reset (apply c args))))
+            (abort-current-continuation (default-continuation-prompt-tag)
+					(lambda () e1 e2 ...))))])))
 
-(define-syntax reset
+(define-syntax prompt
   (lambda (x)
     (syntax-case x ()
-      ((_ expr0 expr ...)
+      [(prompt e1 e2 ...)
        #'(call-with-continuation-prompt
-	  (lambda () expr0 expr ...))))))
+	  (lambda () e1 e2 ...)
+	  (default-continuation-prompt-tag)
+	  (lambda (thunk) (thunk)))])))
+  
+(define-syntax control
+  (lambda (x)
+    (syntax-case x ()
+      [(control k e1 e2 ...)
+       #'(call-with-composable-continuation
+	  (lambda (k)
+	    (abort-current-continuation (default-continuation-prompt-tag)
+					(lambda () e1 e2 ...))))])))
 
 )

@@ -1859,25 +1859,41 @@ int Sg_ContinuationP(SgObject o)
   return SG_SUBRP(o) && SG_EQ(SG_PROCEDURE_NAME(o), sym_continuation);
 }
 
+int Sg_ComposableContinuationP(SgObject o)
+{
+  return Sg_ContinuationP(o) &&
+    ((SgContinuation *)SG_CAR(SG_SUBR_DATA(o)))->type == SG_COMPOSABLE_CONTINUATION;
+}
+
 int Sg_ContinuationPromptAvailableP(SgObject tag, SgObject k)
 {
   SgContFrame *cont = NULL;
   SgPrompt *boundary = NULL;
   SgVM *vm = theVM;
+  int type = SG_FULL_CONTINUATION;
   if (SG_FALSEP(k)) {
     cont = vm->cont;
   } else if (Sg_ContinuationP(k)) {
     SgContinuation *c = (SgContinuation *)SG_CAR(SG_SUBR_DATA(k));
     boundary = (SgPrompt *)SG_CDR(SG_SUBR_DATA(k));
     cont = c->cont;
+    type = c->type;
   } else {
     Sg_Error(UC("continuation or #f is required but got %S"), k);
   }
   while (!bottom_cont_frame_p(vm, cont)) {
     if (PROMPT_FRAME_MARK_P(cont)) {
-      if (((SgPrompt *)cont->pc)->tag == tag) return TRUE;
-      if ((SgPrompt *)cont->pc == boundary) return FALSE;
-    
+      SgPrompt *p = (SgPrompt *)cont->pc;
+      /* a bit weird, but Racket and SRFI-226 seems like this */
+      if (type == SG_COMPOSABLE_CONTINUATION) {
+	/* composable, excludes boundary */
+	if (p == boundary) return FALSE;
+	if (p->tag == tag) return TRUE;
+      } else {
+	/* delimited, includes boundary */
+	if (p->tag == tag) return TRUE;
+	if (p == boundary) return FALSE;
+      }
     }
     cont = cont->prev;
   }

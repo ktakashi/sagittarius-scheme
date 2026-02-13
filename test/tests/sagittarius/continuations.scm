@@ -5,20 +5,21 @@
 (test-begin "Continuations")
 
 (test-assert "continuation? (call/cc)"
-	     (continuation? (call/cc (lambda (k) k))))
+	     (continuation? (call/cc values)))
 (test-assert "continuation? (call/comp)"
-	     (continuation?
-	      (call/prompt
-	       (lambda ()
-		 (call/comp (lambda (k) k))))))
+	     (continuation? (call/prompt (lambda () (call/comp values)))))
 (test-assert "continuation? (call/delimited-cc)"
-	     (continuation?
-	      (call/prompt
-	       (lambda ()
-		 (call/delim-cc (lambda (k) k))))))
+	     (continuation? (call/prompt (lambda () (call/delim-cc values)))))
 
 (test-assert "continuation? (symbol)" (not (continuation? 'a)))
 (test-assert "continuation? (symbol)" (not (continuation? (lambda args args))))
+
+(test-assert (not (composable-continuation? (call/cc values))))
+(test-assert (not (composable-continuation?
+		   (call/prompt (lambda () (call/delim-cc values))))))
+
+(test-assert (composable-continuation?
+	      (call/prompt (lambda () (call/comp values)))))
 
 (test-assert (continuation-prompt-tag? (default-continuation-prompt-tag)))
 (test-assert (continuation-prompt-tag? (make-continuation-prompt-tag)))
@@ -157,5 +158,86 @@
 		(display l out))))))
     (test-equal "(post mid pre)" (e))
     (test-equal '(mid pre post mid pre) v)))
+
+;; From SRFI-226
+
+(test-equal 4 (+ 1 (reset 3)))
+(test-equal 5 (+ 1 (reset (* 2 (shift k 4)))))
+(test-equal 9 (+ 1 (reset (* 2 (shift k (k 4))))))
+(test-equal 17 (+ 1 (reset (* 2 (shift k (k (k 4)))))))
+(test-equal 25 (+ 1 (reset (* 2 (shift k1 (* 3 (shift k2 (k1 (k2 4)))))))))
+
+(let ()
+  (define call-with-non-composable-continuation call/delim-cc)
+  (test-equal 990
+	      (let ([tag (make-continuation-prompt-tag)])
+		(* 2
+		   (call-with-continuation-prompt
+		    (lambda ()
+		      (* 3
+			 (call-with-non-composable-continuation
+			  (lambda (k)
+			    (* 5
+			       (call-with-continuation-prompt
+				(lambda ()
+				  (* 7 (k 11)))
+				tag)))
+			  tag)))
+		    tag)))))
+
+(test-equal 6930
+	    (let ([tag (make-continuation-prompt-tag)])
+	      (* 2
+		 (call-with-continuation-prompt
+		  (lambda ()
+		    (* 3
+		       (call-with-composable-continuation
+			(lambda (k)
+			  (* 5
+			     (call-with-continuation-prompt
+			      (lambda ()
+				(* 7 (k 11)))
+			      tag)))
+			tag)))
+		  tag))))
+
+(test-equal 7 (prompt (+ 2 (control k (k 5)))))
+(test-equal 5 (prompt (+ 2 (control k 5))))
+(test-equal 12 (prompt (+ 5 (prompt (+ 2 (control k1 (+ 1 (control k2 (k2 6)))))))))
+(test-equal 8 (prompt (+ 5 (prompt (+ 2 (control k1 (+ 1 (control k2 (k1 6)))))))))
+(test-equal 18 (prompt
+		(+ 12 (prompt (+ 5 (prompt (+ 2 (control k1 (control k2 (control k3 (k3 6)))))))))))
+
+(define-syntax let/prompt
+  (syntax-rules ()
+    ((_ ((var val)  ...) body ...)
+     (let/prompt (default-continuation-prompt-tag) ((var val) ...) body ...))
+    ((_ tag ((var val)  ...) body ...)
+     (call-with-continuation-prompt
+      (lambda ()
+	(let ((var val) ...) body ...))
+      tag))))
+
+(let/prompt ()
+  (define call-with-non-composable-continuation call/delim-cc)
+  (define tag (make-continuation-prompt-tag))
+  (call-with-continuation-prompt
+   (lambda ()
+     (test-assert
+      (continuation-prompt-available? tag
+       (call-with-non-composable-continuation values))))
+   tag)
+  (call-with-continuation-prompt
+   (lambda ()
+     (test-assert
+      (continuation-prompt-available? tag
+       (call-with-non-composable-continuation values tag))))
+   tag)
+  (call-with-continuation-prompt
+   (lambda ()
+     (test-assert
+      (not (continuation-prompt-available? tag
+	    (call-with-composable-continuation values tag)))))
+   tag))
 
 (test-end)
