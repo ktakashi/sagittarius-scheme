@@ -3447,17 +3447,18 @@ void Sg__InitVM()
 void Sg__PostInitVM()
 {
   SgObject lib = Sg_FindLibrary(SG_INTERN("(core errors)"), FALSE);
+  SgObject clib = Sg_FindLibrary(SG_INTERN("(core)"), FALSE);
   SgObject b = Sg_FindBinding(lib, SG_INTERN("raise"), SG_UNBOUND);
   if (SG_UNBOUNDP(b)) {
     Sg_Panic("`raise` was not found.");
   }
-  SG_INIT_CONDITION(SG_CLASS_CONTINUATION_VIOLATION, lib, "&continuation",
+  SG_INIT_CONDITION(SG_CLASS_CONTINUATION_VIOLATION, clib, "&continuation",
 		    cont_violation_slot);
-  SG_INIT_CONDITION_PRED(SG_CLASS_CONTINUATION_VIOLATION, lib,
+  SG_INIT_CONDITION_PRED(SG_CLASS_CONTINUATION_VIOLATION, clib,
 			 "continuation-violation?");
-  SG_INIT_CONDITION_CTR(SG_CLASS_CONTINUATION_VIOLATION, lib,
+  SG_INIT_CONDITION_CTR(SG_CLASS_CONTINUATION_VIOLATION, clib,
 			"make-continuation-violation", 1);
-  SG_INIT_CONDITION_ACC(cont_violation_tag, lib,
+  SG_INIT_CONDITION_ACC(cont_violation_tag, clib,
 			"&continuation-violation-prompt-tag");
   raise_proc = SG_GLOC_GET(SG_GLOC(b));
   b = Sg_FindBinding(lib, SG_INTERN("raise-continuable"), SG_UNBOUND);
