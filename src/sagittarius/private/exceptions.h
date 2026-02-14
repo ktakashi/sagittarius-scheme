@@ -340,6 +340,13 @@ typedef struct SgSyntaxPatternConditionRec
     SG_CLASS_CONDITION,				\
     SG_CLASS_TOP				\
 
+#define SG_VIOLATION_CPL			\
+  SG_CLASS_VIOLATION,				\
+    SG_CLASS_SERIOUS,				\
+    SG_CLASS_CONDITION,				\
+    SG_CLASS_TOP
+
+
 #define SG_DEFINE_CONDITION_ALLOCATOR(name, type)		\
   static SgObject name(SgClass *klass, SgObject initargs) {	\
     type *c = SG_ALLOCATE(type, klass);				\

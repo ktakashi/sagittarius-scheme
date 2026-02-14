@@ -45,6 +45,9 @@
 
 	  &syntax-case syntax-case-condition?
 	  &syntax-pattern syntax-pattern-condition? condition-syntax-pattern
+	  
+	  &continuation make-continuation-violation
+	  continuation-violation? continuation-violation-prompt-tag
 	  ;; NB: we might want to use different type of mechanism of
 	  ;;     tracing stack trace, so don't export it for now.
 	  ;; &stack-trace stack-trace-condition?
@@ -116,6 +119,8 @@
   (initialize-builtin-condition &syntax-case &condition)
   (initialize-builtin-condition &syntax-pattern &syntax-case pattern)
 
+  (initialize-builtin-condition &continuation &violation prompt-tag)
+
   (define (condition-predicate rtd)
     (let ((class (slot-ref rtd 'class)))
       (lambda (o)
@@ -178,6 +183,9 @@
   (define condition-syntax-pattern
     (condition-accessor (record-type-rtd &syntax-pattern) &syntax-pattern))
 
+  (define continuation-violation-prompt-tag
+    (condition-accessor (record-type-rtd &continuation)
+			&continuation-violation-prompt-tag))
   (define-syntax define-condition-type
     (lambda (x)
       (syntax-case x ()

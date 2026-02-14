@@ -210,10 +210,7 @@ SG_DEFINE_BASE_CLASS(Sg_ViolationClass, SgCondition,
 		     condition0_printer, NULL, NULL, Sg_ConditionAllocate,
 		     serious_cpl);
 static SgClass *violation_cpl[] = {
-  SG_CLASS_VIOLATION,
-  SG_CLASS_SERIOUS,
-  SG_CLASS_CONDITION,
-  SG_CLASS_TOP,
+  SG_VIOLATION_CPL,
   NULL
 };
 SG_DEFINE_BASE_CLASS(Sg_AssertionClass, SgCondition,

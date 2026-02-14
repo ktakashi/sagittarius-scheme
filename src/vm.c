@@ -36,6 +36,7 @@
 #include "sagittarius/private/core.h"
 #include "sagittarius/private/closure.h"
 #include "sagittarius/private/error.h"
+#include "sagittarius/private/exceptions.h"
 #include "sagittarius/private/file.h"
 #include "sagittarius/private/generic.h"
 #include "sagittarius/private/hashtable.h"
@@ -45,6 +46,7 @@
 #include "sagittarius/private/pair.h"
 #include "sagittarius/private/port.h"
 #include "sagittarius/private/transcoder.h"
+#include "sagittarius/private/record.h"
 #include "sagittarius/private/reader.h"
 #include "sagittarius/private/string.h"
 #include "sagittarius/private/symbol.h"
@@ -138,6 +140,46 @@ static void vm_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 }
 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_VMClass, vm_print);
+
+static SgClass *violation_cpl[] = {
+  SG_VIOLATION_CPL,
+  NULL
+};
+
+static void cont_violation_printer(SgObject o, SgPort *p, SgWriteContext *ctx)
+{
+  Sg_Printf(p, UC("#<&continuation %S>"),
+	    SG_CONTINUATION_VIOLATION_PROMPT_TAG(o));
+}
+
+static SgObject cont_violation_allocate(SgClass *klass, SgObject initargs)
+{
+  SgContinuationViolation *c = SG_ALLOCATE(SgContinuationViolation, klass);
+  SG_SET_CLASS(c, klass);
+  return SG_OBJ(c);
+}
+
+static void cont_violation_tag_set(SgContinuationViolation *c, SgObject tag)
+{
+  if (!SG_CONTINUATION_VIOLATIONP(c)) {
+    Sg_Error(UC("&continuation required but got %S"), c);
+  }
+  SG_CONTINUATION_VIOLATION_PROMPT_TAG(c) = tag;
+}
+
+static SgObject cont_violation_tag(SgContinuationViolation *c)
+{
+  return SG_CONTINUATION_VIOLATION_PROMPT_TAG(c);
+}
+
+static SgSlotAccessor cont_violation_slot[] = {
+  SG_CLASS_SLOT_SPEC("prompt-tag", 0, cont_violation_tag, cont_violation_tag_set),
+  {{ NULL }}
+};
+
+SG_DEFINE_BASE_CLASS(Sg_ContinuationViolationClass, SgContinuationViolation,
+		     cont_violation_printer, NULL, NULL, cont_violation_allocate,
+		     violation_cpl);
 
 static SgObject copy_generics(SgObject lib)
 {
@@ -3409,6 +3451,14 @@ void Sg__PostInitVM()
   if (SG_UNBOUNDP(b)) {
     Sg_Panic("`raise` was not found.");
   }
+  SG_INIT_CONDITION(SG_CLASS_CONTINUATION_VIOLATION, lib, "&continuation",
+		    cont_violation_slot);
+  SG_INIT_CONDITION_PRED(SG_CLASS_CONTINUATION_VIOLATION, lib,
+			 "continuation-violation?");
+  SG_INIT_CONDITION_CTR(SG_CLASS_CONTINUATION_VIOLATION, lib,
+			"make-continuation-violation", 1);
+  SG_INIT_CONDITION_ACC(cont_violation_tag, lib,
+			"&continuation-violation-prompt-tag");
   raise_proc = SG_GLOC_GET(SG_GLOC(b));
   b = Sg_FindBinding(lib, SG_INTERN("raise-continuable"), SG_UNBOUND);
   if (SG_UNBOUNDP(b)) {

@@ -44,9 +44,12 @@
 
 SG_CLASS_DECL(Sg_BoxClass);
 SG_CLASS_DECL(Sg_VMClass);
+/* &continuation */
+SG_CLASS_DECL(Sg_ContinuationViolationClass);
 
 #define SG_CLASS_BOX (&Sg_BoxClass)
 #define SG_CLASS_VM  (&Sg_VMClass)
+#define SG_CLASS_CONTINUATION_VIOLATION (&Sg_ContinuationViolationClass)
 
 struct SgBoxRec
 {
@@ -56,6 +59,16 @@ struct SgBoxRec
 
 #define SG_BOX(obj)  ((SgBox*)(obj))
 #define SG_BOXP(obj) SG_XTYPEP(obj, SG_CLASS_BOX)
+
+typedef struct SgContinuationViolationRec
+{
+  SG_INSTANCE_HEADER;
+  SgObject promptTag;
+} SgContinuationViolation;
+#define SG_CONTINUATION_VIOLATION(o) ((SgContinuationViolation *)o)
+#define SG_CONTINUATION_VIOLATIONP(o) SG_ISA(o, SG_CLASS_CONTINUATION_VIOLATION)
+#define SG_CONTINUATION_VIOLATION_PROMPT_TAG(o) \
+  SG_CONTINUATION_VIOLATION(o)->promptTag
 
 /* continuation frame */
 typedef struct SgContFrameRec
