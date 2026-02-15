@@ -24,6 +24,9 @@
 (test-assert (continuation-prompt-tag? (default-continuation-prompt-tag)))
 (test-assert (continuation-prompt-tag? (make-continuation-prompt-tag)))
 
+(test-error continuation-violation? (call/comp values))
+(test-error continuation-violation? (call/delim-cc values))
+
 (let ((p1 (make-continuation-prompt-tag 'p1)))
   (define (check)
     (let ((k (call-with-continuation-prompt

@@ -37,6 +37,9 @@
 	    call/delim-cc
 	    call-with-delimited-current-continuation
 
+	    &continuation make-continuation-violation
+	    continuation-violation? continuation-violation-prompt-tag
+	    
 	    continuation? composable-continuation?
 	    continuation-prompt-available?
 
@@ -46,6 +49,7 @@
 	    prompt control)
     (import (except (core) call/cc call-with-current-continuation)
 	    (core macro)
+	    (core conditions)
 	    (sagittarius))
 
 ;; From SRFI-226 implementation

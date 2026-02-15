@@ -1896,6 +1896,22 @@ static SgObject make_cont_subr(SgContinuation *cont, SgPrompt *prompt)
 		     sym_continuation);
 }
 
+static void continuation_violation(SgObject who,
+				   SgObject message,
+				   SgObject promptTag)
+{
+  SgContinuationViolation *c = SG_NEW(SgContinuationViolation);
+  SG_SET_CLASS(c, SG_CLASS_CONTINUATION_VIOLATION);
+  c->promptTag = promptTag;
+  Sg_Raise(Sg_Condition(SG_LIST3(c, Sg_MakeWhoCondition(who),
+				 Sg_MakeMessageCondition(message))),
+	   FALSE);
+}
+
+#define CONT_ERR(who, msg, tag)						\
+  continuation_violation(SG_INTERN(who), SG_MAKE_STRING(msg), tag)
+
+    
 int Sg_ContinuationP(SgObject o)
 {
   return SG_SUBRP(o) && SG_EQ(SG_PROCEDURE_NAME(o), sym_continuation);
@@ -2007,7 +2023,7 @@ SgObject Sg_VMCallComp(SgObject proc, SgObject tag)
 
   return Sg_VMApply1(proc, contproc);
  err:
-  Sg_Error(UC("No continuation tag: %S"), tag);
+  CONT_ERR("call-with-composable-continuation", "Prompt tag not found", tag);
   return SG_UNDEF;		/* dummy */
 }
 
@@ -2052,7 +2068,8 @@ static SgObject throw_delimited_continuation_body(SgObject handlers,
        3. Run those handlers, then apply the continuation */
     SgPromptNode *node = remove_prompts(vm, prompt->tag);
     if (!node) {
-      Sg_Error(UC("Stale prompt in delimited continuation: %S"), prompt->tag);
+      CONT_ERR("delimited-continuation",
+	       "Stale prompt in delimited continuation", prompt->tag);
     }
     
     /* Remove the original prompt and set continuation to just before
@@ -2147,7 +2164,8 @@ SgObject Sg_VMCallDelimitedCC(SgObject proc, SgObject tag)
 
   return Sg_VMApply1(proc, contproc);
  err:
-  Sg_Error(UC("No continuation tag: %S"), tag);
+  CONT_ERR("call-with-delimited-current-continuation",
+	   "Prompt tag not found", tag);
   return SG_UNDEF;
 }
 
