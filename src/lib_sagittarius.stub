@@ -1855,6 +1855,9 @@
   (define-c-proc %call/comp (proc::<procedure> tag) :no-export Sg_VMCallComp)
   (define-c-proc %call/delim-cc (proc::<procedure> tag) :no-export 
     Sg_VMCallDelimitedCC)
+  (define-c-proc call-with-continuation-barrier (thunk::<procedure>)
+    Sg_VMCallCB)
+  
   (define-c-proc continuation? (o) ::<boolean> :no-side-effect Sg_ContinuationP)
   (define-c-proc composable-continuation? (o) ::<boolean> :no-side-effect
     Sg_ComposableContinuationP)
@@ -1862,7 +1865,10 @@
     ::<boolean> :no-side-effect
     Sg_ContinuationPromptAvailableP)
 
-  (define (make-continuation-prompt-tag :optional (name (gensym))) (list name))
+  (define-c-proc make-continuation-prompt-tag
+    (:optional (name::<symbol> (Sg_Gensym NULL)))
+    Sg_MakeContinuationPromptTag)
+
   (define default-continuation-prompt-tag
     (let ((tag (make-continuation-prompt-tag (gensym "default"))))
       (lambda () tag)))

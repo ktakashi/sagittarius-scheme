@@ -39,6 +39,8 @@
 
 	    &continuation make-continuation-violation
 	    continuation-violation? continuation-violation-prompt-tag
+
+	    call-with-continuation-barrier
 	    
 	    continuation? composable-continuation?
 	    continuation-prompt-available?

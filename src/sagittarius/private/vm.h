@@ -215,6 +215,7 @@ typedef struct SgPromptRec
   SgObject handler;
   SgCStack *cstack;
   SgObject winders;
+  int      barrierP;
 } SgPrompt;
 /* deque of prompt
    installation -> prepend
@@ -426,9 +427,12 @@ SG_EXTERN SgObject Sg_VMCallCC(SgObject proc);
 /* call-with-continuation-prompt */
 SG_EXTERN SgObject Sg_VMCallCP(SgObject proc, SgObject tag,
 			       SgObject handler, SgObject args);
+/* call-with-continuation-barrier */
+SG_EXTERN SgObject Sg_VMCallCB(SgObject thunk);
 SG_EXTERN SgObject Sg_VMCallComp(SgObject proc, SgObject tag);
 SG_EXTERN SgObject Sg_VMCallDelimitedCC(SgObject proc, SgObject tag);
 SG_EXTERN SgObject Sg_VMAbortCC(SgObject tag, SgObject args);
+SG_EXTERN SgObject Sg_MakeContinuationPromptTag(SgObject name);
 SG_EXTERN int      Sg_ContinuationP(SgObject o);
 SG_EXTERN int      Sg_ComposableContinuationP(SgObject o);
 SG_EXTERN int      Sg_ContinuationPromptAvailableP(SgObject tag, SgObject cont);

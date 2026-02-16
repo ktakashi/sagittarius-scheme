@@ -67,6 +67,20 @@
     (test-assert "call/cc p1 (#t)" (continuation-prompt-available? p1 k))
     (test-assert "call/cc p2 (#t)" (continuation-prompt-available? p2 k))))
 
+(define-syntax with-cc-variants
+  (lambda (x)
+    (syntax-case x ()
+      ((k expr ...)
+       (with-syntax ((call/cc (datum->syntax #'k 'call/cc))
+		     (call-with-current-continuation
+		      (datum->syntax #'k 'call-with-current-continuation)))
+	 #'(begin
+	     (define (a-test call/cc call-with-current-continuation)
+	       (call/prompt (lambda () expr)) ...)
+	     (a-test call/cc call-with-current-continuation)
+	     (a-test call/delim-cc
+		     call-with-delimited-current-continuation)))))))
+
 (define-syntax test
   (lambda (x)
     (syntax-case x ()
@@ -76,8 +90,7 @@
 		      (datum->syntax #'k 'call-with-current-continuation)))
 	 #'(begin
 	     (define (a-test call/cc call-with-current-continuation)
-	       (call-with-continuation-prompt
-		(lambda () (test-equal expected expr))))
+	       (test-equal expected (call/prompt (lambda () expr))))
 	     ;; should work the same
 	     (a-test call/cc call-with-current-continuation)
 	     (a-test call/delim-cc
@@ -264,4 +277,74 @@
 			 27)))))
 	       tag
 	       #f)))
+
+;; continuation barrier
+(with-cc-variants
+ (test-equal 103 (call-with-continuation-barrier
+		  (lambda ()
+		    (call/cc
+		     (lambda (k)
+		       (+ 100 (k 103)))))))
+
+ (test-equal 104 (call/cc
+		  (lambda (k)
+		    (call-with-continuation-barrier
+		     (lambda ()
+		       (+ 100 (k 104)))))))
+ 
+ (test-equal 112 (let/prompt ()
+		  (call-with-current-continuation
+		   (lambda (k)
+		     (call-with-continuation-barrier
+		      (lambda ()
+			(call-with-continuation-prompt
+			 (lambda ()
+			   (k 112)))))))))
+
+ (test-equal 'ok
+	     (call/cc
+	      (lambda (k)
+		(call-with-continuation-barrier
+		 (lambda ()
+		   (k 'ok))))))
+ )
+
+(test-equal '((1 3 5) . 11)
+	    (let/prompt ([res '()])
+              (define put!
+		(lambda (obj)
+		  (set! res (cons obj res))))
+              (define result
+		(lambda ()
+		  (reverse res)))
+              (define val
+		(call-with-continuation-prompt
+		 (lambda ()
+		   (+ 1
+                      (call-with-composable-continuation
+                       (lambda (k)
+			 (call-with-continuation-barrier
+			  (lambda ()
+			    (dynamic-wind
+				(lambda () (put! 1))
+				(lambda ()
+				  (put! (k 2))
+				  10)
+				(lambda () (put! 5)))))))))))
+              (cons (result) val)))
+
+(test-error continuation-violation?
+	    (call-with-continuation-barrier
+	     (lambda ()
+	       (call/comp values))))
+
+(with-cc-variants
+ (test-assert (continuation?
+	       (call-with-continuation-barrier
+		(lambda ()
+		  (call/cc values)))))
+ (test-error continuation-violation?
+	     ((call-with-continuation-barrier
+	       (lambda ()
+		 (call/cc values))))))
 (test-end)

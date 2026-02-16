@@ -1561,6 +1561,57 @@ static SgPromptNode *search_prompt_node(SgVM *vm, SgObject tag)
   return NULL;
 }
 
+static int has_barrier_node(SgVM *vm, SgObject tag)
+{
+  SgPromptNode *node = vm->prompts;
+  
+  /* search tag */
+  while (node) {
+    if (node->prompt->tag == tag) return FALSE;
+    if (node->prompt->barrierP) return TRUE;
+    node = node->next;
+  }
+  return FALSE;
+}
+
+/*
+  Check if invoking a continuation would enter a barrier from outside.
+  This happens when:
+  - The continuation was captured inside a barrier
+  - We're currently outside that barrier
+  - Invoking would restore to inside the barrier = "entering" = error
+  
+  Returns the barrier prompt if entering would occur, NULL otherwise.
+*/
+static SgPrompt *check_barrier_entry(SgVM *vm, SgContinuation *c)
+{
+  SgContFrame *cont = c->cont;
+  
+  /* Scan saved continuation frames for barrier prompts */
+  while (!bottom_cont_frame_p(vm, cont)) {
+    if (PROMPT_FRAME_MARK_P(cont)) {
+      SgPrompt *p = (SgPrompt *)cont->pc;
+      if (p->barrierP) {
+        /* Check if this barrier is in current prompt chain */
+        SgPromptNode *node = vm->prompts;
+        int found = FALSE;
+        while (node) {
+          if (node->prompt == p) {
+            found = TRUE;
+            break;
+          }
+          node = node->next;
+        }
+        if (!found) {
+          /* Barrier in saved state but not current -> entering barrier */
+          return p;
+        }
+      }
+    }
+    cont = cont->prev;
+  }
+  return NULL; /* ok, no barrier entry */
+}
 
 static int cont_prompt_match_p(SgContFrame *c, SgPrompt *prompt)
 {
@@ -1603,6 +1654,8 @@ static void install_prompt(SgVM *, SgPrompt *);
 static void remove_prompt(SgVM *, SgPrompt *);
 static SgPromptNode * remove_prompts(SgVM *, SgObject);
 static SgObject abort_body(SgPromptNode *node, SgObject winders, SgObject args);
+static void continuation_violation(SgObject who, SgObject message,
+				   SgObject promptTag);
 
 static SgObject throw_delimited_continuation_body(SgObject,
 						  SgContinuation *,
@@ -1858,6 +1911,15 @@ static SgObject throw_continuation(SgObject *argv, int argc, void *data)
   SgObject handlers;
   SgVM *vm = Sg_VM();
   SgPrompt *prompt = (SgPrompt *)SG_CDR(data);
+  SgPrompt *barrier;
+
+  /* Check if we're trying to enter a barrier from outside */
+  barrier = check_barrier_entry(vm, c);
+  if (barrier) {
+    continuation_violation(SG_INTERN("continuation"),
+      SG_MAKE_STRING("Cannot apply continuation across barrier"),
+      barrier->tag);
+  }
 
   if (c->cstack && vm->cstack != c->cstack) {
     SgCStack *cs;
@@ -1984,8 +2046,14 @@ SgObject Sg_VMCallComp(SgObject proc, SgObject tag)
   SgContinuation *cont;
   SgObject contproc;
   SgVM *vm = Sg_VM();
-  SgPromptNode *node = search_prompt_node(vm, tag);
+  SgPromptNode *node;
 
+  if (has_barrier_node(vm, tag)) {
+    CONT_ERR("call-with-composable-continuation",
+	     "Cannot capture past continuation barrier", tag);
+  }
+  
+  node = search_prompt_node(vm, tag);
   if (!node) goto err;
   /*
     NOT DOING IT FOR NOW.
@@ -2181,6 +2249,7 @@ static SgPrompt *make_prompt(SgObject tag, SgObject handler, SgVM *vm)
   prompt->handler = handler;
   prompt->cstack = vm->cstack;
   prompt->winders = vm->dynamicWinders;
+  prompt->barrierP = FALSE;
   return prompt;
 }
 
@@ -2226,6 +2295,11 @@ static SgPromptNode * remove_prompts(SgVM *vm, SgObject tag)
   return cur_node;
 }
 
+static SgObject make_prompt_tag(SgObject name)
+{
+  return SG_LIST1(name);
+}
+
 SgObject Sg_VMCallCP(SgObject proc, SgObject tag,
 		     SgObject handler, SgObject args)
 {
@@ -2244,6 +2318,28 @@ SgObject Sg_VMCallCP(SgObject proc, SgObject tag,
   return Sg_VMApply(proc, args);
 }
 
+static SgPrompt * make_barrier_prompt(SgVM *vm)
+{
+  SgObject tag = make_prompt_tag(Sg_Gensym(SG_MAKE_STRING("barrier")));
+  SgPrompt *p = make_prompt(tag, SG_FALSE, vm);
+  p->barrierP = TRUE;
+  return p;
+} 
+
+SgObject Sg_VMCallCB(SgObject thunk)
+{
+  SgVM *vm = theVM;
+  SgPrompt *prompt = make_barrier_prompt(vm);
+  CHECK_STACK(CONT_FRAME_SIZE, vm);
+  PUSH_PROMPT_CONT(vm, prompt);
+  install_prompt(vm, prompt);
+  return Sg_VMApply0(thunk);
+}
+
+SgObject Sg_MakeContinuationPromptTag(SgObject name)
+{
+  return make_prompt_tag(name);
+}
 
 /* given load path must be unshifted.
    NB: we don't check the validity of given path.
@@ -2746,7 +2842,8 @@ static SgObject abort_body(SgPromptNode *node, SgObject winders, SgObject args)
        the captured node is not loger valid.
     */
     SgPromptNode *cur_node = remove_prompts(vm, node->prompt->tag);
-    if (!cur_node) Sg_Error(UC("Stale prompt: %S"), node->prompt->tag);
+    if (!cur_node)
+      CONT_ERR("abort-current-continuation", "Stale prompt", node->prompt->tag);
     SgPrompt *prompt = cur_node->prompt;
 
     if (prompt->cstack != vm->cstack) {
@@ -2774,7 +2871,7 @@ SgObject Sg_VMAbortCC(SgObject tag, SgObject args)
   SgPromptNode *node = search_prompt_node(vm, tag);
   SgContinuation c;
 
-  if (!node) Sg_Error(UC("No continuation tag: %S"), tag);
+  if (!node) CONT_ERR("abort-current-continuation", "No continuation tag", tag);
 
   /* compose fake continuation to compute winders */
   c.winders = node->prompt->winders;

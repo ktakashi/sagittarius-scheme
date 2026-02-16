@@ -20,9 +20,7 @@
 (define-syntax err/rt-test
   (syntax-rules ()
     ((_ expr ignore)
-     (guard (e (else (test-assert 'expr #t)))
-       expr
-       (test-assert 'expr #f)))))
+     (test-error continuation-violation? expr))))
 
 (define call/cc-via-composable 
   (case-lambda 
@@ -996,6 +994,68 @@
    (default-continuation-prompt-tag)
    void)
   (test '(out in) values output))
+
+;;----------------------------------------
+;; tests invoking delimited captures in dynamic-wind pre- and post-thunks
+
+;; Arrange for a post-thunk to remove a target
+;; for an escape:
+;; (err/rt-test
+;;  (let/prompt ([p1 (make-continuation-prompt-tag 'p1)]
+;; 	      [exit-k #f])
+;;    (let ([x (let/ec esc
+;;               (call-with-continuation-prompt
+;;                (lambda ()
+;;                  (dynamic-wind
+;;                      (lambda () (void))
+;;                      (lambda () (esc 'done))
+;;                      (lambda ()
+;;                        ((call/cc
+;;                          (lambda (k) 
+;;                            (set! exit-k k)
+;;                            (lambda () 10))
+;;                          p1))
+;;                        (printf "post\n"))))
+;;                p1))])
+;;      (call-with-continuation-barrier
+;;       (lambda ()
+;;         (call-with-continuation-prompt
+;;          (lambda ()
+;;            (exit-k (lambda () 'hi)))
+;;          p1)))))
+;;  exn:fail:contract:continuation?)
+
+;; Same thing, but escape via prompt:
+(err/rt-test
+ (let/prompt ([p1 (make-continuation-prompt-tag 'p1)]
+	      [p2 (make-continuation-prompt-tag 'p2)]
+	      [output null]
+	      [exit-k #f])
+   (let ([x (call-with-continuation-prompt
+             (lambda ()
+               (call-with-continuation-prompt
+                (lambda ()
+                  (dynamic-wind
+                      (lambda () (void))
+                      (lambda () (abort-current-continuation p2 1 2 3))
+                      (lambda ()
+                        ((call/cc
+                          (lambda (k) 
+                            (set! exit-k k)
+                            (lambda () 10))
+                          p1))
+                        (set! output (cons 'post output)))))
+                p1))
+             p2
+             void)])
+     (call-with-continuation-barrier
+      (lambda ()
+        (call-with-continuation-prompt
+         (lambda ()
+           (exit-k (lambda () 'hi)))
+         p1)))))
+ exn:fail:contract:continuation?)
+
 
 (let/prompt ([output null])
   (call-with-continuation-prompt
