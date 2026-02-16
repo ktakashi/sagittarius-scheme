@@ -243,4 +243,25 @@
 	    (call-with-composable-continuation values tag)))))
    tag))
 
+(test-equal '(foo bar)
+	    (let ([tag (make-continuation-prompt-tag)])
+	      (call-with-continuation-prompt
+	       (lambda ()
+		 (+ 1
+		    (abort-current-continuation tag 'foo 'bar)
+		    2))
+	       tag
+	       list)))
+
+(test-equal 27
+	    (let ([tag (make-continuation-prompt-tag)])
+	      (call-with-continuation-prompt
+	       (lambda ()
+		 (abort-current-continuation tag
+		   (lambda ()
+		     (abort-current-continuation tag
+		       (lambda ()
+			 27)))))
+	       tag
+	       #f)))
 (test-end)
