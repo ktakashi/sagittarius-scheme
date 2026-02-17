@@ -93,3 +93,27 @@ Otherwise generates one.
 ###### [!Function] `default-continuation-prompt-tag`
 
 Returns a default continuation prompt tag.
+
+###### [!Function] `call-with-continuation-barrier` _thunk_
+
+Installs a continuation barrier and call _thunk_.
+
+A continuation barrier prevents jumps into more deeply nested active
+procedure calls:
+
+```scheme
+((call-with-continuation-barrier
+  (lambda ()
+    (call/cc values))))
+```
+
+If a continuation is captured outside of the barrier and escaping
+from the _thunk_, it's okay
+
+```scheme
+(call/cc
+  (lambda (k)
+    (call-with-continuation-barrier
+      (lambda ()
+        (k 'ok)))))
+```
