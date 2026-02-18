@@ -228,6 +228,18 @@ typedef struct SgPromptNodeRec
   struct SgPromptNodeRec *next;
 } SgPromptNode;
 
+typedef struct SgMarkEntryRec {
+  SgObject key;
+  SgObject value;
+  struct SgMarkEntryRec *next;
+} SgMarkEntry;
+
+typedef struct SgContMarksRec {
+  SgContFrame *frame;
+  SgMarkEntry *entries;
+  struct SgContMarksRec *prev;
+} SgContMarks;
+
 struct SgVMRec
 {
   SG_HEADER;
@@ -252,6 +264,7 @@ struct SgVMRec
   SgObject *fp;			/* frame pointer */
   SgObject *sp;			/* stack pointer */
   SgContFrame  *cont;     	/* saved continuation frame */
+  SgContMarks  *marks;		/* continuation marks */
   SgPromptNode *prompts;	/* prompt chain, this is the top */
   /* values buffer */
   int      valuesCount;
