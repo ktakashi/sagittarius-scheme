@@ -108,6 +108,8 @@ typedef enum {
   SG_DELIMIETED_CONTINUATION
 } SgContType;
 
+typedef struct SgContMarksRec SgContMarks;
+
 typedef struct SgContinucationRec
 {
   struct SgContinucationRec * prev;
@@ -120,6 +122,7 @@ typedef struct SgContinucationRec
   int          errorReporting;
   int          rewindBefore;
   SgContType   type;
+  SgContMarks *marks;
 } SgContinuation;
 
 #define SG_CONTINUATION(obj)  ((SgContinuation*)obj)
@@ -234,11 +237,11 @@ typedef struct SgMarkEntryRec {
   struct SgMarkEntryRec *next;
 } SgMarkEntry;
 
-typedef struct SgContMarksRec {
+struct SgContMarksRec {
   SgContFrame *frame;
   SgMarkEntry *entries;
   struct SgContMarksRec *prev;
-} SgContMarks;
+};
 
 struct SgVMRec
 {
@@ -442,6 +445,8 @@ SG_EXTERN SgObject Sg_VMCallCP(SgObject proc, SgObject tag,
 			       SgObject handler, SgObject args);
 /* call-with-continuation-barrier */
 SG_EXTERN SgObject Sg_VMCallCB(SgObject thunk);
+/* call-with-continuation-mark */
+SG_EXTERN SgObject Sg_VMCallCM(SgObject key, SgObject value, SgObject thunk);
 SG_EXTERN SgObject Sg_VMCallComp(SgObject proc, SgObject tag);
 SG_EXTERN SgObject Sg_VMCallDelimitedCC(SgObject proc, SgObject tag);
 SG_EXTERN SgObject Sg_VMAbortCC(SgObject tag, SgObject args);

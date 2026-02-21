@@ -1000,6 +1000,8 @@ SgObject Sg_VMEnvironment(SgObject lib, SgObject spec)
 
 static void print_frames(SgVM *vm, SgContFrame *cont);
 static void print_prompts(SgVM *vm, SgPromptNode *node);
+static void print_marks(SgVM *vm, SgContMarks *marks);
+static void print_summary(SgVM *vm);
 static void expand_stack(SgVM *vm);
 
 /* it does not improve performance */
@@ -1018,6 +1020,15 @@ static void expand_stack(SgVM *vm);
   } while (0)
 
 #define C_CONT_MARK NULL
+
+static void push_cont_marks(SgVM *vm, SgContFrame *cont)
+{
+  SgContMarks *cm = SG_NEW(SgContMarks);
+  cm->frame = cont;
+  cm->entries = NULL;
+  cm->prev = vm->marks;
+  vm->marks = cm;
+}
 
 void Sg_VMPushCC(SgCContinuationProc *after, void **data, int datasize)
 {
@@ -1039,6 +1050,7 @@ void Sg_VMPushCC(SgCContinuationProc *after, void **data, int datasize)
   for (i = 0; i < datasize; i++) {
     PUSH(s, SG_OBJ(data[i]));
   }
+  push_cont_marks(vm, cc);
   CONT(vm) = cc;
   FP(vm) = SP(vm) = s;
 }
@@ -1063,6 +1075,7 @@ enum {
     newcont->pc = (SgWord *)next_pc;		\
     newcont->cl = CL(vm);			\
     newcont->fp = FP(vm);			\
+    push_cont_marks(vm, newcont);		\
     CONT(vm) = newcont;				\
     SP(vm) += CONT_FRAME_SIZE;			\
   } while (0)
@@ -1436,6 +1449,7 @@ static void save_cont(SgVM *vm)
   SgCStack *cstk;
   SgContinuation *ep;
   SgPromptNode *node;
+  SgContMarks *marks;
 
   if (!(IN_STACK_P((SgObject *)c, vm))) return;
   
@@ -1463,6 +1477,11 @@ static void save_cont(SgVM *vm)
   for (node = vm->prompts; node; node = node->next) {
     if (FORWARDED_CONT_P(node->frame)) {
       node->frame = FORWARDED_CONT(node->frame);
+    }
+  }
+  for (marks = vm->marks; marks; marks = marks->prev) {
+    if (FORWARDED_CONT_P(marks->frame)) {
+      marks->frame = FORWARDED_CONT(marks->frame);
     }
   }
   
@@ -1643,6 +1662,24 @@ static SgContFrame * splice_cont(SgVM *vm, SgContFrame *saved,
   return top;
 }
 
+static SgContMarks * splice_marks(SgVM *vm, SgContMarks *marks)
+{
+  /* here we need to copy the mark chain like the cont */
+  SgContMarks *head = NULL, *tail = NULL;
+
+  while (marks) {
+    SgContMarks *copy = SG_NEW(SgContMarks);
+    copy->frame = marks->frame;
+    copy->entries = marks->entries;
+    copy->prev = head;
+    if (!head) head = tail = copy;
+    else head = copy;
+    marks = marks->prev;
+  }
+  tail->prev = vm->marks;
+  return head;
+}
+
 static SgObject throw_continuation_cc(SgObject, void **);
 static SgObject merge_winders(SgObject, SgObject);
 static SgObject take_prompt_winders(SgPrompt *, SgObject);
@@ -1703,6 +1740,7 @@ static SgObject throw_continuation_body(SgObject handlers,
 	 cont frame from the continuation.
        */
       vm->cont = splice_cont(vm, c->cont, prompt);
+      vm->marks = splice_marks(vm, c->marks);
       if (c->winders != vm->dynamicWinders) {
 	/* continuation is invoked outside of the winder's dynamic extent.
 	   Merge only winders that are inside the continuation's scope
@@ -1713,6 +1751,7 @@ static SgObject throw_continuation_body(SgObject handlers,
       }
     } else {
       vm->cont = c->cont;
+      vm->marks = c->marks;
       vm->dynamicWinders = c->winders;
     }
     return throw_continuation_end(vm, args);
@@ -2034,10 +2073,35 @@ SgObject Sg_VMCallCC(SgObject proc)
   cont->prev = NULL;
   cont->ehandler = SG_FALSE;
   cont->type = SG_FULL_CONTINUATION;
-
+  cont->marks = vm->marks;
 
   contproc = make_cont_subr(cont, NULL);
   return Sg_VMApply1(proc, contproc);
+}
+
+/* copy until the prompt node */
+static SgContMarks * copy_marks(SgVM *vm, SgPromptNode *node)
+{
+  SgContMarks *marks = vm->marks, *new_chain = NULL;
+  int last = FALSE;
+  while (marks) {
+    SgContMarks *copy = SG_NEW(SgContMarks);
+    copy->frame = marks->frame;
+    copy->entries = marks->entries;
+    copy->prev = new_chain;
+    new_chain = copy;
+    marks = marks->prev;
+    if (last) break;
+    if (marks->frame != node->frame) last = TRUE;
+  }
+  return new_chain;
+}
+
+static SgContMarks * strip_marks(SgVM *vm, SgPromptNode *node)
+{
+  SgContMarks *marks = vm->marks;
+  while (marks->frame != node->frame) marks = marks->prev;
+  return marks;
 }
 
 /* call-with-composable-continuation */
@@ -2087,6 +2151,8 @@ SgObject Sg_VMCallComp(SgObject proc, SgObject tag)
   cont->cstack = NULL;		/* so that this continuation can be
 				   run on any cstack state. */
   cont->type = SG_COMPOSABLE_CONTINUATION;
+  cont->marks = copy_marks(vm, node);
+
   contproc = make_cont_subr(cont, node->prompt);
 
   return Sg_VMApply1(proc, contproc);
@@ -2144,6 +2210,7 @@ static SgObject throw_delimited_continuation_body(SgObject handlers,
        the prompt */
     remove_prompt(vm, node->prompt);
     vm->cont = node->frame->prev;
+    vm->marks = strip_marks(vm, node);
 
     /* Create a new prompt for the continuation */
     SgPrompt *new_prompt = make_prompt(prompt->tag, SG_FALSE, vm);
@@ -2163,6 +2230,7 @@ static SgObject throw_delimited_continuation_body(SgObject handlers,
       if (node->prompt != prompt) {
 	save_cont(vm);
 	vm->cont = splice_cont(vm, c->cont, prompt);
+	vm->marks = splice_marks(vm, c->marks);
       }
       return throw_continuation_end(vm, args);
     }
@@ -2333,6 +2401,18 @@ SgObject Sg_VMCallCB(SgObject thunk)
   CHECK_STACK(CONT_FRAME_SIZE, vm);
   PUSH_PROMPT_CONT(vm, prompt);
   install_prompt(vm, prompt);
+  return Sg_VMApply0(thunk);
+}
+
+/* this will be wrapped by the with-continuation-mark macro */
+SgObject Sg_VMCallCM(SgObject key, SgObject value, SgObject thunk)
+{
+  SgVM *vm = theVM;
+  SgMarkEntry *e = SG_NEW(SgMarkEntry);
+  e->key = key;
+  e->value = value;
+  e->next = vm->marks->entries;
+  vm->marks->entries = e;
   return Sg_VMApply0(thunk);
 }
 
@@ -2660,6 +2740,7 @@ void Sg_VMDefaultExceptionHandler(SgObject e)
 
     vm->ac = result;
     vm->cont = c->cont;
+    vm->marks = c->marks;
     SG_VM_FLOATING_EP_SET(vm, c->floating);
     if (c->errorReporting) {
       SG_VM_RUNTIME_FLAG_SET(vm, SG_ERROR_BEING_REPORTED);
@@ -2698,18 +2779,23 @@ static SG_DEFINE_SUBR(default_exception_handler_rec, 1, 0,
 
 #define TAIL_POS(vm)  (*PC(vm) == RET)
 
-static SgContFrame *skip_prompt_frame(SgContFrame *cont)
+static SgContFrame *skip_prompt_frame(SgVM *vm)
 {
+  SgContFrame *cont = vm->cont;
+  SgContMarks *marks = vm->marks;
   while (PROMPT_FRAME_MARK_P(cont)) {
     remove_prompt(theVM, (SgPrompt *)cont->pc);
     cont = cont->prev;
+    marks = marks->prev;
   }
+  vm->marks = marks;
   return cont;
 }
 
 #define POP_CONT()							\
   do {									\
-    SgContFrame *cont__ = skip_prompt_frame(CONT(vm));			\
+    SgContFrame *cont__ = skip_prompt_frame(vm);			\
+    vm->marks = vm->marks->prev;					\
     if (cont__->fp == C_CONT_MARK) {					\
       void *data__[SG_CCONT_DATA_SIZE];					\
       SgObject v__ = AC(vm);						\
@@ -2855,6 +2941,7 @@ static SgObject abort_body(SgPromptNode *node, SgObject winders, SgObject args)
     /* reset the cont frame after the winder invocation */
     remove_prompt(vm, prompt);
     vm->cont = cur_node->frame->prev;
+    vm->marks = strip_marks(vm, cur_node);
     return abort_invoke_handler(prompt, args);
   }
 }
@@ -3379,11 +3466,45 @@ static void print_prompts(SgVM *vm, SgPromptNode *node)
   }
 }
 
+static void print_marks(SgVM *vm, SgContMarks *marks)
+{
+  if (marks) {
+    Sg_Printf(vm->logPort, UC(";; Continuation marks\n"));
+    /* for now */
+    Sg_Printf(vm->logPort, UC(";; [%p:%p]"), marks, marks->frame);
+    marks = marks->prev;
+    while (marks) {
+      Sg_Printf(vm->logPort, UC(" => [%p:%p]"), marks, marks->frame);
+      marks = marks->prev;
+    }
+    Sg_Printf(vm->logPort, UC("\n"));
+  }
+}
+
+static void print_summary(SgVM *vm)
+{
+  int n = 0;
+  SgContFrame *cont = vm->cont;
+  SgContMarks *marks = vm->marks;
+  while (!bottom_cont_frame_p(vm, cont)) {
+    n++;
+    cont = cont->prev;
+  }
+  Sg_Printf(vm->logPort, UC(";; current cont: %d\n"), n);
+  n = 0;
+  while (marks) {
+    n++;
+    marks = marks->prev;
+  }
+  Sg_Printf(vm->logPort, UC(";; current marks: %d\n"), n);
+}
+
 static void print_frames(SgVM *vm, SgContFrame *cont)
 {
   SgObject *stack = vm->stack, *sp = SP(vm);
   SgPromptNode *node = vm->prompts;
 
+  print_summary(vm);
   Sg_Printf(vm->logPort, UC(";; stack: %p, cont: %p\n"), stack, vm->cont);
   Sg_Printf(vm->logPort, UC(";; sp: %p, fp: %p, pc: %p\n"), sp, vm->fp, vm->pc);
 
@@ -3402,7 +3523,7 @@ static void print_frames(SgVM *vm, SgContFrame *cont)
     stack);
 
   print_prompts(vm, node);
-  
+  print_marks(vm, vm->marks);
 }
 
 void Sg_VMPrintFrame()
