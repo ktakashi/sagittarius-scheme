@@ -108,6 +108,8 @@ typedef enum {
   SG_DELIMIETED_CONTINUATION
 } SgContType;
 
+typedef struct SgContMarksRec SgContMarks;
+
 typedef struct SgContinucationRec
 {
   struct SgContinucationRec * prev;
@@ -120,6 +122,7 @@ typedef struct SgContinucationRec
   int          errorReporting;
   int          rewindBefore;
   SgContType   type;
+  SgContMarks *marks;
 } SgContinuation;
 
 #define SG_CONTINUATION(obj)  ((SgContinuation*)obj)
@@ -228,6 +231,18 @@ typedef struct SgPromptNodeRec
   struct SgPromptNodeRec *next;
 } SgPromptNode;
 
+typedef struct SgMarkEntryRec {
+  SgObject key;
+  SgObject value;
+  struct SgMarkEntryRec *next;
+} SgMarkEntry;
+
+struct SgContMarksRec {
+  SgContFrame *frame;
+  SgMarkEntry *entries;
+  struct SgContMarksRec *prev;
+};
+
 struct SgVMRec
 {
   SG_HEADER;
@@ -252,6 +267,7 @@ struct SgVMRec
   SgObject *fp;			/* frame pointer */
   SgObject *sp;			/* stack pointer */
   SgContFrame  *cont;     	/* saved continuation frame */
+  SgContMarks  *marks;		/* continuation marks */
   SgPromptNode *prompts;	/* prompt chain, this is the top */
   /* values buffer */
   int      valuesCount;
@@ -429,6 +445,11 @@ SG_EXTERN SgObject Sg_VMCallCP(SgObject proc, SgObject tag,
 			       SgObject handler, SgObject args);
 /* call-with-continuation-barrier */
 SG_EXTERN SgObject Sg_VMCallCB(SgObject thunk);
+/* call-with-continuation-mark */
+SG_EXTERN SgObject Sg_VMCallCM(SgObject entries, SgObject thunk);
+/* call-with-immediate-continuation-mark */
+SG_EXTERN SgObject Sg_VMCallImmediateCM(SgObject key, SgObject proc,
+					SgObject fallback);
 SG_EXTERN SgObject Sg_VMCallComp(SgObject proc, SgObject tag);
 SG_EXTERN SgObject Sg_VMCallDelimitedCC(SgObject proc, SgObject tag);
 SG_EXTERN SgObject Sg_VMAbortCC(SgObject tag, SgObject args);
@@ -436,6 +457,9 @@ SG_EXTERN SgObject Sg_MakeContinuationPromptTag(SgObject name);
 SG_EXTERN int      Sg_ContinuationP(SgObject o);
 SG_EXTERN int      Sg_ComposableContinuationP(SgObject o);
 SG_EXTERN int      Sg_ContinuationPromptAvailableP(SgObject tag, SgObject cont);
+SG_EXTERN int      Sg_ContinuationMarkSetP(SgObject o);
+SG_EXTERN SgObject Sg_ContinuationMarks(SgObject k, SgObject promptTag);
+SG_EXTERN SgObject Sg_CurrentContinuationMarks(SgObject promptTag);
 SG_EXTERN SgVM*    Sg_VM();	/* get vm */
 SG_EXTERN int      Sg_SetCurrentVM(SgVM *vm);
 SG_EXTERN int      Sg_AttachVM(SgVM *vm);
