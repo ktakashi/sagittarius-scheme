@@ -1548,6 +1548,9 @@ static int bottom_cont_frame_p(SgVM *vm, SgContFrame *cont)
     || cont == cont->prev->prev;
 }
 
+/* Forward declaration */
+static void rebuild_prompts_from_cont(SgVM *vm);
+
 static SgPromptNode *insert_prompt(SgVM *vm, SgPromptNode *node,
 				   SgPrompt *prompt, SgContFrame *frame)
 {
@@ -1758,6 +1761,8 @@ static SgObject throw_continuation_body(SgObject handlers,
       vm->cont = c->cont;
       vm->marks = c->marks;
       vm->dynamicWinders = c->winders;
+      /* Rebuild prompt chain to match the restored cont chain */
+      rebuild_prompts_from_cont(vm);
     }
     return throw_continuation_end(vm, args);
   }
@@ -2345,7 +2350,7 @@ static void remove_prompt(SgVM *vm, SgPrompt *prompt)
       } else {
 	vm->prompts = node->next;
       }
-      break;
+      return;
     }
     prev = node;
     node = node->next;
@@ -2552,6 +2557,7 @@ static SgObject continuation_marks(SgContFrame *cont,
   
   /* Reverse to get the correct order (most recent frame first) */
   frames = Sg_ReverseX(frames);
+
   
   /* Create mark set vector:
      [0] = cont_mark_set_sym (type marker)
@@ -2577,7 +2583,8 @@ SgObject Sg_ContinuationMarks(SgObject k, SgObject tag)
 
 SgObject Sg_CurrentContinuationMarks(SgObject tag)
 {
-  return continuation_marks(theVM->cont, theVM->marks, tag);
+  SgVM *vm = theVM;
+  return continuation_marks(vm->cont, vm->marks, tag);
 }
 
 /* given load path must be unshifted.
@@ -2937,6 +2944,32 @@ static SG_DEFINE_SUBR(default_exception_handler_rec, 1, 0,
 		      SG_FALSE, NULL);
 
 #define TAIL_POS(vm)  (*PC(vm) == RET)
+
+/* Rebuild vm->prompts from the continuation frame chain.
+   This is needed after restoring a full continuation, since
+   the prompt chain may not match the new cont chain.
+*/
+static void rebuild_prompts_from_cont(SgVM *vm)
+{
+  SgContFrame *cont = vm->cont;
+  SgPromptNode *head = NULL;
+  
+  /* Walk the cont chain and collect prompt frames in order */
+  while (cont && !bottom_cont_frame_p(vm, cont)) {
+    if (PROMPT_FRAME_MARK_P(cont)) {
+      SgPromptNode *node = SG_NEW(SgPromptNode);
+      node->prompt = (SgPrompt *)cont->pc;
+      node->frame = cont;
+      node->next = NULL;
+      /* Build list in reverse (head insertion) so prompts are
+         in correct order (most recent first) */
+      node->next = head;
+      head = node;
+    }
+    cont = cont->prev;
+  }
+  vm->prompts = head;
+}
 
 static SgContFrame *skip_prompt_frame(SgVM *vm)
 {
