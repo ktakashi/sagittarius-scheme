@@ -45,14 +45,72 @@
 	    continuation? composable-continuation?
 	    continuation-prompt-available?
 
+	    with-continuation-mark
+	    continuation-mark-set?
+	    continuation-mark-set->list continuation-mark-set->list*
+	    current-continuation-marks
+	    continuation-mark-set-first
+	    call-with-immediate-continuation-mark
+
+	    make-continuation-mark-key continuation-mark-key?
+	    
 	    default-continuation-prompt-tag
 	    make-continuation-prompt-tag continuation-prompt-tag?
 	    shift reset
 	    prompt control)
     (import (except (core) call/cc call-with-current-continuation)
 	    (core macro)
+	    (core record)
 	    (core conditions)
 	    (sagittarius))
+
+(define-syntax with-continuation-mark
+  (lambda (x)
+    (syntax-case x ()
+      ((_ k v expr ...)
+       #'(call/cm k v (lambda () expr ...))))))
+
+(define (call-with-immediate-continuation-mark key proc :optional (default #f))
+  ;; TODO implement
+  (error 'who "Not yet")
+  )
+
+(define (continuation-mark-set->list mark-set key 
+	     :optional (prompt-tag (default-continuation-prompt-tag)))
+  ;; TODO implement
+  (error 'who "Not yet")
+  )
+
+(define (continuation-mark-set->list* mark-set lis 
+	     :optional (obj #f) (prompt-tag (default-continuation-prompt-tag)))
+  ;; TODO implement
+  (error 'who "Not yet")
+  )
+
+(define (continuation-mark-set-first mark-set key 
+	     :optional (obj #f) (prompt-tag (default-continuation-prompt-tag)))
+  ;; TODO implement
+  (error 'who "Not yet")
+  )
+
+(define (continuation-mark-set->iterator . arg*)
+  (let f ((ls (apply continuation-mark-set->list* arg*)))
+    (lambda ()
+      (if (null? ls)
+          (values #f
+                  (lambda ()
+                    (apply assertion-violation
+                           'continuation-mark-set->iterator
+                           "attempt to iterate past the end"
+                           arg*)))
+          (values (car ls) (f (cdr ls)))))))
+
+(define-record-type continuation-mark-key
+  (nongenerative) (sealed #t) (opaque #f)
+  (fields (mutable name))
+  (protocol
+   (lambda (p)
+     (lambda (:optional ((name (or symbol? #f)) #f)) (p name)))))
 
 ;; From SRFI-226 implementation
 (define-syntax reset

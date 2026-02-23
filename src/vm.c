@@ -2421,6 +2421,47 @@ SgObject Sg_MakeContinuationPromptTag(SgObject name)
   return make_prompt_tag(name);
 }
 
+/* for now we don't make specific type for continuation mark set
+   but using a vector
+ */
+static SgObject cont_mark_set_sym = SG_FALSE;
+
+int Sg_ContinuationMarkSetP(SgObject o)
+{
+  return SG_VECTORP(o) && SG_VECTOR_SIZE(o) > 1 &&
+    SG_VECTOR_ELEMENT(o, 0) == cont_mark_set_sym;
+}
+
+static SgObject continuation_marks(SgContFrame *cont,
+				   SgContMarks *marks,
+				   SgObject tag)
+{
+  SgObject r;
+  /* collect continuation marks and convert it to a vector
+     whose first element is `cont_mark_set_sym`
+  */
+  r = Sg_MakeVector(1, SG_FALSE);
+  SG_VECTOR_ELEMENT(r, 0) = cont_mark_set_sym;
+  return r;  
+}
+
+SgObject Sg_ContinuationMarks(SgObject k, SgObject tag)
+{
+  SgContinuation *c;
+  if (!Sg_ContinuationP(k)) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("continuation-marks"),
+				    SG_MAKE_STRING("continuation"),
+				    k, SG_NIL);
+  }
+  c = SG_CAR(SG_SUBR_DATA(k));
+  return continuation_marks(c->cont, c->marks, tag);
+}
+
+SgObject Sg_CurrentContinuationMarks(SgObject tag)
+{
+  return continuation_marks(theVM->cont, theVM->marks, tag);
+}
+
 /* given load path must be unshifted.
    NB: we don't check the validity of given path.
  */
@@ -3674,7 +3715,7 @@ void Sg__InitVM()
   Sg_AddCleanupHandler(show_inst_count, NULL);
 #endif
   sym_continuation = Sg_MakeSymbol(SG_MAKE_STRING("continuation"), FALSE);
-  
+  cont_mark_set_sym = Sg_MakeSymbol(SG_MAKE_STRING("continuation mark set"), FALSE);
 #ifdef _WIN32
   SymInitialize(GetCurrentProcess(), NULL, TRUE);
 #endif

@@ -1869,6 +1869,14 @@
     (:optional (name::<symbol> (Sg_Gensym NULL)))
     Sg_MakeContinuationPromptTag)
 
+  (define-c-proc call/cm (key value thunk::<procedure>) Sg_VMCallCM)
+  (define-c-proc continuation-mark-set? (o) ::<boolean> :no-side-effect
+    Sg_ContinuationMarkSetP)
+  (define-c-proc %cm (k tag) :no-side-effect :no-export
+    Sg_ContinuationMarks)
+  (define-c-proc %ccm (tag) :no-side-effect :no-export
+    Sg_CurrentContinuationMarks)
+  
   (define default-continuation-prompt-tag
     (let ((tag (make-continuation-prompt-tag (gensym "default"))))
       (lambda () tag)))
@@ -1892,6 +1900,13 @@
 			   (default-continuation-prompt-tag)))
     (%call/delim-cc proc tag))
 
+  (define (continuation-marks k 
+	   :optional (tag (default-continuation-prompt-tag)))
+    (%cm k tag))
+  (define (current-continuation-marks 
+	   :optional (tag (default-continuation-prompt-tag)))
+    (%ccm tag))
+  
   (define call/prompt call-with-continuation-prompt)
   (define abort/cc abort-current-continuation)
   (define call/comp call-with-composable-continuation)

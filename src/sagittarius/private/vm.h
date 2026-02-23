@@ -454,6 +454,9 @@ SG_EXTERN SgObject Sg_MakeContinuationPromptTag(SgObject name);
 SG_EXTERN int      Sg_ContinuationP(SgObject o);
 SG_EXTERN int      Sg_ComposableContinuationP(SgObject o);
 SG_EXTERN int      Sg_ContinuationPromptAvailableP(SgObject tag, SgObject cont);
+SG_EXTERN int      Sg_ContinuationMarkSetP(SgObject o);
+SG_EXTERN SgObject Sg_ContinuationMarks(SgObject k, SgObject promptTag);
+SG_EXTERN SgObject Sg_CurrentContinuationMarks(SgObject promptTag);
 SG_EXTERN SgVM*    Sg_VM();	/* get vm */
 SG_EXTERN int      Sg_SetCurrentVM(SgVM *vm);
 SG_EXTERN int      Sg_AttachVM(SgVM *vm);
