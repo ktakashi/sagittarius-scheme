@@ -45,7 +45,7 @@
 	    continuation? composable-continuation?
 	    continuation-prompt-available?
 
-	    with-continuation-mark
+	    with-continuation-mark with-continuation-marks
 	    continuation-mark-set?
 	    continuation-mark-set->list continuation-mark-set->list*
 	    current-continuation-marks
@@ -68,30 +68,70 @@
   (lambda (x)
     (syntax-case x ()
       ((_ k v expr ...)
-       #'(call/cm k v (lambda () expr ...))))))
-
-(define (call-with-immediate-continuation-mark key proc :optional (default #f))
-  ;; TODO implement
-  (error 'who "Not yet")
-  )
+       #'(call/cm (vector (cons k v)) (lambda () expr ...))))))
+(define-syntax with-continuation-marks
+  (lambda (x)
+    (syntax-case x ()
+      ((_ ((k v) ...) expr ...)
+       #'(call/cm (vector (cons k v) ...) (lambda () expr ...))))))
 
 (define (continuation-mark-set->list mark-set key 
 	     :optional (prompt-tag (default-continuation-prompt-tag)))
-  ;; TODO implement
-  (error 'who "Not yet")
-  )
+  ;; If mark-set is #f, use current-continuation-marks
+  (let* ((ms (or mark-set (current-continuation-marks prompt-tag)))
+	 (frames (vector-ref ms 1)))
+    (let loop ((frames frames) (result '()))
+      (if (null? frames)
+	  (reverse! result)
+	  (let* ((frame (car frames))
+		 (entry (assq key frame)))
+	    (if entry
+		(loop (cdr frames) (cons (cdr entry) result))
+		(loop (cdr frames) result)))))))
 
-(define (continuation-mark-set->list* mark-set lis 
-	     :optional (obj #f) (prompt-tag (default-continuation-prompt-tag)))
-  ;; TODO implement
-  (error 'who "Not yet")
-  )
+(define (continuation-mark-set->list* mark-set keys 
+	 :optional (default #f) (prompt-tag (default-continuation-prompt-tag)))
+  ;; Helper function to check if any key in keys has an entry in frame
+  (define (has-any-key? frame keys)
+    (let loop ((ks keys))
+      (cond ((null? ks) #f)
+	    ((assq (car ks) frame) #t)
+	    (else (loop (cdr ks))))))
+  ;; If mark-set is #f, use current-continuation-marks
+  (let* ((ms (or mark-set (current-continuation-marks prompt-tag)))
+	 (frames (vector-ref ms 1))
+	 (key-count (length keys)))
+    (let loop ((frames frames) (result '()))
+      (if (null? frames)
+	  (reverse result)
+	  (let* ((frame (car frames))
+		 ;; Check if this frame has any of our keys
+		 (has-key? (has-any-key? frame keys)))
+	    (if has-key?
+		(let ((vec (make-vector key-count default)))
+		  ;; Fill in values for each key
+		  (let key-loop ((ks keys) (i 0))
+		    (if (null? ks)
+			(loop (cdr frames) (cons vec result))
+			(let ((entry (assq (car ks) frame)))
+			  (when entry
+			    (vector-set! vec i (cdr entry)))
+			  (key-loop (cdr ks) (+ i 1))))))
+		(loop (cdr frames) result)))))))
 
 (define (continuation-mark-set-first mark-set key 
-	     :optional (obj #f) (prompt-tag (default-continuation-prompt-tag)))
-  ;; TODO implement
-  (error 'who "Not yet")
-  )
+	 :optional (default #f) (prompt-tag (default-continuation-prompt-tag)))
+  ;; If mark-set is #f, use current-continuation-marks
+  (let* ((ms (or mark-set (current-continuation-marks prompt-tag)))
+	 (frames (vector-ref ms 1)))
+    (let loop ((frames frames))
+      (if (null? frames)
+	  default
+	  (let* ((frame (car frames))
+		 (entry (assq key frame)))
+	    (if entry
+		(cdr entry)
+		(loop (cdr frames))))))))
 
 (define (continuation-mark-set->iterator . arg*)
   (let f ((ls (apply continuation-mark-set->list* arg*)))

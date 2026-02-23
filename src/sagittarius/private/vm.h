@@ -446,7 +446,10 @@ SG_EXTERN SgObject Sg_VMCallCP(SgObject proc, SgObject tag,
 /* call-with-continuation-barrier */
 SG_EXTERN SgObject Sg_VMCallCB(SgObject thunk);
 /* call-with-continuation-mark */
-SG_EXTERN SgObject Sg_VMCallCM(SgObject key, SgObject value, SgObject thunk);
+SG_EXTERN SgObject Sg_VMCallCM(SgObject entries, SgObject thunk);
+/* call-with-immediate-continuation-mark */
+SG_EXTERN SgObject Sg_VMCallImmediateCM(SgObject key, SgObject proc,
+					SgObject fallback);
 SG_EXTERN SgObject Sg_VMCallComp(SgObject proc, SgObject tag);
 SG_EXTERN SgObject Sg_VMCallDelimitedCC(SgObject proc, SgObject tag);
 SG_EXTERN SgObject Sg_VMAbortCC(SgObject tag, SgObject args);

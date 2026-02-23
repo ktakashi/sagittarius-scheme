@@ -1667,6 +1667,11 @@ static SgContMarks * splice_marks(SgVM *vm, SgContMarks *marks)
   /* here we need to copy the mark chain like the cont */
   SgContMarks *head = NULL, *tail = NULL;
 
+  if (!marks) {
+    /* No marks to splice, just return current marks */
+    return vm->marks;
+  }
+
   while (marks) {
     SgContMarks *copy = SG_NEW(SgContMarks);
     copy->frame = marks->frame;
@@ -2100,7 +2105,7 @@ static SgContMarks * copy_marks(SgVM *vm, SgPromptNode *node)
 static SgContMarks * strip_marks(SgVM *vm, SgPromptNode *node)
 {
   SgContMarks *marks = vm->marks;
-  while (marks->frame != node->frame) marks = marks->prev;
+  while (marks && marks->frame != node->frame) marks = marks->prev;
   return marks;
 }
 
@@ -2404,16 +2409,73 @@ SgObject Sg_VMCallCB(SgObject thunk)
   return Sg_VMApply0(thunk);
 }
 
-/* this will be wrapped by the with-continuation-mark macro */
-SgObject Sg_VMCallCM(SgObject key, SgObject value, SgObject thunk)
+/* this will be wrapped by the with-continuation-mark macro
+   entries is a vector of pairs: #((key1 . value1) (key2 . value2) ...) */
+SgObject Sg_VMCallCM(SgObject entries, SgObject thunk)
 {
   SgVM *vm = theVM;
-  SgMarkEntry *e = SG_NEW(SgMarkEntry);
-  e->key = key;
-  e->value = value;
-  e->next = vm->marks->entries;
-  vm->marks->entries = e;
+  long i, len = SG_VECTOR_SIZE(entries);
+  
+  for (i = 0; i < len; i++) {
+    SgObject entry = SG_VECTOR_ELEMENT(entries, i);
+    SgObject key = SG_CAR(entry);
+    SgObject value = SG_CDR(entry);
+    SgMarkEntry *e;
+    int found = FALSE;
+    
+    /* Check if key already exists in current frame - if so, replace value */
+    for (e = vm->marks->entries; e != NULL; e = e->next) {
+      if (e->key == key || SG_EQ(e->key, key)) {
+        e->value = value;
+        found = TRUE;
+        break;
+      }
+    }
+    
+    if (!found) {
+      /* Key doesn't exist, add new entry */
+      e = SG_NEW(SgMarkEntry);
+      e->key = key;
+      e->value = value;
+      e->next = vm->marks->entries;
+      vm->marks->entries = e;
+    }
+  }
   return Sg_VMApply0(thunk);
+}
+
+/* Get the value of a mark in the immediate continuation frame only.
+   Returns SG_UNBOUND if not found.  
+
+   Skips empty frames created by internal let bindings etc, but stops
+   at prompts. */
+static SgObject immediate_cm(SgObject key, SgObject fallback)
+{
+  SgVM *vm = theVM;
+  SgContMarks *marks = vm->marks;
+  
+  /* "Immediate" means only the topmost frame - do NOT traverse
+     to previous frames. This ensures tail-position semantics work correctly.
+     If the current frame has no entries, there's no immediate mark. */
+  if (marks && marks->entries) {
+    SgMarkEntry *entry = marks->entries;
+    while (entry) {
+      if (entry->key == key || SG_EQ(entry->key, key)) {
+	return entry->value;
+      }
+      entry = entry->next;
+    }
+  }
+  return fallback;
+}
+
+
+/* call-with-immediate-continuation-mark as a C function.
+   This avoids the extra frames created by a Scheme wrapper. */
+SgObject Sg_VMCallImmediateCM(SgObject key, SgObject proc, SgObject fallback)
+{
+  SgObject value = immediate_cm(key, fallback);
+  return Sg_VMApply1(proc, value);
 }
 
 SgObject Sg_MakeContinuationPromptTag(SgObject name)
@@ -2428,7 +2490,7 @@ static SgObject cont_mark_set_sym = SG_FALSE;
 
 int Sg_ContinuationMarkSetP(SgObject o)
 {
-  return SG_VECTORP(o) && SG_VECTOR_SIZE(o) > 1 &&
+  return SG_VECTORP(o) && SG_VECTOR_SIZE(o) == 2 &&
     SG_VECTOR_ELEMENT(o, 0) == cont_mark_set_sym;
 }
 
@@ -2437,11 +2499,67 @@ static SgObject continuation_marks(SgContFrame *cont,
 				   SgObject tag)
 {
   SgObject r;
-  /* collect continuation marks and convert it to a vector
-     whose first element is `cont_mark_set_sym`
+  SgObject frames = SG_NIL;
+  SgContMarks *cur = marks;
+  SgVM *vm = theVM;
+  SgPromptNode *prompt_node = NULL;
+
+  /* Find the prompt node for the given tag to determine the boundary */
+  if (!SG_FALSEP(tag)) {
+    SgPromptNode *node = vm->prompts;
+    while (node) {
+      if (node->prompt->tag == tag) {
+	prompt_node = node;
+	break;
+      }
+      node = node->next;
+    }
+  }
+
+  /* Collect marks from each frame.
+     When we encounter the prompt boundary frame, we include its marks
+     then stop. Marks from frames BEFORE the prompt are not visible.
   */
-  r = Sg_MakeVector(1, SG_FALSE);
+  while (cur) {
+    SgMarkEntry *entry = cur->entries;
+    SgObject frame_marks = SG_NIL;
+    SgObject tail = SG_NIL;
+    int is_prompt_boundary = (prompt_node && cur->frame == prompt_node->frame);
+    
+    /* Collect all entries in this frame, preserving order (most recent first) */
+    while (entry) {
+      SgObject pair = Sg_Cons(Sg_Cons(entry->key, entry->value), SG_NIL);
+      if (SG_NULLP(frame_marks)) {
+	frame_marks = tail = pair;
+      } else {
+	SG_SET_CDR(tail, pair);
+	tail = pair;
+      }
+      entry = entry->next;
+    }
+    
+    /* Add this frame even if empty (needed for
+       call-with-immediate-continuation-mark) */
+    frames = Sg_Cons(frame_marks, frames);
+    
+    /* If this was the prompt boundary, stop */
+    if (is_prompt_boundary) {
+      break;
+    }
+    
+    cur = cur->prev;
+  }
+  
+  /* Reverse to get the correct order (most recent frame first) */
+  frames = Sg_ReverseX(frames);
+  
+  /* Create mark set vector:
+     [0] = cont_mark_set_sym (type marker)
+     [1] = list of frames (each frame is alist of key-value pairs)
+  */
+  r = Sg_MakeVector(2, SG_FALSE);
   SG_VECTOR_ELEMENT(r, 0) = cont_mark_set_sym;
+  SG_VECTOR_ELEMENT(r, 1) = frames;
   return r;  
 }
 
@@ -2827,7 +2945,7 @@ static SgContFrame *skip_prompt_frame(SgVM *vm)
   while (PROMPT_FRAME_MARK_P(cont)) {
     remove_prompt(theVM, (SgPrompt *)cont->pc);
     cont = cont->prev;
-    marks = marks->prev;
+    if (marks) marks = marks->prev;
   }
   vm->marks = marks;
   return cont;
@@ -2836,7 +2954,7 @@ static SgContFrame *skip_prompt_frame(SgVM *vm)
 #define POP_CONT()							\
   do {									\
     SgContFrame *cont__ = skip_prompt_frame(vm);			\
-    vm->marks = vm->marks->prev;					\
+    if (vm->marks) vm->marks = vm->marks->prev;				\
     if (cont__->fp == C_CONT_MARK) {					\
       void *data__[SG_CCONT_DATA_SIZE];					\
       SgObject v__ = AC(vm);						\
