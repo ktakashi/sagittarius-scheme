@@ -41,15 +41,6 @@
     ((_ . other)
      (syntax-error "malformed while" (while . other)))))
 
-(define-syntax temporarily
-  (syntax-rules ()
-    ((temporarily ((state init) ...) expr ...)
-     (let ((tmp init) ...)
-       (dynamic-wind
-         (lambda () (set! tmp (state tmp)) ...)
-         (lambda () expr ...)
-         (lambda () (set! tmp (state tmp)) ...))))))
-
 (define-syntax gauche-only
   (syntax-rules ()
     ((gauche-only x ...) (values))))

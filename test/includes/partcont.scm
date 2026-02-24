@@ -301,14 +301,14 @@
   ;; native : 232
   ;; meta   : 232
   ;; srfi226: 232
-  ;; racket : 23#<void>
-  (test* "reset/shift + temporarily + parameterize" "23#<unspecified>"
+  ;; racket : 232
+  (test* "reset/shift + temporarily + parameterize" "232"
          (with-output-to-string foo))
   ;; native : 32
   ;; meta   : ""
   ;; srfi226: ""
-  ;; racket : #<void>#<void>
-  (test* "reset/shift + temporarily + parameterize (cont)" "#<unspecified>#<unspecified>"
+  ;; racket : 31
+  (test* "reset/shift + temporarily + parameterize (cont)" "31"
          (with-output-to-string c)))
 
 ;; native : [E01][E02]
