@@ -2,7 +2,7 @@
 ;;;
 ;;; object.scm - object library
 ;;;  
-;;;   Copyright (c) 2000-2013  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2013-2026  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -29,12 +29,13 @@
 ;;;  
 
 ;; Gauche like ref, ~, ->string, ->integer and ->number
+#!nounbound
 (library (sagittarius object)
     (export ref ~ |setter of ref|
 	    ->string ->integer ->number object-compare)
-    (import (rnrs)
-	    (rnrs mutable-pairs)
-	    (rnrs mutable-strings)
+    (import (core)
+	    (core control)
+	    (core base)
 	    (sagittarius)
 	    (clos user))
 
@@ -105,7 +106,9 @@
   (define-method ->string ((obj <symbol>)) (symbol->string obj))
   (define-method ->string ((obj <char>))   (string obj))
   (define-method ->string ((obj <top>))
-    (call-with-string-output-port (lambda (o) (display obj o))))
+    (let-values (((out e) (open-string-output-port)))
+      (display obj out)
+      (e)))
 
   (define-generic ->integer)
   (define-method ->integer ((obj <bytevector>)) (bytevector->integer obj))
