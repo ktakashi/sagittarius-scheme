@@ -379,6 +379,16 @@
 		 (lambda ()
 		   (with-continuation-mark key 'mark3
 		    (continuation-mark-set->list #f key)))))))
+  ;; specifying tag would let continuation-mark-set->list to search
+  ;; outside of the prompt (default prompt-tag)
+  (test-equal '(mark3 mark2)
+	      (with-continuation-mark key 'mark1
+	       (with-continuation-mark key 'mark2
+	        (call-with-continuation-prompt
+		 (lambda ()
+		   (with-continuation-mark key 'mark3
+		    (continuation-mark-set->list #f key)))
+		 tag))))
 
   ;; With custom prompt tag for installation but default tag for
   ;; querying, the prompt boundary is not detected, so all marks are
