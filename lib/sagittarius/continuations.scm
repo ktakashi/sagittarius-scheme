@@ -57,8 +57,6 @@
 	    default-continuation-prompt-tag
 	    make-continuation-prompt-tag continuation-prompt-tag?
 
-	    temporarily
-
 	    shift reset
 	    prompt control)
     (import (except (core) call/cc call-with-current-continuation)
@@ -154,19 +152,6 @@
   (protocol
    (lambda (p)
      (lambda (:optional ((name (or symbol? #f)) #f)) (p name)))))
-
-(define-syntax temporarily
-  (lambda (x)
-    (syntax-case x ()
-      ((_ () b1 b2 ...) #'(let () b1 b2 ...))
-      ((_ ((x e) ...) b1 b2 ...)
-       (with-syntax (((p ...) (generate-temporaries #'(x ...)))
-		     ((y ...) (generate-temporaries #'(x ...))))
-	 #'(let ((p x) ... (y e) ...)
-	     (let ((swap (lambda ()
-			   (let ((t (p))) (p y) (set! y t))
-			   ...)))
-	       (dynamic-wind swap (lambda () b1 b2 ...) swap))))))))
 
 ;; From SRFI-226 implementation
 (define-syntax reset

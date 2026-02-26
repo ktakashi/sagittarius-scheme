@@ -4,6 +4,7 @@
         (srfi :39)
 	(srfi :64)
 	(sagittarius)
+	(only (sagittarius parameters) temporarily)
 	(rename (sagittarius continuations)
 		(call/delim-cc call/cc)
 		(call-with-delimited-current-continuation
