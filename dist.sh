@@ -34,14 +34,14 @@ stub()
 {
     echo Generating library from stub
     cd src
-    $SASH -L../sitelib ./genstub $1
+    $SASH ./genstub $1
     cd ../
 }
 
 srfi()
 {
     echo Generating R7RS style SRFI libraries
-    $SASH -L./sitelib ./tools/scripts/r7rs-srfi-gen.scm -p ./ext -p ./sitelib/srfi $1
+    $SASH ./tools/scripts/r7rs-srfi-gen.scm -p ./ext -p ./sitelib/srfi $1
 }
 
 tzdata()
