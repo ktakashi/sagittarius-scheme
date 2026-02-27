@@ -1,10 +1,10 @@
 (import (rename (except (rnrs)
 			call/cc call-with-current-continuation guard)
 		(error r6rs:error))
-        (srfi :39)
+        ;;(srfi :39)
 	(srfi :64)
 	(sagittarius)
-	(only (sagittarius parameters) temporarily)
+	(sagittarius parameters)
 	(rename (sagittarius continuations)
 		(call/delim-cc call/cc)
 		(call-with-delimited-current-continuation
@@ -55,7 +55,7 @@
 
 (define (with-output-to-string thunk)
   (let-values (((out e) (open-string-output-port)))
-    (parameterize ((current-output-port out))
+    (parameterize/dw ((current-output-port out))
       (reset (thunk))
       (e))))
 

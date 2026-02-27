@@ -32,23 +32,73 @@
 #!nounbound
 (library (sagittarius parameters)
     (export make-thread-parameter thread-parameter? <thread-parameter>
-	    (rename (make-thread-parameter make-parameter))
-	    <parameter> parameter?
+	    make-parameter <parameter> parameter?
 
-	    parameterize temporarily)
-    (import (rnrs)
+	    *parameterization-mark-key*
+	    
+	    parameterize
+	    parameterize/dw temporarily)
+    (import (core)
 	    (core syntax)
 	    (clos user)
 	    (sagittarius)
 	    (sagittarius object)
+	    (sagittarius continuations)
 	    (only (sagittarius) current-dynamic-environment))
 
 (define mark (list 0)) ;; unique mark
 
+(define-class <parameterization> ()
+  ((cells :init-value '() :init-keyword :cells :reader parameterization-cells)))
+(define (make-parameterization :optional (cells '()))
+  (make <parameterization> :cells cells))
+(define (parameterization? o) (is-a? o <parameterization>))
+(define (parameterization-extend (p parameterization?) key+value*)
+  (make-parameterization (append key+value* (parameterization-cells p))))
+(define (parameterization-ref (p parameterization?) key)
+  (assq key (parameterization-cells p)))
+
+(define *parameterization-mark-key*
+  (make-continuation-mark-key 'parameterization))
+
+(define (current-parameterization)
+  ;; Use #f as prompt-tag to search marks beyond prompt boundaries.
+  ;; This ensures parameterization from outside a prompt is visible inside.
+  (cond ((continuation-mark-set-first #f *parameterization-mark-key* #f #f))
+	(else (make-parameterization))))
+
+(define-syntax parameterize
+  (lambda (x)
+    (syntax-case x ()
+      ((_ ((p v) ...) e1 e2 ...)
+      #'(with-continuation-mark
+	    *parameterization-mark-key*
+	    (parameterization-extend
+	     (current-parameterization)
+	     (list (cons p (parameter-convert p v)) ...))
+	  (let () e1 e2 ...))))))
+
 (define-class <parameter> ()
-  ((converter :init-keyword :converter)
-   (init :init-keyword :init)))
+  ((converter :init-keyword :converter :reader parameter-converter)
+   (init :init-keyword :init :reader parameter-val :writer parameter-val-set!)))
 (define (parameter? o) (is-a? o <parameter>))
+(define (make-parameter init :optional (converter #f))
+  (let ((init (if converter (converter init) init)))
+    (make <parameter> :converter converter :init init)))
+
+(define (parameter-cell p)
+  (parameterization-ref (current-parameterization) p))
+
+(define-method object-apply ((p <parameter>))
+  (cond ((parameter-cell p) => cdr)
+	(else (parameter-val p))))
+
+(define-method object-apply ((p <parameter>) v)
+  (let ((conv (parameter-converter p)))
+    (cond ((parameter-cell p) =>
+	   (lambda (cell)
+	     (set-cdr! cell (if conv (conv v) v))))
+	  (else (parameter-val-set! p (if conv (conv v) v))))))
 
 ;; TODO thread-local?
 (define-class <thread-parameter> (<parameter>) ())
@@ -80,7 +130,7 @@
       (p v)))
 
 (define (parameter-convert p v)
-  (if (is-a? p <thread-parameter>)
+  (if (is-a? p <parameter>)
       (let ((conv (~ p 'converter)))
         (if (procedure? conv)
             (conv v)
@@ -119,7 +169,7 @@
      (parameterize-aux (param ... p) (val ... v) (tmps ... (P L S))
       		 more body))))
 
-(define-syntax parameterize
+(define-syntax parameterize/dw
   (syntax-rules ()
     ((_ (binds ...) . body)
      (parameterize-aux () () () (binds ...) body))))

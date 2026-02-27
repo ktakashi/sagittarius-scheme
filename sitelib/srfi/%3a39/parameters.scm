@@ -28,6 +28,7 @@
 ;;;  
 #!core
 (library (srfi :39 parameters)
-  (export make-parameter parameterize)
-  (import (sagittarius parameters)))
+    (export (rename (make-thread-parameter make-parameter)
+		    (parameterize/dw parameterize)))
+    (import (sagittarius parameters)))
 

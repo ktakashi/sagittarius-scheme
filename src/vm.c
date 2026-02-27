@@ -2421,6 +2421,18 @@ SgObject Sg_VMCallCM(SgObject entries, SgObject thunk)
   SgVM *vm = theVM;
   long i, len = SG_VECTOR_SIZE(entries);
   
+  /* If the current mark frame is associated with a prompt frame,
+     we need to create a new mark frame to avoid polluting the prompt's marks.
+     Marks added inside a prompt should be stripped when aborting.
+     We use NULL as the frame pointer so strip_marks will walk past this frame. */
+  if (vm->marks && vm->marks->frame && PROMPT_FRAME_MARK_P(vm->marks->frame)) {
+    SgContMarks *cm = SG_NEW(SgContMarks);
+    cm->frame = NULL; /* NULL frame means this is a "virtual" frame for marks only */
+    cm->entries = NULL;
+    cm->prev = vm->marks;
+    vm->marks = cm;
+  }
+  
   for (i = 0; i < len; i++) {
     SgObject entry = SG_VECTOR_ELEMENT(entries, i);
     SgObject key = SG_CAR(entry);
@@ -2977,8 +2989,8 @@ static SgContFrame *skip_prompt_frame(SgVM *vm)
   SgContMarks *marks = vm->marks;
   while (PROMPT_FRAME_MARK_P(cont)) {
     remove_prompt(theVM, (SgPrompt *)cont->pc);
-    cont = cont->prev;
     if (marks) marks = marks->prev;
+    cont = cont->prev;
   }
   vm->marks = marks;
   return cont;

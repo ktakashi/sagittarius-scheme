@@ -153,7 +153,86 @@
    (lambda (p)
      (lambda (:optional ((name (or symbol? #f)) #f)) (p name)))))
 
-;; From SRFI-226 implementation
+;;;; shift reset
+
+;; (define (abort-current-continuation/keep-prompt tag thunk)
+;;   ((call-with-continuation-prompt
+;;     (lambda ()
+;;       ((call-with-delimited-current-continuation
+;;         (lambda (k) (lambda () k))
+;;         tag)))
+;;     tag)
+;;    thunk))
+;; (define (make-call-with-shift abort-cc inserted-handler)
+;;   (letrec ((call-with-shift
+;;             (lambda (f :optional (tag (default-continuation-prompt-tag)))
+;;               (call-with-composable-continuation
+;;                (lambda (k)
+;;                  (abort-cc
+;;                   tag
+;;                   (lambda ()
+;;                     (f (lambda vals
+;;                          (call-with-continuation-prompt
+;;                           (lambda () (apply k vals))
+;;                           tag
+;;                           inserted-handler))))))
+;;                tag))))
+;;     call-with-shift))
+
+;; (define call-with-shift
+;;   (make-call-with-shift abort-current-continuation/keep-prompt #f))
+
+;; (define (make-call-with-control abort-cc)
+;;   ;; Uses call/cc to always keep the enclosing prompt.
+;;   (letrec ((call-with-control
+;;             (lambda (f :optional (tag (default-continuation-prompt-tag)))
+;;               (call-with-composable-continuation
+;;                (lambda (k) (abort-cc tag (lambda () (f k))))
+;;                tag))))
+;;     call-with-control))
+
+;; (define call-with-control
+;;   (make-call-with-control abort-current-continuation/keep-prompt))
+
+;; (define-syntax define-prompt-macros
+;;   (syntax-rules ()
+;;     ((_ prompt prompt-at call-with-prompt)
+;;      (begin
+;;        (define-syntax prompt
+;;          (syntax-rules ()
+;;            ((prompt expr0 expr (... ...))
+;;             (call-with-prompt (lambda () expr0 expr (... ...))))))
+;;        (define-syntax prompt-at
+;;          (syntax-rules ()
+;;            ((prompt-at tag expr0 expr (... ...))
+;;             (call-with-prompt (lambda () expr0 expr (... ...)) tag))))))))
+
+;; (define-syntax define-control-macros
+;;   (syntax-rules ()
+;;     ((_ control control-at call-with-control)
+;;      (begin
+;;        (define-syntax control
+;; 	 (lambda (stx)
+;;            (syntax-case stx ()
+;;              ((control id expr0 expr (... ...))
+;;               (identifier? #'id)
+;;               #'(call-with-control
+;; 		 (lambda (id) expr0 expr (... ...)))))))
+;;        (define-syntax control-at
+;; 	 (lambda (stx)
+;;            (syntax-case stx ()
+;;              ((control-at tag id expr0 expr (... ...))
+;;               (identifier? #'id)
+;;               #'(call-with-control
+;; 		 (lambda (id) expr0 expr (... ...)) tag)))))))))
+
+;; (define-prompt-macros prompt prompt-at call-with-continuation-prompt)
+;; (define-control-macros control control-at call-with-control)
+
+;; (define-control-macros shift shift-at call-with-shift)
+;; (define-prompt-macros reset reset-at call-with-continuation-prompt)
+
+;; ;; From SRFI-226 implementation
 (define-syntax reset
   (lambda (x)
     (syntax-case x ()
