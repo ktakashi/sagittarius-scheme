@@ -1,5 +1,11 @@
 ;; -*- Scheme -*-
 #!read-macro=sagittarius/regex
+;; workaround
+;; TODO remove after 0.9.15
+(library (srfi :39 parameters)
+    (export make-parameter parameterize)
+    (import (sagittarius parameters)))
+
 (import (rnrs)
 	(clos user)
 	(sagittarius control)

@@ -34,7 +34,7 @@ stub()
 {
     echo Generating library from stub
     cd src
-    $SASH -L../lib -L../sitelib ./genstub $1
+    $SASH -L../sitelib ./genstub $1
     cd ../
 }
 
