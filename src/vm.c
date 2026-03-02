@@ -810,6 +810,37 @@ SgObject Sg_CurrentInputPort()
   return vm->currentInputPort;
 }
 
+void Sg_SetCurrentOutputPort(SgObject p)
+{
+  if (!SG_OUTPUT_PORTP(p)) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("current-output-port"),
+				    SG_MAKE_STRING("output port"),
+				    p, SG_NIL);
+  }
+  Sg_VM()->currentOutputPort = p;
+}
+
+void Sg_SetCurrentErrorPort(SgObject p)
+{
+  if (!SG_OUTPUT_PORTP(p)) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("current-error-port"),
+				    SG_MAKE_STRING("output port"),
+				    p, SG_NIL);
+  }
+  Sg_VM()->currentErrorPort = p;
+}
+
+void Sg_SetCurrentInputPort(SgObject p)
+{
+  if (!SG_INPUT_PORTP(p)) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("current-input-port"),
+				    SG_MAKE_STRING("input port"),
+				    p, SG_NIL);
+  }
+  Sg_VM()->currentInputPort = p;
+}
+
+
 SgObject Sg_VMCurrentLibrary()
 {
   return Sg_VM()->currentLibrary;

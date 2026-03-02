@@ -576,8 +576,7 @@
 
   ;; readonly current library access
   ;; it's nice to have this
-  (define-c-proc current-library () :no-side-effect
-    (result (-> (Sg_VM) currentLibrary)))
+  (define-c-proc current-library () :no-side-effect Sg_VMCurrentLibrary)
 
   ;; string
   (define-c-proc string-scan (s1::<string> s2 :optional (mode 'index))

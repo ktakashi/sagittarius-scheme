@@ -1786,13 +1786,11 @@
   (define-c-proc standard-input-port () Sg_StandardInputPort)
 
   (define-c-proc current-input-port (:optional p::<port>)
-    (let ((vm::SgVM* (Sg_VM)))
-      (if (SG_UNBOUNDP p)
-	  (result (-> vm currentInputPort))
-	  (begin
-	    (check-input-port current-input-port p)
-	    (set! (-> vm currentInputPort) p)
-	    (result SG_UNDEF)))))
+    (if (SG_UNBOUNDP p)
+	(result (Sg_CurrentInputPort))
+	(begin
+	  (Sg_SetCurrentInputPort p)
+	  (result SG_UNDEF))))
   
   (define-cise-stmt check-procedure-or-false
     ((_ name proc)
@@ -2246,22 +2244,18 @@
   (define-c-proc standard-error-port () Sg_StandardErrorPort)
 
   (define-c-proc current-output-port (:optional p)
-    (let ((vm::SgVM* (Sg_VM)))
-      (if (SG_UNBOUNDP p)
-	  (result (-> vm currentOutputPort))
-	  (begin
-	    (check-output-port current-output-port p)
-	    (set! (-> vm currentOutputPort) p)
-	    (result SG_UNDEF)))))
+    (if (SG_UNBOUNDP p)
+	(result (Sg_CurrentOutputPort))
+	(begin
+	  (Sg_SetCurrentOutputPort p)
+	  (result SG_UNDEF))))
 
   (define-c-proc current-error-port (:optional p)
-    (let ((vm::SgVM* (Sg_VM)))
-      (if (SG_UNBOUNDP p)
-	  (result (-> vm currentErrorPort))
-	  (begin
-	    (check-output-port current-error-port p)
-	    (set! (-> vm currentErrorPort) p)
-	    (result SG_UNDEF)))))
+    (if (SG_UNBOUNDP p)
+	(result (Sg_CurrentErrorPort))
+	(begin
+	  (Sg_SetCurrentErrorPort p)
+	  (result SG_UNDEF))))
 
   (define-c-proc make-custom-binary-output-port
     (id::<string> write::<procedure> getter setter close)

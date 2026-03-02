@@ -485,6 +485,10 @@ SG_EXTERN SgObject Sg_CurrentOutputPort();
 SG_EXTERN SgObject Sg_CurrentErrorPort();
 SG_EXTERN SgObject Sg_CurrentInputPort();
 
+SG_EXTERN void Sg_SetCurrentOutputPort(SgObject p);
+SG_EXTERN void Sg_SetCurrentErrorPort(SgObject p);
+SG_EXTERN void Sg_SetCurrentInputPort(SgObject p);
+
 SG_EXTERN SgObject Sg_VMCurrentLibrary();
 
 /* exception */
