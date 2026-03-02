@@ -465,7 +465,7 @@
   (eval '(library (param)
 	     (export *param*)
 	     (import (core) (sagittarius parameters))
-	   (define *param* (make-parameter 10)))
+	   (define *param* (make-thread-parameter 10)))
 	(environment '(sagittarius)))
   ;; child thread loads the parameter
   (test-equal "create parameter" '(10 :changed) (run-thread :changed))
