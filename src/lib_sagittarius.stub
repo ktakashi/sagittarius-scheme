@@ -35,6 +35,7 @@
    (.define "LIBSAGITTARIUS_BODY")
    (.include <sagittarius/private.h>
 	     <sagittarius/private/cache.h>
+	     <sagittarius/private/parameter.h>
 	     "shortnames.incl"))
 
   (decl-code
@@ -1879,6 +1880,23 @@
   (define-c-proc call-with-immediate-continuation-mark 
     (key proc::<procedure> :optional (default #f))
     Sg_VMCallImmediateCM)
+
+  (define-type <parameterization> "SgParameterization*")
+  
+  (define-c-proc parameterization? (o) ::<boolean> :constant
+    SG_PARAMETERIZATIONP)
+  (define-c-proc make-parameterization (:optional (cells '()))
+    Sg_MakeParameterization)
+  (define-c-proc parameterization-ref (p::<parameterization> key)
+    Sg_ParameterizationRef)
+  (define-c-proc parameterization-cells (p::<parameterization>) :no-export
+    SG_PARAMETERIZATION_CELLS)
+
+  (define-c-proc parameterization-continuation-mark-key ()
+    Sg_ParameterizationContinuationMarkKey)
+  
+  (define-c-proc current-parameterization ()
+    Sg_CurrentParameterization)
   
   (define default-continuation-prompt-tag
     (let ((tag (make-continuation-prompt-tag (gensym "default"))))
@@ -1914,4 +1932,8 @@
   (define abort/cc abort-current-continuation)
   (define call/comp call-with-composable-continuation)
   (define call/delim-cc call-with-delimited-current-continuation)
+
+  (define (parameterization-extend (p parameterization?) key+value*)
+    (make-parameterization (append key+value* (parameterization-cells p))))
+
 )

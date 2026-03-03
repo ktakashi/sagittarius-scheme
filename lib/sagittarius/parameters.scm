@@ -34,7 +34,8 @@
     (export make-thread-parameter thread-parameter? <thread-parameter>
 	    make-parameter <parameter> parameter?
 
-	    *parameterization-mark-key*
+	    current-parameterization
+	    parameterization?
 	    
 	    parameterize
 	    parameterize/dw temporarily)
@@ -43,36 +44,16 @@
 	    (clos user)
 	    (sagittarius)
 	    (sagittarius object)
-	    (sagittarius continuations)
-	    (only (sagittarius) current-dynamic-environment))
+	    (sagittarius continuations))
 
 (define mark (list 0)) ;; unique mark
-
-(define-class <parameterization> ()
-  ((cells :init-value '() :init-keyword :cells :reader parameterization-cells)))
-(define (make-parameterization :optional (cells '()))
-  (make <parameterization> :cells cells))
-(define (parameterization? o) (is-a? o <parameterization>))
-(define (parameterization-extend (p parameterization?) key+value*)
-  (make-parameterization (append key+value* (parameterization-cells p))))
-(define (parameterization-ref (p parameterization?) key)
-  (assq key (parameterization-cells p)))
-
-(define *parameterization-mark-key*
-  (make-continuation-mark-key 'parameterization))
-
-(define (current-parameterization)
-  ;; Use #f as prompt-tag to search marks beyond prompt boundaries.
-  ;; This ensures parameterization from outside a prompt is visible inside.
-  (cond ((continuation-mark-set-first #f *parameterization-mark-key* #f #f))
-	(else (make-parameterization))))
 
 (define-syntax parameterize
   (lambda (x)
     (syntax-case x ()
       ((_ ((p v) ...) e1 e2 ...)
       #'(with-continuation-mark
-	    *parameterization-mark-key*
+	    (parameterization-continuation-mark-key)
 	    (parameterization-extend
 	     (current-parameterization)
 	     (list (cons p (parameter-convert p v)) ...))

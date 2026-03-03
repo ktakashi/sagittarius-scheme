@@ -78,6 +78,7 @@ extern void Sg__InitMacro();
 extern void Sg__InitSystem();
 extern void Sg__InitBaseSystem(); /* for <time>, maybe I should make time.c */
 extern void Sg__InitReaderClass();
+extern void Sg__InitParameter();
 
 /* stub files */
 extern void Sg__Init_sagittarius_compiler_procedure();
@@ -194,6 +195,7 @@ void Sg_Init()
   Sg__InitWrite();
   Sg__InitIdentifier();
   Sg__InitCache();
+  Sg__InitParameter();
 
   nullsym = SG_INTERN("(core)");
   coreBase = SG_INTERN("(core base)");

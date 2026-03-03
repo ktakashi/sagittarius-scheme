@@ -99,6 +99,8 @@ SET(SAGITTARIUS_LIB_SOURCE
   thread.c
   system.c         pam.c
 
+  parameter.c
+  
   # wrapper for public C APIs
   wrappers.c
   # libraries
