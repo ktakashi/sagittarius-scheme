@@ -62,13 +62,17 @@
 (define-class <parameter> ()
   ((converter :init-keyword :converter :reader parameter-converter)
    (init :init-keyword :init :reader parameter-val :writer parameter-val-set!)))
-(define (parameter? o) (is-a? o <parameter>))
+(define (parameter? o) (or (core-parameter? o) (is-a? o <parameter>)))
 (define (make-parameter init :optional (converter #f))
   (let ((init (if converter (converter init) init)))
     (make <parameter> :converter converter :init init)))
 
 (define (parameter-cell p)
   (parameterization-ref (current-parameterization) p))
+(define (parameter-set! p v)
+  (cond ((parameter-cell p) =>
+	 (lambda (cell) (set-cdr! cell v)))
+	(else (parameter-val-set! p v)))
 
 (define-method object-apply ((p <parameter>))
   (cond ((parameter-cell p) => cdr)
@@ -76,10 +80,7 @@
 
 (define-method object-apply ((p <parameter>) v)
   (let ((conv (parameter-converter p)))
-    (cond ((parameter-cell p) =>
-	   (lambda (cell)
-	     (set-cdr! cell (if conv (conv v) v))))
-	  (else (parameter-val-set! p (if conv (conv v) v))))))
+    (parameter-set! p (if conv (conv v) v))))
 
 ;; TODO thread-local?
 (define-class <thread-parameter> (<parameter>) ())
@@ -106,9 +107,10 @@
     p))
 
 (define (%parameter-value-set! p v)
-  (if (is-a? p <thread-parameter>)
-      (set! (~ (current-dynamic-environment) p) v)
-      (p v)))
+  (cond ((is-a? p <thread-parameter>)
+	 (set! (~ (current-dynamic-environment) p) v))
+	((is-a? p <parameter>) (parameter-set! p v))
+	(else (p v))))
 
 (define (parameter-convert p v)
   (if (is-a? p <parameter>)
