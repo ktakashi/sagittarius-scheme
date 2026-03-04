@@ -44,6 +44,9 @@ typedef struct {
 #define SG_PARAMETERIZATIONP(obj) SG_XTYPEP(obj, SG_CLASS_PARAMETERIZATION)
 #define SG_PARAMETERIZATION_CELLS(o) SG_PARAMETERIZATION(o)->cells
 
+typedef SgObject SgCoreParameterRef(SgObject);
+typedef void SgCoreParameterSet(SgObject, SgObject);
+
 SG_CDECL_BEGIN
 
 SG_EXTERN SgObject Sg_MakeParameterization(SgObject cells);
@@ -51,6 +54,11 @@ SG_EXTERN SgObject Sg_ParameterizationContinuationMarkKey();
 SG_EXTERN SgObject Sg_CurrentParameterization();
 SG_EXTERN SgObject Sg_ParameterizationRef(SgObject p, SgObject key);
 
+SG_EXTERN SgObject Sg_MakeCoreParameter(SgObject name,
+					SgObject initValue,
+					SgCoreParameterRef ref,
+					SgCoreParameterSet set);
+SG_EXTERN int      Sg_CoreParameterP(SgObject o);
 SG_CDECL_END
 
 #endif

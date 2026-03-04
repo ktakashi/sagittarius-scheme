@@ -55,7 +55,7 @@
 
 (define (with-output-to-string thunk)
   (let-values (((out e) (open-string-output-port)))
-    (parameterize/dw ((current-output-port out))
+    (parameterize ((current-output-port out))
       (reset (thunk))
       (e))))
 

@@ -61,6 +61,12 @@
 # define SG_CDECL_END
 #endif
 
+#if defined(__GNUC__) || defined(__clang__)
+# define UNUSED(x) __attribute__((unused)) x
+#else
+# define UNUSED(x) x
+#endif
+
 #include <stdint.h>
 
 /* Types */

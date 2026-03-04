@@ -195,7 +195,6 @@ void Sg_Init()
   Sg__InitWrite();
   Sg__InitIdentifier();
   Sg__InitCache();
-  Sg__InitParameter();
 
   nullsym = SG_INTERN("(core)");
   coreBase = SG_INTERN("(core base)");
@@ -210,6 +209,7 @@ void Sg_Init()
   Sg__InitInstruction();
   Sg__Init_core();
   Sg__InitNumberProcs(); 	/* some number related Scheme procedures */
+  Sg__InitParameter();		/* has to be after (core) */
   
   Sg__Init_sagittarius();
   Sg__InitPair();

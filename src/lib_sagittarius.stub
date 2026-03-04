@@ -232,13 +232,19 @@
     (when (SG_FALSEP directive) (set! directive 'compatible))
     (result (Sg_AddLoadSuffix (Sg_Cons suffix directive) append)))
 
-  ;; simpler parameter. will be used in (core macro) and compiler.
-  (define (make-core-parameter init-value)
-    (define (p . v)
-      (if (null? v)
-	  (hashtable-ref  (current-dynamic-environment) p init-value)
-	  (hashtable-set! (current-dynamic-environment) p (car v))))
-    p)
+  (define-cfn core-parameter-ref (p) :static
+    (return (Sg_WeakHashTableRef (-> (Sg_VM) parameters) p SG_UNBOUND)))
+  (define-cfn core-parameter-set! (p v) ::void :static
+    (Sg_WeakHashTableSet (-> (Sg_VM) parameters) p v 0))
+
+  (define-c-proc make-core-parameter (init-value)
+    (result (Sg_MakeCoreParameter SG_FALSE init-value
+				  core-parameter-ref
+				  core-parameter-set!)))
+
+  (define-c-proc core-parameter? (o) ::<boolean> :constant
+    Sg_CoreParameterP)
+  
   (define *current-loading-port* (make-core-parameter #f))
   (define (current-load-path) 
     (cond ((*current-loading-port*) => port-filename)
@@ -1895,7 +1901,7 @@
   (define-c-proc parameterization-continuation-mark-key ()
     Sg_ParameterizationContinuationMarkKey)
   
-  (define-c-proc current-parameterization ()
+  (define-c-proc %current-parameterization () :no-export
     Sg_CurrentParameterization)
   
   (define default-continuation-prompt-tag
@@ -1933,6 +1939,8 @@
   (define call/comp call-with-composable-continuation)
   (define call/delim-cc call-with-delimited-current-continuation)
 
+  (define (current-parameterization)
+    (or (%current-parameterization) (make-parameterization)))
   (define (parameterization-extend (p parameterization?) key+value*)
     (make-parameterization (append key+value* (parameterization-cells p))))
 

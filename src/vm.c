@@ -44,6 +44,7 @@
 #include "sagittarius/private/kernel.h"
 #include "sagittarius/private/library.h"
 #include "sagittarius/private/pair.h"
+#include "sagittarius/private/parameter.h"
 #include "sagittarius/private/port.h"
 #include "sagittarius/private/transcoder.h"
 #include "sagittarius/private/record.h"
@@ -792,22 +793,29 @@ void Sg_VMDumpCode(SgCodeBuilder *cb)
   vm_dump_code_rec(cb, 0);
 }
 
+static SgObject currentInputPort = SG_FALSE;
+static SgObject currentOutputPort = SG_FALSE;
+static SgObject currentErrorPort = SG_FALSE;
+
 SgObject Sg_CurrentOutputPort()
 {
-  SgVM *vm = Sg_VM();
-  return vm->currentOutputPort;
+  SgObject r;
+  SG_CALL_SUBR0(r, currentOutputPort);
+  return r;
 }
 
 SgObject Sg_CurrentErrorPort()
 {
-  SgVM *vm = Sg_VM();
-  return vm->currentErrorPort;
+  SgObject r;
+  SG_CALL_SUBR0(r, currentErrorPort);
+  return r;
 }
 
 SgObject Sg_CurrentInputPort()
 {
-  SgVM *vm = Sg_VM();
-  return vm->currentInputPort;
+  SgObject r;
+  SG_CALL_SUBR0(r, currentInputPort);
+  return r;
 }
 
 void Sg_SetCurrentOutputPort(SgObject p)
@@ -3915,6 +3923,31 @@ void Sg__InitVM()
 #endif
 }
 
+static SgObject current_input_port(UNUSED(SgObject x)) {
+  return Sg_VM()->currentInputPort;
+}
+
+static SgObject current_output_port(UNUSED(SgObject x)) {
+  return Sg_VM()->currentOutputPort;
+}
+
+static SgObject current_error_port(UNUSED(SgObject x)) {
+  return Sg_VM()->currentErrorPort;
+}
+
+static void set_current_input_port(UNUSED(SgObject x), SgObject value) {
+  Sg_SetCurrentInputPort(value);
+}
+
+static void set_current_output_port(UNUSED(SgObject x), SgObject value) {
+  Sg_SetCurrentOutputPort(value);
+}
+
+static void set_current_error_port(UNUSED(SgObject x), SgObject value) {
+  Sg_SetCurrentErrorPort(value);
+}
+
+
 void Sg__PostInitVM()
 {
   SgObject lib = Sg_FindLibrary(SG_INTERN("(core errors)"), FALSE);
@@ -3938,12 +3971,27 @@ void Sg__PostInitVM()
   }
   raise_continuable_proc = SG_GLOC_GET(SG_GLOC(b));
 
+#define ADD_PARAMETER(var, name, ref, set)			\
+  do {								\
+    SgObject n__ = SG_INTERN(name);				\
+    (var) = Sg_MakeCoreParameter(n__, SG_UNDEF, ref, set);	\
+    Sg_InsertBinding(clib, n__, var);				\
+  } while (0)
+
+  ADD_PARAMETER(currentInputPort, "current-input-port",
+		current_input_port, set_current_input_port);
+  ADD_PARAMETER(currentOutputPort, "current-output-port",
+		current_output_port, set_current_output_port);
+  ADD_PARAMETER(currentErrorPort, "current-error-port",
+		current_error_port, set_current_error_port);
+  
   lib = Sg_FindLibrary(SG_INTERN("(sagittarius compiler)"), FALSE);
   b = Sg_FindBinding(lib, SG_INTERN("init-compiler"), SG_UNBOUND);
   if (SG_UNBOUNDP(b)) {
     Sg_Panic("`init-compiler` was not found.");
   }
   Sg_Apply0(SG_GLOC_GET(SG_GLOC(b)));
+
 }
 
 /*
