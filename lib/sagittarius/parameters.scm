@@ -48,6 +48,11 @@
 
 (define mark (list 0)) ;; unique mark
 
+(define (parameterize-value p v)
+  (let ((val (parameter-convert p v)))
+    (if (thread-parameter? p)
+	(make-thread-local val #t)
+	val)))
 (define-syntax parameterize
   (lambda (x)
     (syntax-case x ()
@@ -56,7 +61,7 @@
 	    (parameterization-continuation-mark-key)
 	    (parameterization-extend
 	     (current-parameterization)
-	     (list (cons p (parameter-convert p v)) ...))
+	     (list (cons p (parameterize-value p v)) ...))
 	  (let () e1 e2 ...))))))
 
 (define-class <parameter> ()
@@ -72,7 +77,7 @@
 (define (parameter-set! p v)
   (cond ((parameter-cell p) =>
 	 (lambda (cell) (set-cdr! cell v)))
-	(else (parameter-val-set! p v)))
+	(else (parameter-val-set! p v))))
 
 (define-method object-apply ((p <parameter>))
   (cond ((parameter-cell p) => cdr)
@@ -82,33 +87,45 @@
   (let ((conv (parameter-converter p)))
     (parameter-set! p (if conv (conv v) v))))
 
-;; TODO thread-local?
+;; thread local
+(define-class <thread-local> ()
+  ((default :init-keyword :default :init-value #f
+	    :reader thread-local-default :writer thread-local-default-set!)
+   (inheritable? :init-keyword :inheritable? :init-value #f
+		 :reader thread-local-inheritable?
+		 :writer  thread-local-inheritable-set!)))
+
+(define (make-thread-local value :optional (inheritable? #f))
+  (make <thread-local> :default value :inheritable? inheritable?))
+(define (thread-local? o) (is-a? o <thread-local>))
+(define (tlref tl)
+  (weak-hashtable-ref (current-dynamic-environment) tl
+		      (thread-local-default tl)))
+(define (tlset! tl obj)
+  (weak-hashtable-set! (current-dynamic-environment) tl obj))
+
+
 (define-class <thread-parameter> (<parameter>) ())
 (define (thread-parameter? o) (is-a? o <thread-parameter>))
 
 (define-method object-apply ((p <thread-parameter>))
-  (let ((r (weak-hashtable-ref (current-dynamic-environment) p mark)))
-    (if (eq? r mark)
-        (let ((init (slot-ref p 'init)))
-          (set! (~ (current-dynamic-environment) p) init)
-          init)
-        r)))
+  (tlref (cond ((parameter-cell p) => cdr)
+	       (else (parameter-val p)))))
 (define-method object-apply ((p <thread-parameter>) v)
   (let ((conv (~ p 'converter)))
-    (if conv
-        (set! (~ (current-dynamic-environment) p) (conv v))	  
-        (set! (~ (current-dynamic-environment) p) v))))
+    (tlset! (cond ((parameter-cell p) => cdr)
+		  (else (parameter-val p)))
+	    (if conv (conv v) v))))
 
 (define (make-thread-parameter init :optional (converter #f))
-  (let* ((init (if converter (converter init) init))
-         (p (make <thread-parameter> :converter converter :init init)))
-    ;; to keep parameter thread local
-    (set! (~ (current-dynamic-environment) p) init)
-    p))
+  (let ((init (if converter (converter init) init)))
+    (make <thread-parameter> :converter converter
+	  :init (make-thread-local init))))
 
 (define (%parameter-value-set! p v)
   (cond ((is-a? p <thread-parameter>)
-	 (set! (~ (current-dynamic-environment) p) v))
+	 (let ((tl (parameter-val p)))
+	   (tlset! tl v)))
 	((is-a? p <parameter>) (parameter-set! p v))
 	(else (p v))))
 
