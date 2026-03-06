@@ -35,7 +35,9 @@
 	    make-parameter <parameter> parameter?
 
 	    current-parameterization
-	    parameterization?
+	    parameterization? call-with-parameterization
+
+	    thread-local? <thread-local> tlref tlset!
 	    
 	    parameterize
 	    parameterize/dw temporarily)
@@ -62,6 +64,9 @@
 	     (current-parameterization)
 	     (list (cons p (parameterize-value p v)) ...))
 	  (let () e1 e2 ...))))))
+
+(define (call-with-parameterization (p parameterization?) (thunk procedure?))
+  (with-continuation-mark (parameterization-continuation-mark-key) p (thunk)))
 
 (define-class <parameter> ()
   ((converter :init-keyword :converter :reader parameter-converter)
@@ -101,7 +106,10 @@
   (weak-hashtable-ref (current-dynamic-environment) tl
 		      (thread-local-default tl)))
 (define (tlset! tl obj)
-  (weak-hashtable-set! (current-dynamic-environment) tl obj))
+  (weak-hashtable-set! (current-dynamic-environment) tl obj
+		       (or (and (thread-local-inheritable? tl)
+				*dictionary-transient-entry*)
+			   0)))
 
 
 (define-class <thread-parameter> (<parameter>) ())
