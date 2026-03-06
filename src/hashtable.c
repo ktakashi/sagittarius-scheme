@@ -594,7 +594,6 @@ SgHashEntry* Sg_HashCoreSearch(SgHashCore *table, intptr_t key,
 
 static Entry * skip_transient(Entry *s)
 {
-  if (s) fprintf(stderr, "%d\n", s->flags);
   while (s && s->flags & SG_ENTRY_TRANSIENT) s = s->next;
   return s;
 }
