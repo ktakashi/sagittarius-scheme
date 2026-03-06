@@ -587,7 +587,7 @@ SgObject Sg_WeakHashTableSet(SgWeakHashTable *table,
   e = Sg_HashCoreSearch(SG_WEAK_HASHTABLE_CORE(table), (intptr_t)key,
 			(flags & SG_HASH_NO_CREATE)
 			   ? SG_DICT_GET: SG_DICT_CREATE,
-			0);
+			flags);
 
   if (!e) return SG_UNBOUND;
   return weak_hashtable_set(table, e, value, flags);

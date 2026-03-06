@@ -2628,12 +2628,12 @@
 	(assertion-violation ',name
 			     "attemp to modify an immutable hashtable" ,t))))
 
-  (define-c-proc hashtable-set! (ht::<hashtable> key value) ::<void>
+  (define-c-proc hashtable-set! (ht::<hashtable> key value :optional (flags::<fixnum> 0)) ::<void>
     (check-mutable-hashtable hashtable-set! ht)
-    (Sg_HashTableSet ht key value 0))
+    (Sg_HashTableSet ht key value flags))
 
   (define-c-proc hashtable-delete! (ht::<hashtable> key) ::<void>
-    (check-mutable-hashtable hashtable-set! ht)
+    (check-mutable-hashtable hashtable-delete! ht)
     (Sg_HashTableDelete ht key))
 
   (define-c-proc hashtable-contains? (ht::<hashtable> key) ::<boolean>

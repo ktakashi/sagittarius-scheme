@@ -2513,4 +2513,20 @@
 
 (test-assert "Label traversal fix test" (thread-join! thread 1))
 
+(let ()
+  (define-syntax check-transient
+    (syntax-rules ()
+      ((_ make-eq-hashtable hashtable-ref hashtable-set! hashtable-copy)
+       (let ((key0 (list 'a))
+	     (key1 (list 'b))
+	     (ht (make-eq-hashtable)))
+	 (hashtable-set! ht key0 'nok *dictionary-transient-entry*)
+	 (hashtable-set! ht key1 'ok)
+	 (let ((ht2 (hashtable-copy ht)))
+	   (test-assert (not (hashtable-ref ht2 key0)))
+	   (test-assert 'ok (hashtable-ref ht2 key1)))))))
+  (check-transient make-eq-hashtable hashtable-ref hashtable-set! hashtable-copy)
+  (check-transient make-weak-eq-hashtable weak-hashtable-ref
+		   weak-hashtable-set! weak-hashtable-copy))
+
 (test-end)

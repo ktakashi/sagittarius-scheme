@@ -52,10 +52,15 @@ extern SgClass *Sg__SequenceCPL[];
 #define SG_CLASS_DICTIONARY_CPL 	(Sg__OrderedDictionaryCPL+2)
 #define SG_CLASS_ORDERED_DICTIONARY_CPL (Sg__OrderedDictionaryCPL)
 
+typedef enum {
+  SG_ENTRY_TRANSIENT = (1L<<0)	/* do not copy the entry on copy */
+} SgEntryFlags;
+
 typedef struct SgDictEntryRec
 {
   intptr_t key;
   intptr_t value;
+  int      flags;		/* entry flag, e.g. for transient entry */
 } SgDictEntry;
 
 typedef enum SgDictOpRec {
@@ -65,16 +70,15 @@ typedef enum SgDictOpRec {
 } SgDictOp;
 
 typedef enum {
-  SG_DICT_NO_OVERWRITE = (1L<<0), /* do not overwrite the existing entry */
-  SG_DICT_NO_CREATE    = (1L<<1), /* do not create new one if no match */
-  SG_DICT_ON_COPY      = (1L<<2)  /* [Internal use only] */
+  SG_DICT_NO_OVERWRITE    = (1L<<0), /* do not overwrite the existing entry */
+  SG_DICT_NO_CREATE       = (1L<<1), /* do not create new one if no match */
+  SG_DICT_ON_COPY         = (1L<<2), /* [Internal use only] */
+  SG_DICT_ENTRY_TRANSIENT = (1L<<3)  /* creating entry is transient  */
 } SgDictSetFlags;
 
 #define SG_DICT_ENTRY_KEY(e)   SG_OBJ((e)->key)
 #define SG_DICT_ENTRY_VALUE(e) SG_OBJ((e)->value)
 #define SG_DICT_ENTRY_SET_VALUE(e, v)		\
   SG_OBJ((e)->value = (intptr_t)v)
-
-
 
 #endif /* SAGITTARIUS_COLLECTION_H_ */

@@ -1,6 +1,6 @@
-;; extlib.stub                                -*- mode:scheme; coding:utf-8; -*-
+;; lib_sagittarius.stub                        -*- mode:scheme; coding:utf-8; -*-
 ;;
-;;  Copyright (c) 2010-2021  Takashi Kato <ktakashi@ymail.com>
+;;  Copyright (c) 2010-2026  Takashi Kato <ktakashi@ymail.com>
 ;;
 ;;  Redistribution and use in source and binary forms, with or without
 ;;  modification, are permitted provided that the following conditions
@@ -24,8 +24,6 @@
 ;;  LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 ;;  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-;;
-;; $Id: $
 ;;
 (library (sagittarius)
     (export :only-bindings)
@@ -1662,6 +1660,8 @@
 			   (SG_LIST2 wvec (SG_MAKE_INT k))))
     (Sg_WeakVectorSet wvec k value))
 
+  (define-c-constant *dictionary-transient-entry* SG_DICT_ENTRY_TRANSIENT
+    ::<fixnum>)
   ;; for now until eqv
   ;; TODO ugly copy paste with almost the same...
   (define-cise-stmt %make-weak-hashtable
@@ -1724,8 +1724,8 @@
     (setter weak-hashtable-set!)
     (result (Sg_WeakHashTableRef wh key fallback)))
 
-  (define-c-proc weak-hashtable-set! (wh::<weak-hashtable> key value) ::<void>
-    (Sg_WeakHashTableSet wh key value 0))
+  (define-c-proc weak-hashtable-set! (wh::<weak-hashtable> key value :optional (flags::<fixnum> 0)) ::<void>
+    (Sg_WeakHashTableSet wh key value flags))
 
   (define-c-proc weak-hashtable-delete! (wh::<weak-hashtable> key) ::<void>
     Sg_WeakHashTableDelete)

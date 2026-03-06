@@ -42,6 +42,7 @@ typedef struct node_rec_t
 {
   intptr_t key;
   intptr_t value;
+  int      flags;
   char     color;
   struct node_rec_t *parent;
   struct node_rec_t *left;

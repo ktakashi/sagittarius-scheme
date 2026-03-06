@@ -50,6 +50,7 @@ typedef struct EntryRec
 {
   intptr_t key;
   intptr_t value;
+  int      flags;
   struct EntryRec *next;
   SgHashVal hashValue;
 } Entry;
@@ -262,11 +263,15 @@ SgHashVal Sg_StringHash(SgString *str, SgHashVal bound)
 static Entry *insert_entry(SgHashCore *table,
 			   intptr_t key,
 			   SgHashVal hashval,
-			   long index)
+			   long index,
+			   int flags)
 {
   Entry *e = SG_NEW(Entry);
   Entry **buckets = BUCKETS(table);
   e->key = key;
+  e->flags = 0;
+  if (flags & SG_DICT_ENTRY_TRANSIENT) e->flags |= SG_ENTRY_TRANSIENT;
+  
   if (table->create_entry) {
     table->create_entry(table, (SgHashEntry *)e);
   }
@@ -326,13 +331,13 @@ static Entry *delete_entry(SgHashCore *table,
     }							\
   } while(0)
 
-#define NOTFOUND(table, op, key, hashval, index)	\
-  do {							\
-    if (op == SG_DICT_CREATE) {				\
-      return insert_entry(table, key, hashval, index);	\
-    } else {						\
-      return NULL;					\
-    }							\
+#define NOTFOUND(table, op, key, hashval, index, flags)		\
+  do {								\
+    if (op == SG_DICT_CREATE) {					\
+      return insert_entry(table, key, hashval, index, flags);	\
+    } else {							\
+      return NULL;						\
+    }								\
   } while (0)
 
 
@@ -385,7 +390,7 @@ static Entry *address_access(SgHashCore *table,
   for (e = buckets[index], p = NULL; e; p = e, e = e->next) {
     if (e->key == key) FOUND(table, op, e, p, index);
   }
-  NOTFOUND(table, op, key, hashval, index);
+  NOTFOUND(table, op, key, hashval, index, flags);
 }
 
 static SgHashVal address_hash(const SgHashCore *ht, intptr_t obj)
@@ -451,7 +456,7 @@ static Entry *string_access(SgHashCore *table,
       FOUND(table, op, e, p, index);
     }
   }
-  NOTFOUND(table, op, k, hashval, index);
+  NOTFOUND(table, op, k, hashval, index, flags);
 }
 
 static SgHashVal string_hash(const SgHashCore *table, intptr_t key)
@@ -480,7 +485,7 @@ static Entry* general_access(SgHashCore *table,
   for (e = buckets[index], p = NULL; e; p = e, e = e->next) {
     if (table->compare(table, key, e->key)) FOUND(table, op, e, p, index);
   }
-  NOTFOUND(table, op, key, hashval, index);
+  NOTFOUND(table, op, key, hashval, index, flags);
 }
 
 static SgHashVal general_hash(const SgHashCore *table, intptr_t key)
@@ -587,6 +592,13 @@ SgHashEntry* Sg_HashCoreSearch(SgHashCore *table, intptr_t key,
   return (SgHashEntry*)p(table, key, op, flags);
 }
 
+static Entry * skip_transient(Entry *s)
+{
+  if (s) fprintf(stderr, "%d\n", s->flags);
+  while (s && s->flags & SG_ENTRY_TRANSIENT) s = s->next;
+  return s;
+}
+
 void Sg_HashCoreCopy(SgHashTable *dstT, const SgHashTable *srcT)
 {
   SgHashCore *dst = SG_HASHTABLE_CORE(dstT);
@@ -598,7 +610,8 @@ void Sg_HashCoreCopy(SgHashTable *dstT, const SgHashTable *srcT)
 
   for (i = 0; i < src->bucketCount; i++) {
     p = NULL;
-    s = (Entry*)src->buckets[i];
+    s = skip_transient((Entry*)src->buckets[i]);
+
     b[i] = NULL;
     while (s) {
       e = SG_NEW(Entry);
@@ -981,7 +994,7 @@ SgObject Sg_HashTableSet(SgHashTable *table, SgObject key, SgObject value,
 			(flags & SG_HASH_NO_CREATE)
 			? SG_DICT_GET
 			: SG_DICT_CREATE,
-			0);
+			flags);
   if (!e) return SG_UNBOUND;
   return SG_HASHTABLE_OPTABLE(table)->set(table, e, value, flags);
 }
