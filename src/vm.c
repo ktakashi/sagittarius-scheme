@@ -3709,15 +3709,33 @@ static void print_prompts(SgVM *vm, SgPromptNode *node)
   }
 }
 
+static SgObject entries2obj(SgMarkEntry *entries)
+{
+  SgObject h = SG_NIL, t = SG_NIL;
+  while (entries) {
+    SG_APPEND1(h, t, Sg_Cons(entries->key, entries->value));
+    entries = entries->next;
+  }
+  return h;
+}
+
+static void print_mark(SgVM *vm, SgContMarks *mark)
+{
+  SgObject entries = entries2obj(mark->entries);
+  Sg_Printf(vm->logPort, UC("[%p:%p] %S\n"), mark, mark->frame, entries);
+}
+
 static void print_marks(SgVM *vm, SgContMarks *marks)
 {
   if (marks) {
     Sg_Printf(vm->logPort, UC(";; Continuation marks\n"));
     /* for now */
-    Sg_Printf(vm->logPort, UC(";; [%p:%p]"), marks, marks->frame);
+    Sg_Printf(vm->logPort, UC(";; "));
+    print_mark(vm, marks);
     marks = marks->prev;
     while (marks) {
-      Sg_Printf(vm->logPort, UC(" => [%p:%p]"), marks, marks->frame);
+      Sg_Printf(vm->logPort, UC(";; => "));
+      print_mark(vm, marks);
       marks = marks->prev;
     }
     Sg_Printf(vm->logPort, UC("\n"));
@@ -3746,6 +3764,7 @@ static void print_frames(SgVM *vm, SgContFrame *cont)
 {
   SgObject *stack = vm->stack, *sp = SP(vm);
   SgPromptNode *node = vm->prompts;
+  SgContMarks *marks = vm->marks;
 
   print_summary(vm);
   Sg_Printf(vm->logPort, UC(";; stack: %p, cont: %p\n"), stack, vm->cont);

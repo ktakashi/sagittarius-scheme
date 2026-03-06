@@ -38,8 +38,13 @@
 
 static void parameterization_print(SgObject p, SgPort *port, SgWriteContext *ctx)
 {
-  Sg_Printf(port, UC("#<parameterization %d>"),
-	    Sg_Length(SG_PARAMETERIZATION_CELLS(p)));
+  if (SG_WRITE_MODE(ctx) == SG_WRITE_DISPLAY) {
+    Sg_Printf(port, UC("#<parameterization %d>"),
+	      Sg_Length(SG_PARAMETERIZATION_CELLS(p)));
+  } else {
+    Sg_Printf(port, UC("#<parameterization %S>"),
+	      SG_PARAMETERIZATION_CELLS(p));
+  }
 }
 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_ParameterizationClass, parameterization_print);
