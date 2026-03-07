@@ -182,12 +182,11 @@ struct SgSubrRec
 */
 #define SG_CALL_SUBR0(r, subr)						\
   do {									\
+    SgObject args__[1] = {SG_NIL};					\
     if (SG_PROCEDURE_OPTIONAL(subr)) {					\
-      SgObject args__[1] = {SG_NIL};					\
       (r) = SG_SUBR_FUNC(subr)(args__, 1, SG_SUBR_DATA(subr));		\
     } else {								\
-      SgObject args__[0] = {};						\
-      (r) = SG_SUBR_FUNC(subr)(args__, 1, SG_SUBR_DATA(subr));		\
+      (r) = SG_SUBR_FUNC(subr)(args__, 0, SG_SUBR_DATA(subr));		\
     }									\
   } while (0)
 #define SG_CALL_SUBR_n(r, subr, n, ...)					\
