@@ -63,6 +63,7 @@
 	  )
   (import (rnrs)
 	  (sagittarius)
+	  (sagittarius object) ;; need this for object-compare...
 	  (core inline)
 	  (clos user))
 
