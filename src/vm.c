@@ -3764,7 +3764,6 @@ static void print_frames(SgVM *vm, SgContFrame *cont)
 {
   SgObject *stack = vm->stack, *sp = SP(vm);
   SgPromptNode *node = vm->prompts;
-  SgContMarks *marks = vm->marks;
 
   print_summary(vm);
   Sg_Printf(vm->logPort, UC(";; stack: %p, cont: %p\n"), stack, vm->cont);
