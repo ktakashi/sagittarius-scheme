@@ -125,8 +125,11 @@ sagittarius [options] [file]
 # Interactive REPL
 ./build/sagittarius -i
 
-# Evaluate expression
+# Evaluate expression then going to REPL
 ./build/sagittarius -e '(display "hello")'
+
+# Evaluate expression then exit
+./build/sagittarius -e '(display "hello") (exit)'
 ```
 
 Run tests
@@ -136,16 +139,47 @@ Tests use CTest framework.
 
 ```shell
 # Run all tests
-ctest
+ctest --output-on-failure
 
 # Run tests matching pattern
-ctest -R {pattern}
+ctest --output-on-failure -R {pattern}
 
 # Run with verbose output
 ctest -V
 
 # Run specific test
-ctest -R "srfi"
+ctest --output-on-failure -R "srfi"
+```
+
+Executing individual tests (source location build).
+
+```shell
+./build/sagittarius -Llib -Lsitelib -L'ext/*' -Dbuild test/runner.scm \
+  ${test file}
+```
+
+Test failure examples
+
+Example 1: unexpected failures
+```
+%%%% Starting test {test name}
+FAIL {test unit name 1}
+        expected value: ...
+          actual value: ...
+FAIL {test unit name 2}
+        expected value: ...
+          actual value: ...
+FAIL {test unit name 3}
+        expected value: ...
+          actual value: ...
+# of expected passes      16
+# of unexpected failures  3
+```
+
+Example 2: no output
+
+```
+%%%% Starting test {test name}
 ```
 
 Code generation
