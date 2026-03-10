@@ -1325,7 +1325,7 @@ static SgObject make_dynamic_wind(SgObject before, SgObject after)
   SG_SET_CLASS(dw, SG_CLASS_DYNAMIC_WINDER);
   dw->before = before;
   dw->after = after;
-  dw->marks = vm->marks;
+  dw->marks = theVM->marks;
   return SG_OBJ(dw);
 }
 
