@@ -182,6 +182,15 @@ SG_DEFINE_BASE_CLASS(Sg_ContinuationViolationClass, SgContinuationViolation,
 		     cont_violation_printer, NULL, NULL, cont_violation_allocate,
 		     violation_cpl);
 
+static void dw_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
+{
+  Sg_Printf(port, UC("$<dynamic-wind %S:%S>"),
+	    SG_DYNAMIC_WINDER(obj)->before,
+	    SG_DYNAMIC_WINDER(obj)->after);
+}
+
+SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_DynamicWinderClass, dw_print);
+
 static SgObject copy_generics(SgObject lib)
 {
   SgObject h = SG_NIL, t = SG_NIL, gs;
@@ -1309,6 +1318,16 @@ SgObject Sg_VMApply4(SgObject proc, SgObject arg0, SgObject arg1, SgObject arg2,
 static SgCContinuationProc dynamic_wind_before_cc;
 static SgCContinuationProc dynamic_wind_body_cc;
 static SgCContinuationProc dynamic_wind_after_cc;
+
+static SgObject make_dynamic_wind(SgObject before, SgObject after)
+{
+  SgDynamicWinder *dw = SG_NEW(SgDynamicWinder);
+  SG_SET_CLASS(dw, SG_CLASS_DYNAMIC_WINDER);
+  dw->before = before;
+  dw->after = after;
+  dw->marks = vm->marks;
+  return SG_OBJ(dw);
+}
 
 SgObject Sg_VMDynamicWind(SgObject before, SgObject thunk, SgObject after)
 {

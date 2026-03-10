@@ -46,10 +46,12 @@ SG_CLASS_DECL(Sg_BoxClass);
 SG_CLASS_DECL(Sg_VMClass);
 /* &continuation */
 SG_CLASS_DECL(Sg_ContinuationViolationClass);
+SG_CLASS_DECL(Sg_DynamicWinderClass);
 
 #define SG_CLASS_BOX (&Sg_BoxClass)
 #define SG_CLASS_VM  (&Sg_VMClass)
 #define SG_CLASS_CONTINUATION_VIOLATION (&Sg_ContinuationViolationClass)
+#define SG_CLASS_DYNAMIC_WINDER (&Sg_DynamicWinderClass)
 
 struct SgBoxRec
 {
@@ -242,6 +244,16 @@ struct SgContMarksRec {
   SgMarkEntry *entries;
   struct SgContMarksRec *prev;
 };
+
+typedef struct {
+  SG_HEADER;
+  SgObject     before;
+  SgObject     after;
+  SgContMarks *marks;		/* winder needs to restore marks separately */
+} SgDynamicWinder;
+
+#define SG_DYNAMIC_WINDER(o)  ((SgDynamicWinder *)o)
+#define SG_DYNAMIC_WINDERP(o) SG_XTYPEP(o, SG_CLASS_DYNAMIC_WINDER)
 
 struct SgVMRec
 {

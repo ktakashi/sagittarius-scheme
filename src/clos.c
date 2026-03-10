@@ -3205,6 +3205,8 @@ void Sg__InitClos()
   /* auth token */
   CINIT(SG_CLASS_AUTH_TOKEN,   "<auth-token>");
 
+  CINIT(SG_CLASS_DYNAMIC_WINDER,  "<dynamic-winder>");
+
 #define GINIT(gf, nam)				\
   Sg_InitBuiltinGeneric(gf, UC(nam), lib)
 
