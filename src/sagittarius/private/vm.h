@@ -468,7 +468,7 @@ SG_EXTERN SgObject Sg_VMCallImmediateCM(SgObject key, SgObject proc,
 SG_EXTERN SgObject Sg_VMCallComp(SgObject proc, SgObject tag);
 SG_EXTERN SgObject Sg_VMCallDelimitedCC(SgObject proc, SgObject tag);
 SG_EXTERN SgObject Sg_VMAbortCC(SgObject tag, SgObject args);
-SG_EXTERN SgObject Sg_VMCallInCont(SgContinuation *c, SgObject proc, SgObject args);
+SG_EXTERN SgObject Sg_VMCallInCont(SgContinuation *c, SgPrompt *prompt, SgObject proc, SgObject args);
 SG_EXTERN SgObject Sg_MakeContinuationPromptTag(SgObject name);
 SG_EXTERN int      Sg_ContinuationP(SgObject o);
 SG_EXTERN int      Sg_ComposableContinuationP(SgObject o);

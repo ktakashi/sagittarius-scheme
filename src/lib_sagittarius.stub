@@ -1885,8 +1885,10 @@
 
   ;; no type check for continuation done by Scheme code
   (define-c-proc %call-in-continuation (c::<procedure> proc::<procedure> args) :no-export
-    (result (Sg_VMCallInCont (cast SgContinuation* (SG_CAR (SG_SUBR_DATA c)))
-			     proc args)))
+    (let ((data (SG_SUBR_DATA c)))
+      (result (Sg_VMCallInCont (cast SgContinuation* (SG_CAR data))
+			       (cast SgPrompt* (SG_CDR data))
+			       proc args))))
   
   (define-c-proc call-with-immediate-continuation-mark 
     (key proc::<procedure> :optional (default #f))

@@ -2133,6 +2133,46 @@ int Sg_ContinuationPromptAvailableP(SgObject tag, SgObject k)
   return FALSE;
 }
 
+/* Deep copy mark entries */
+static SgMarkEntry* copy_mark_entries(SgMarkEntry *entries)
+{
+  SgMarkEntry *new_head = NULL, *new_tail = NULL;
+  while (entries) {
+    SgMarkEntry *copy = SG_NEW(SgMarkEntry);
+    copy->key = entries->key;
+    copy->value = entries->value;
+    copy->next = NULL;
+    if (!new_head) {
+      new_head = new_tail = copy;
+    } else {
+      new_tail->next = copy;
+      new_tail = copy;
+    }
+    entries = entries->next;
+  }
+  return new_head;
+}
+
+/* Deep copy the entire marks chain with entries */
+static SgContMarks* deep_copy_marks(SgContMarks *marks)
+{
+  SgContMarks *new_chain = NULL, *tail = NULL;
+  while (marks) {
+    SgContMarks *copy = SG_NEW(SgContMarks);
+    copy->frame = marks->frame;
+    copy->entries = copy_mark_entries(marks->entries);
+    copy->prev = NULL;
+    if (!new_chain) {
+      new_chain = tail = copy;
+    } else {
+      tail->prev = copy;
+      tail = copy;
+    }
+    marks = marks->prev;
+  }
+  return new_chain;
+}
+
 SgObject Sg_VMCallCC(SgObject proc)
 {
   SgContinuation *cont;
@@ -2147,26 +2187,25 @@ SgObject Sg_VMCallCC(SgObject proc)
   cont->prev = NULL;
   cont->ehandler = SG_FALSE;
   cont->type = SG_FULL_CONTINUATION;
-  cont->marks = vm->marks;
+  /* Deep copy marks to preserve capture-time values */
+  cont->marks = deep_copy_marks(vm->marks);
 
   contproc = make_cont_subr(cont, NULL);
   return Sg_VMApply1(proc, contproc);
 }
 
-/* copy until the prompt node */
+/* copy until the prompt node, deep-copying entries */
 static SgContMarks * copy_marks(SgVM *vm, SgPromptNode *node)
 {
   SgContMarks *marks = vm->marks, *new_chain = NULL;
-  int last = FALSE;
-  while (marks) {
+  /* Copy marks until we reach the prompt's frame (exclusive) */
+  while (marks && marks->frame != node->frame) {
     SgContMarks *copy = SG_NEW(SgContMarks);
     copy->frame = marks->frame;
-    copy->entries = marks->entries;
+    copy->entries = copy_mark_entries(marks->entries);
     copy->prev = new_chain;
     new_chain = copy;
     marks = marks->prev;
-    if (last) break;
-    if (marks->frame != node->frame) last = TRUE;
   }
   return new_chain;
 }
@@ -2370,6 +2409,8 @@ SgObject Sg_VMCallDelimitedCC(SgObject proc, SgObject tag)
   cont->ehandler = SG_FALSE;
   cont->cstack = NULL;
   cont->type = SG_DELIMIETED_CONTINUATION;
+  /* Deep copy marks to preserve capture-time values */
+  cont->marks = copy_marks(vm, node);
 
   /* Pass the capture-time prompt so we know where to stop when splicing */
   contproc = make_cont_subr(cont, node->prompt);
@@ -3227,11 +3268,157 @@ SgObject Sg_VMAbortCC(SgObject tag, SgObject args)
   return abort_body(node, h, args);
 }
 
-SgObject Sg_VMCallInCont(SgContinuation *c, SgObject proc, SgObject args)
+static SgObject call_in_cont_cc(SgObject result, void **data);
+
+static SgObject call_in_cont_body(SgObject handlers,
+				  SgContinuation *c,
+				  SgObject proc,
+				  SgObject args,
+				  SgPrompt *prompt)
 {
-  /* dummy */
-  if (SG_NULLP(args)) return Sg_VMApply0(proc);
-  return Sg_VMApply(proc, args);
+  SgVM *vm = Sg_VM();
+  if (SG_PAIRP(handlers)) {
+    SgObject handler, chain;
+    void *data[5];
+    handler = SG_CAAR(handlers);
+    chain = SG_CDAR(handlers);
+    data[0] = (void*)SG_CDR(handlers);
+    data[1] = (void*)c;
+    data[2] = (void*)proc;
+    data[3] = (void*)args;
+    data[4] = (void*)prompt;
+    Sg_VMPushCC(call_in_cont_cc, data, 5);
+    /* Update dynamic winders */
+    if (prompt) {
+      vm->dynamicWinders = merge_winders(vm->dynamicWinders, chain);
+    } else {
+      vm->dynamicWinders = chain;
+    }
+    return Sg_VMApply0(handler);
+  } else {
+    /* All handlers processed, now call proc in the continuation's context */
+
+    /* Restore continuation's context */
+    if (c->cstack == NULL) save_cont(vm);
+    if (prompt && c->type == SG_COMPOSABLE_CONTINUATION) {
+      /* Composable continuation: splice onto current */
+      vm->cont = splice_cont(vm, c->cont, prompt);
+      vm->marks = splice_marks(vm, c->marks);
+      if (c->winders != vm->dynamicWinders) {
+	SgObject to_merge = capture_prompt_winders(prompt, c->winders);
+	vm->dynamicWinders = merge_winders(to_merge, vm->dynamicWinders);
+      }
+    } else if (prompt && c->type == SG_DELIMIETED_CONTINUATION) {
+      /* Delimited (escape) continuation: replace up to prompt, don't compose */
+      vm->cont = c->cont;
+      /* Skip leading empty mark frames to avoid polluting thunk's context */
+      {
+        SgContMarks *marks = c->marks;
+        while (marks && !marks->entries) {
+          marks = marks->prev;
+        }
+        vm->marks = marks;
+      }
+      vm->dynamicWinders = c->winders;
+      rebuild_prompts_from_cont(vm);
+    } else {
+      /* Full continuation: replace current */
+      vm->cont = c->cont;
+      vm->marks = c->marks;
+      vm->dynamicWinders = c->winders;
+      rebuild_prompts_from_cont(vm);
+    }
+
+    /* Call proc with args - result will return through the continuation */
+    if (SG_NULLP(args)) return Sg_VMApply0(proc);
+    return Sg_VMApply(proc, args);
+  }
+}
+
+static SgObject call_in_cont_cc(SgObject result, void **data)
+{
+  SgObject handlers = SG_OBJ(data[0]);
+  SgContinuation *c = (SgContinuation*)data[1];
+  SgObject proc = SG_OBJ(data[2]);
+  SgObject args = SG_OBJ(data[3]);
+  SgPrompt *prompt = (SgPrompt*)data[4];
+  return call_in_cont_body(handlers, c, proc, args, prompt);
+}
+
+/* Compute handlers specifically for call-in-continuation.
+   Unlike throw_cont_compute_handlers, this always computes AFTER handlers
+   for exiting current dynamic-winds, regardless of cstack. */
+static SgObject call_in_cont_compute_handlers(SgContinuation *c,
+                                              SgPrompt *prompt,
+                                              SgVM *vm)
+{
+  SgObject current = vm->dynamicWinders;
+  SgObject escapes = c->winders;
+  SgObject target = remove_common_winders(current, escapes);
+  SgObject h = SG_NIL, t = SG_NIL, p;
+
+  if (prompt) {
+    target = take_prompt_winders(prompt, target);
+    current = take_prompt_winders(prompt, current);
+  }
+
+  /* Always compute AFTER handlers for exiting current dynamic-winds */
+  SG_FOR_EACH(p, current) {
+    if (!SG_FALSEP(Sg_Memq(SG_CAR(p), escapes))) break;
+    SG_APPEND1(h, t, Sg_Cons(SG_DYNAMIC_WINDER_AFTER(SG_CAR(p)), SG_CDR(p)));
+  }
+
+  /* Then compute BEFORE handlers for entering continuation's dynamic-winds */
+  SG_FOR_EACH(p, target) {
+    SgObject chain = Sg_Memq(SG_CAR(p), escapes);
+    SgObject next_winders = SG_CDR(chain);
+    if (prompt && SG_PAIRP(next_winders)) {
+      SgObject w = SG_CAR(next_winders);
+      if (!SG_FALSEP(Sg_Memq(w, prompt->winders))) {
+        next_winders = SG_NIL;
+      }
+    }
+    SG_APPEND1(h, t, Sg_Cons(SG_DYNAMIC_WINDER_BEFORE(SG_CAR(p)), next_winders));
+  }
+
+  return h;
+}
+
+SgObject Sg_VMCallInCont(SgContinuation *c, SgPrompt *prompt, SgObject proc, SgObject args)
+{
+  SgVM *vm = Sg_VM();
+  SgObject handlers;
+  SgPrompt *barrier;
+
+  /* Check barrier crossing */
+  barrier = check_barrier_entry(vm, c);
+  if (barrier) {
+    continuation_violation(SG_INTERN("call-in-continuation"),
+      SG_MAKE_STRING("Cannot call in continuation across barrier"),
+      barrier->tag);
+  }
+
+  /* Handle C stack crossing for full continuations */
+  if (c->cstack && vm->cstack != c->cstack) {
+    SgCStack *cs;
+    for (cs = vm->cstack; cs; cs = cs->prev) {
+      if (c->cstack == cs) break;
+    }
+    if (cs != NULL) {
+      /* Need to unwind C stack */
+      vm->escapeReason = SG_VM_ESCAPE_CONT;
+      vm->escapeData[0] = c;
+      /* Pack proc and args for later - handled in evaluate_safe */
+      vm->escapeData[1] = Sg_Cons(Sg_Cons(proc, args), prompt);
+      longjmp(vm->cstack->jbuf, 1);
+    }
+    save_cont(vm);
+  }
+
+  /* Compute handlers for dynamic-wind transitions */
+  handlers = call_in_cont_compute_handlers(c, prompt, vm);
+
+  return call_in_cont_body(handlers, c, proc, args, prompt);
 }
 
 SgObject evaluate_safe(SgObject program, SgWord *code)
