@@ -1767,6 +1767,10 @@ static SgObject abort_body(SgPromptNode *node, SgObject winders, SgObject args);
 static void continuation_violation(SgObject who, SgObject message,
 				   SgObject promptTag);
 
+#define CONT_ERR(who, msg, tag)						\
+  continuation_violation(SG_INTERN(who), SG_MAKE_STRING(msg), tag)
+
+
 static SgObject throw_delimited_continuation_body(SgObject,
 						  SgContinuation *,
 						  SgObject,
@@ -2029,9 +2033,8 @@ static SgObject throw_continuation(SgObject *argv, int argc, void *data)
   /* Check if we're trying to enter a barrier from outside */
   barrier = check_barrier_entry(vm, c);
   if (barrier) {
-    continuation_violation(SG_INTERN("continuation"),
-      SG_MAKE_STRING("Cannot apply continuation across barrier"),
-      barrier->tag);
+    CONT_ERR("continuation",
+	     "Cannot apply continuation across barrier", barrier->tag);
   }
 
   if (c->cstack && vm->cstack != c->cstack) {
@@ -2051,9 +2054,16 @@ static SgObject throw_continuation(SgObject *argv, int argc, void *data)
     /* here we emulate abort/cc */
     SgContinuation abort_c;
     SgPromptNode *node = search_prompt_node(vm, prompt->tag);
-    abort_c.winders = node->prompt->winders;
-    abort_c.cstack = node->prompt->cstack;
-    handlers = throw_cont_compute_handlers(&abort_c, node->prompt, vm);
+    SgPrompt *p;
+    if (!node) {
+      /* Prompt not on stack - raise continuation violation */
+      CONT_ERR("continuation",
+	       "Prompt not found for delimited continuation", prompt->tag);
+    }
+    p = node->prompt;
+    abort_c.winders = p->winders;
+    abort_c.cstack = p->cstack;
+    handlers = throw_cont_compute_handlers(&abort_c, p, vm);
     return throw_delimited_continuation_body(handlers, c, argv[0], prompt);
   } else {
     handlers = throw_cont_compute_handlers(c, prompt, vm);
@@ -2082,10 +2092,6 @@ static void continuation_violation(SgObject who,
 				 Sg_MakeMessageCondition(message))),
 	   FALSE);
 }
-
-#define CONT_ERR(who, msg, tag)						\
-  continuation_violation(SG_INTERN(who), SG_MAKE_STRING(msg), tag)
-
     
 int Sg_ContinuationP(SgObject o)
 {
