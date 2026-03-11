@@ -52,6 +52,8 @@
 	    continuation-mark-set-first
 	    call-with-immediate-continuation-mark
 
+	    call-in-continuation
+
 	    make-continuation-mark-key continuation-mark-key?
 
 	    default-continuation-prompt-tag

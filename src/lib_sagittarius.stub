@@ -1882,6 +1882,13 @@
     Sg_ContinuationMarks)
   (define-c-proc %ccm (tag) :no-side-effect :no-export
     Sg_CurrentContinuationMarks)
+
+  ;; no type check for continuation done by Scheme code
+  (define-c-proc %call-in-continuation (c::<procedure> proc::<procedure> args) :no-export
+    (let ((data (SG_SUBR_DATA c)))
+      (result (Sg_VMCallInCont (cast SgContinuation* (SG_CAR data))
+			       (cast SgPrompt* (SG_CDR data))
+			       proc args))))
   
   (define-c-proc call-with-immediate-continuation-mark 
     (key proc::<procedure> :optional (default #f))
@@ -1939,6 +1946,9 @@
   (define call/comp call-with-composable-continuation)
   (define call/delim-cc call-with-delimited-current-continuation)
 
+  (define (call-in-continuation (k continuation?) proc . args)
+    (%call-in-continuation k proc args))
+  
   (define (current-parameterization)
     (or (%current-parameterization) (make-parameterization)))
   (define (parameterization-extend (p parameterization?) key+value*)
