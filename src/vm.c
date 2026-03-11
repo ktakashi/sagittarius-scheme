@@ -3227,6 +3227,13 @@ SgObject Sg_VMAbortCC(SgObject tag, SgObject args)
   return abort_body(node, h, args);
 }
 
+SgObject Sg_VMCallInCont(SgContinuation *c, SgObject proc, SgObject args)
+{
+  /* dummy */
+  if (SG_NULLP(args)) return Sg_VMApply0(proc);
+  return Sg_VMApply(proc, args);
+}
+
 SgObject evaluate_safe(SgObject program, SgWord *code)
 {
   SgCStack cstack;

@@ -539,4 +539,32 @@
 
 (test-equal #t (continuation-mark-key? (make-continuation-mark-key)))
 (test-equal #f (equal? (make-continuation-mark-key) (make-continuation-mark-key)))
+
+;; call-in-continuation
+(test-equal 5 (+ 1
+		 (call/cc (lambda (k)
+			    (call-in-continuation k (lambda () 4))))))
+
+(test-equal 5 (+ 1
+		 (call/cc (lambda (k)
+			    (let ([n 0])
+			      (dynamic-wind
+				  values
+				  (lambda ()
+					; n accessed after post thunk
+				    (call-in-continuation k (lambda () n)))
+				  (lambda ()
+				    (set! n 4))))))))
+
+(test-equal 5 (+ 1
+		 (with-continuation-mark
+		     'n 4
+		   (call/cc (lambda (k)
+			      (with-continuation-mark
+				  'n 0
+				(call-in-continuation
+				 k
+				 (lambda ()
+					; 'n mark accessed in continuation
+				   (continuation-mark-set-first #f 'n)))))))))
 (test-end)

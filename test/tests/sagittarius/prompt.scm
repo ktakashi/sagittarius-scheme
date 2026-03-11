@@ -1422,5 +1422,152 @@
      (λ (x) x)))))
 
 ;; ----------------------------------------
+(test '(outer)
+      'call-in-cont
+      (with-continuation-mark
+       'k 'outer
+       (call/cc
+        (lambda (k)
+          (values
+           (with-continuation-mark
+            'k 'inner
+            (call-in-continuation
+             k
+             (lambda ()
+               (continuation-mark-set->list
+                (current-continuation-marks)
+                'k)))))))))
+
+(test '(outer)
+      'call-in-cont
+      (with-continuation-mark
+       'k 'outer
+       (call/cc
+        (lambda (k)
+          (with-continuation-mark
+           'k 'outer2
+           (call-in-continuation
+            k
+            (lambda ()
+              (continuation-mark-set->list
+               (current-continuation-marks)
+               'k))))))))
+
+(test '(outer)
+      'call-in-cont
+      (with-continuation-mark
+       'k 'outer
+       (call/cc
+        (lambda (k)
+          (with-continuation-mark
+           'k 'outer2
+           (values
+            (with-continuation-mark
+             'k 'inner
+             (call-in-continuation
+              k
+              (lambda ()
+                (continuation-mark-set->list
+                 (current-continuation-marks)
+                 'k))))))))))
+
+(test '(outer3)
+      'call-in-cont
+      (with-continuation-mark
+       'k 'outer
+       (call/cc
+        (lambda (k)
+          (call-in-continuation
+           k
+           (lambda ()
+             (with-continuation-mark
+              'k 'outer3
+              (continuation-mark-set->list
+               (current-continuation-marks)
+               'k))))))))
+
+(test '(post pre)
+      'call-in-cont/dw
+      (let ([did '()])
+        (call/cc
+         (lambda (k)
+           (dynamic-wind
+            (lambda () (set! did (cons 'pre did)))
+            (lambda ()
+              (call-in-continuation
+               k
+               (lambda () did)))
+            (lambda () (set! did (cons 'post did))))))))
+
+(test '(pre post2 pre2 post pre)
+      'call-in-cont/dw
+      (let ([did '()])
+        (let ([k (dynamic-wind
+                  (lambda () (set! did (cons 'pre did)))
+                  (lambda ()
+                    (call/cc
+                     (lambda (k)
+                       k)))
+                  (lambda () (set! did (cons 'post did))))])
+          (if (procedure? k)
+              (dynamic-wind
+               (lambda () (set! did (cons 'pre2 did)))
+               (lambda ()
+                 (call-in-continuation
+                  k
+                  (lambda () did)))
+               (lambda () (set! did (cons 'post2 did))))
+              k))))
+
+(test '(y (x orig))
+      'call-in-cont/comp
+      (let ([k (call-with-continuation-prompt
+                (lambda ()
+                  (with-continuation-mark
+                   'here 'orig
+                   (list 'x (call-with-composable-continuation
+                             (lambda (k)
+                               (abort-current-continuation
+                                (default-continuation-prompt-tag)
+                                (lambda () k))))))))])
+        (with-continuation-mark
+         'here 'later
+         (list 'y (call-in-continuation k (lambda ()
+                                            (continuation-mark-set-first #f 'here)))))))
+
+(test '(y (x orig))
+      'call-in-cont/comp
+      (let ([k (call-with-continuation-prompt
+                (lambda ()
+                  (with-continuation-mark
+                   'here 'orig
+                   (list 'x (call-with-composable-continuation
+                             (lambda (k)
+                               (abort-current-continuation
+                                (default-continuation-prompt-tag)
+                                (lambda () k))))))))])
+        (call-with-continuation-prompt
+         (lambda ()
+           (with-continuation-mark
+            'here 'later
+            (list 'y (call-in-continuation k (lambda ()
+                                               (continuation-mark-set-first #f 'here)))))))))
+
+(test '((y (x orig)))
+      'call-in-cont/comp
+      (let ([k (call-with-continuation-prompt
+                (lambda ()
+                  (with-continuation-mark
+                   'here 'orig
+                   (list 'x (call-with-composable-continuation
+                             (lambda (k)
+                               (abort-current-continuation
+                                (default-continuation-prompt-tag)
+                                (lambda () k))))))))])
+        (with-continuation-mark
+         'here 'later
+         (list
+          (list 'y (call-in-continuation k (lambda ()
+                                             (continuation-mark-set-first #f 'here))))))))
 
 (test-end)
