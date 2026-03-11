@@ -184,9 +184,14 @@ SG_DEFINE_BASE_CLASS(Sg_ContinuationViolationClass, SgContinuationViolation,
 
 static void dw_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 {
-  Sg_Printf(port, UC("$<dynamic-wind %S:%S>"),
-	    SG_DYNAMIC_WINDER(obj)->before,
-	    SG_DYNAMIC_WINDER(obj)->after);
+  if (SG_WRITE_MODE(ctx) == SG_WRITE_DISPLAY) {
+    Sg_Printf(port, UC("#<dynamic-winder %p>"), obj);
+  } else {
+    Sg_Printf(port, UC("#<dynamic-winder %p %S:%S>"),
+	      obj,
+	      SG_DYNAMIC_WINDER_BEFORE(obj),
+	      SG_DYNAMIC_WINDER_AFTER(obj));
+  }
 }
 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_DynamicWinderClass, dw_print);
@@ -1319,7 +1324,7 @@ static SgCContinuationProc dynamic_wind_before_cc;
 static SgCContinuationProc dynamic_wind_body_cc;
 static SgCContinuationProc dynamic_wind_after_cc;
 
-static SgObject make_dynamic_wind(SgObject before, SgObject after)
+static SgObject make_dynamic_winder(SgObject before, SgObject after)
 {
   SgDynamicWinder *dw = SG_NEW(SgDynamicWinder);
   SG_SET_CLASS(dw, SG_CLASS_DYNAMIC_WINDER);
@@ -1346,21 +1351,23 @@ static SgObject dynamic_wind_before_cc(SgObject result, void **data)
   SgObject before = SG_OBJ(data[0]);
   SgObject body = SG_OBJ(data[1]);
   SgObject after = SG_OBJ(data[2]);
-  SgObject prev;
+  SgObject prev, dw;
   void *d[2];
   SgVM *vm = Sg_VM();
+
+  dw = make_dynamic_winder(before, after);
   
   prev = vm->dynamicWinders;
-  d[0] = (void*)after;
+  d[0] = (void*)dw;
   d[1] = (void*)prev;
-  vm->dynamicWinders = Sg_Acons(before, after, prev);
+  vm->dynamicWinders = Sg_Cons(dw, prev);
   Sg_VMPushCC(dynamic_wind_body_cc, d, 2);
   return Sg_VMApply0(body);
 }
 
 static SgObject dynamic_wind_body_cc(SgObject result, void **data)
 {
-  SgObject after = SG_OBJ(data[0]);
+  SgObject dw = SG_OBJ(data[0]);
   SgObject prev = SG_OBJ(data[1]);
   void *d[3];
   SgVM *vm = Sg_VM();
@@ -1379,7 +1386,7 @@ static SgObject dynamic_wind_body_cc(SgObject result, void **data)
     d[2] = NULL;
   }
   Sg_VMPushCC(dynamic_wind_after_cc, d, 3);
-  return Sg_VMApply0(after);
+  return Sg_VMApply0(SG_DYNAMIC_WINDER_AFTER(dw));
 }
 
 static SgObject dynamic_wind_after_cc(SgObject result, void **data)
@@ -1886,7 +1893,6 @@ static SgObject merge_winders(SgObject current, SgObject escapes)
 
   if (SG_NULLP(current)) return escapes;
   if (SG_NULLP(escapes)) return current;
-  
   /* merge first current, then escape */
 #define do_merge(source, checker)			\
   while (!SG_NULLP(source)) {				\
@@ -1990,7 +1996,7 @@ static SgObject throw_cont_compute_handlers(SgContinuation *c,
     if (prompt) current = take_prompt_winders(prompt, current);
     SG_FOR_EACH(p, current) {
       if (!SG_FALSEP(Sg_Memq(SG_CAR(p), escapes))) break;
-      SG_APPEND1(h, t, Sg_Cons(SG_CDAR(p), SG_CDR(p)));
+      SG_APPEND1(h, t, Sg_Cons(SG_DYNAMIC_WINDER_AFTER(SG_CAR(p)), SG_CDR(p)));
     }
   }
 
@@ -2006,7 +2012,7 @@ static SgObject throw_cont_compute_handlers(SgContinuation *c,
         next_winders = SG_NIL;
       }
     }
-    SG_APPEND1(h, t, Sg_Cons(SG_CAAR(p), next_winders));
+    SG_APPEND1(h, t, Sg_Cons(SG_DYNAMIC_WINDER_BEFORE(SG_CAR(p)), next_winders));
   }
 
   return h;
@@ -2321,7 +2327,9 @@ static SgObject strip_delimied_cc_handlers(SgObject handlers)
     SgObject handler = SG_CAAR(handlers);
     SgObject cp;
     SG_FOR_EACH(cp, vm->dynamicWinders) {
-      if (SG_EQ(SG_CAAR(cp), handler) || SG_EQ(SG_CDAR(cp), handler)) goto end;
+      if (SG_EQ(SG_DYNAMIC_WINDER_BEFORE(SG_CAR(cp)), handler)
+	  || SG_EQ(SG_DYNAMIC_WINDER_AFTER(SG_CAR(cp)), handler))
+	goto end;
     }
     handlers = SG_CDR(handlers);
   }
@@ -2917,27 +2925,28 @@ SgObject Sg_VMThrowException(SgVM *vm, SgObject exception, int continuableP)
 #define EX_SOFTWARE 70
 #endif
 
+static void rewind_until(SgObject target)
+{
+  SgVM *vm = theVM;
+  SgObject current = vm->dynamicWinders, hp;
+  for (hp = current; SG_PAIRP(hp) && (hp != target); hp = SG_CDR(hp)) {
+    SgObject proc = SG_DYNAMIC_WINDER_AFTER(SG_CAR(hp));
+    vm->dynamicWinders = SG_CDR(hp);
+    Sg_Apply0(proc);
+  }
+}
+
 /* default exception handler */
 void Sg_VMDefaultExceptionHandler(SgObject e)
 {
   SgVM *vm = Sg_VM();
   SgContinuation *c = vm->escapePoint;
-  SgObject hp;
   
   if (c) {
     SgObject result = SG_FALSE, dvals[DEFAULT_VALUES_SIZE], *rvals;
-    SgObject target, current;
     int valscount = 0, i, ext_count = 0;
     /* never reaches for now. */
-    if (c->rewindBefore) {
-      target = c->winders;
-      current = vm->dynamicWinders;
-      for (hp = current; SG_PAIRP(hp) && (hp != target); hp = SG_CDR(hp)) {
-	SgObject proc = SG_CDAR(hp);
-	vm->dynamicWinders = SG_CDR(hp);
-	Sg_Apply0(proc);
-      }
-    }
+    if (c->rewindBefore) rewind_until(c->winders);
     vm->escapePoint = c->prev;
     SG_VM_FLOATING_EP_SET(vm, c);
 
@@ -2952,15 +2961,7 @@ void Sg_VMDefaultExceptionHandler(SgObject e)
 	  rvals[i] = SG_VALUES_REF(vm, i);
 	}
       }
-      if (!c->rewindBefore) {
-	target = c->winders;
-	current = vm->dynamicWinders;
-	for (hp = current; SG_PAIRP(hp) && (hp != target); hp = SG_CDR(hp)) {
-	  SgObject proc = SG_CDAR(hp);
-	  vm->dynamicWinders = SG_CDR(hp);
-	  Sg_Apply0(proc);
-	}
-      }
+      if (!c->rewindBefore) rewind_until(c->winders);
     }
     SG_WHEN_ERROR {
       SG_VM_FLOATING_EP_SET(vm, c->floating);
@@ -2983,11 +2984,7 @@ void Sg_VMDefaultExceptionHandler(SgObject e)
     }
   } else {
     Sg_ReportErrorInternal(e, vm->currentErrorPort);
-    SG_FOR_EACH(hp, vm->dynamicWinders) {
-      SgObject proc = SG_CDAR(hp);
-      vm->dynamicWinders = SG_CDR(hp);
-      Sg_Apply0(proc);
-    }
+    rewind_until(SG_NIL);
   }
   /* jump */
   if (vm->cstack) {

@@ -254,6 +254,9 @@ typedef struct {
 
 #define SG_DYNAMIC_WINDER(o)  ((SgDynamicWinder *)o)
 #define SG_DYNAMIC_WINDERP(o) SG_XTYPEP(o, SG_CLASS_DYNAMIC_WINDER)
+#define SG_DYNAMIC_WINDER_BEFORE(w)  (SG_DYNAMIC_WINDER(w)->before)
+#define SG_DYNAMIC_WINDER_AFTER(w)   (SG_DYNAMIC_WINDER(w)->after)
+#define SG_DYNAMIC_WINDER_MARKS(w)   (SG_DYNAMIC_WINDER(w)->marks)
 
 struct SgVMRec
 {

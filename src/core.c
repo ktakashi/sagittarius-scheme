@@ -575,7 +575,7 @@ void Sg_Cleanup()
 
   SG_FOR_EACH(hp, vm->dynamicWinders) {
     vm->dynamicWinders = SG_CDR(hp);
-    Sg_Apply0(SG_CDAR(hp));
+    Sg_Apply0(SG_DYNAMIC_WINDER_AFTER(SG_CAR(hp)));
   }
   
   for (ch = cleanup.handlers; ch; ch = ch->next) {
