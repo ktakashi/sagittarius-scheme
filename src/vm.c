@@ -3187,35 +3187,35 @@ static SgObject abort_invoke_handler(SgPrompt *prompt, SgObject args)
   return Sg_VMApply(handler, args);
 }
 
-/*
-  Abort continuation goes 2 pass,
-  1. search the tag
-  2. pop the continuation until the tag
+static SgObject abort_cc(SgObject, void **);
 
-  If the tag is not found, then an error will be raised
- */
-static int prompt_winder_in_scope_p(SgPromptNode *node, SgObject winders)
+/* Check if a winder (after-thunk) is still in the current dynamicWinders.
+   This is needed because when an abort_cc frame is captured in a delimited
+   continuation and later restored, some stored winders may no longer be
+   in scope. According to Racket semantics, "the destination for a jump
+   is recomputed after each pre-thunk or post-thunk completes." */
+static int winder_in_scope_p(SgVM *vm, SgObject winder)
 {
-  SgVM *vm = theVM;
-  SgContFrame *cont = vm->cont;
-
-  /* check if the prompt is in the same dynamic-extent (stack) */
-  while (!bottom_cont_frame_p(vm, cont)) {
-    if (cont == node->frame) return TRUE; /* must be invoked */
-    cont = cont->prev;
+  SgObject cp;
+  SG_FOR_EACH(cp, vm->dynamicWinders) {
+    if (SG_EQ(SG_DYNAMIC_WINDER_BEFORE(SG_CAR(cp)), winder)
+	|| SG_EQ(SG_DYNAMIC_WINDER_AFTER(SG_CAR(cp)), winder))
+      return TRUE;
   }
-  /*
-    the prompt is not in the same dynamic-extent
-    check if winder is defined in the same prompt or not
-   */
-  return !SG_NULLP(take_prompt_winders(node->prompt, SG_CAAR(winders)));
+  return FALSE;
 }
 
-static SgObject abort_cc(SgObject, void **);
 static SgObject abort_body(SgPromptNode *node, SgObject winders, SgObject args)
 {
   SgVM *vm = theVM;
-  if (SG_PAIRP(winders) && prompt_winder_in_scope_p(node, winders)) {
+  /* Skip winders that are no longer in the current dynamic extent.
+     This handles the case where an abort_cc frame was captured in a
+     delimited continuation and the stored winders include items
+     outside the captured scope. */
+  while (SG_PAIRP(winders) && !winder_in_scope_p(vm, SG_CAAR(winders))) {
+    winders = SG_CDR(winders);
+  }
+  if (SG_PAIRP(winders)) {
     SgObject winder, chain;
     void *data[3];
     winder = SG_CAAR(winders);

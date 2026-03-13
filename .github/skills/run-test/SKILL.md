@@ -1,5 +1,5 @@
 ---
-name: document
+name: run-test
 description: Guide for executing Sagittarius tests. Use this when asked to execute tests.
 ---
 
@@ -19,6 +19,10 @@ ctest --output-on-failure -j 6
 
 The value of the `-j` option can be changed. It's better not to exceed the
 number of CPU core.
+
+**CAUTION**
+The full test may take up to 10 minutes. The heavy tests contains `crypto`
+in its name.
 
 Execute individual tests
 ------------------------
@@ -75,6 +79,41 @@ Example: run continuation tests
 ./build/sagittarius -Llib -Lsitelib -L'ext/*' -Dbuild test/runner.scm \
  test/tests/sagittarius/continuations.scm
 ```
+
+Test result analysis
+====================
+
+When the tests failed, then you may see some patterns. Below are some of the
+example pattern that showing test failures
+
+Example 1: unexpected failures
+```
+%%%% Starting test {test name}
+FAIL {test unit name 1}
+        expected value: ...
+          actual value: ...
+FAIL {test unit name 2}
+        expected value: ...
+          actual value: ...
+FAIL {test unit name 3}
+        expected value: ...
+          actual value: ...
+# of expected passes      16
+# of unexpected failures  3
+```
+You clearly see test failures
+
+
+Example 2: no output
+```
+%%%% Starting test {test name}
+```
+The summary of the tests is missing. This means either test hanged or
+application is finished unexpectedly
+
+Example 3: SEGV
+You'll see native stack trace when SEGV happened.
+
 
 Clean up cache file
 ===================
