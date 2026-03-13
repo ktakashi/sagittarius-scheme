@@ -1828,6 +1828,9 @@ static SgContMarks * strip_marks(SgVM *, SgPromptNode *);
 static SgObject cont_invoke_cc(SgObject result, void **data)
 {
   ContInvokeCtx ctx;
+  SgVM *vm = theVM;
+  SgContMarks *saved_marks;
+
   ctx.op = (ContOpType)(intptr_t)data[0];
   ctx.winder_policy = (WinderPolicy)(intptr_t)data[1];
   ctx.handlers = SG_OBJ(data[2]);
@@ -1835,12 +1838,23 @@ static SgObject cont_invoke_cc(SgObject result, void **data)
   ctx.prompt = (SgPrompt*)data[4];
   ctx.arg1 = SG_OBJ(data[5]);
   ctx.arg2 = SG_OBJ(data[6]);
+  saved_marks = (SgContMarks*)data[7];
 
-  /* For abort operation, skip handlers no longer in scope */
+  /* Restore marks that were saved before calling the handler, UNLESS
+     this is a composable continuation (shift/reset) where we want to
+     keep the invocation context's marks for `temporarily` to work. */
+  if (!(ctx.op == CONT_OP_THROW &&
+        ctx.prompt &&
+        ctx.cont &&
+        ctx.cont->type == SG_COMPOSABLE_CONTINUATION)) {
+    vm->marks = saved_marks;
+  }
+
+  /* For abort operation, skip handlers no longer in scope.
+     Handler format: ((marks . thunk) . chain) - extract thunk for scope check */
   if (ctx.op == CONT_OP_ABORT) {
-    SgVM *vm = theVM;
     while (SG_PAIRP(ctx.handlers) &&
-	   !winder_in_scope_p(vm, SG_CAAR(ctx.handlers))) {
+	   !winder_in_scope_p(vm, SG_CDR(SG_CAAR(ctx.handlers)))) {
       ctx.handlers = SG_CDR(ctx.handlers);
     }
   }
@@ -1861,11 +1875,18 @@ static SgObject cont_invoke_body(ContInvokeCtx *ctx)
   SgVM *vm = theVM;
 
   if (SG_PAIRP(ctx->handlers)) {
-    SgObject handler, chain;
-    void *data[7];
+    SgObject handler_entry, handler, chain;
+    SgContMarks *winder_marks, *saved_marks;
+    void *data[8];
 
-    handler = SG_CAAR(ctx->handlers);
+    /* Handler format: ((marks . thunk) . chain) */
+    handler_entry = SG_CAAR(ctx->handlers);
+    winder_marks = (SgContMarks *)SG_CAR(handler_entry);
+    handler = SG_CDR(handler_entry);
     chain = SG_CDAR(ctx->handlers);
+
+    /* Save current marks for restoration after handler returns */
+    saved_marks = vm->marks;
 
     /* Pack context into data array for CC callback */
     data[0] = (void*)(intptr_t)ctx->op;
@@ -1875,14 +1896,30 @@ static SgObject cont_invoke_body(ContInvokeCtx *ctx)
     data[4] = (void*)ctx->prompt;
     data[5] = (void*)ctx->arg1;
     data[6] = (void*)ctx->arg2;
+    data[7] = (void*)saved_marks;  /* Save marks for restoration */
 
-    Sg_VMPushCC(cont_invoke_cc, data, 7);
+    Sg_VMPushCC(cont_invoke_cc, data, 8);
 
     /* Update dynamic winders based on policy */
     if (ctx->winder_policy == WINDER_MERGE && ctx->prompt) {
       vm->dynamicWinders = merge_winders(vm->dynamicWinders, chain);
     } else {
       vm->dynamicWinders = chain;
+    }
+
+    /* Restore the winder's marks so handler runs with the parameterization
+       that was active when the dynamic-wind was installed.
+       
+       EXCEPTION: For COMPOSABLE continuations (shift/reset with
+       SG_COMPOSABLE_CONTINUATION type), keep current marks so handlers
+       like `temporarily` work correctly with the invocation context.
+       This is needed because `temporarily` swaps parameter values using
+       the current parameterization, not the captured one. */
+    if (!(ctx->op == CONT_OP_THROW &&
+          ctx->prompt &&
+          ctx->cont &&
+          ctx->cont->type == SG_COMPOSABLE_CONTINUATION)) {
+      vm->marks = winder_marks;
     }
 
     return Sg_VMApply0(handler);
@@ -2214,12 +2251,15 @@ static SgObject throw_cont_compute_handlers(SgContinuation *c,
   if (c->cstack) {
     if (prompt) current = take_prompt_winders(prompt, current);
     SG_FOR_EACH(p, current) {
+      SgDynamicWinder *winder = SG_DYNAMIC_WINDER(SG_CAR(p));
       if (!SG_FALSEP(Sg_Memq(SG_CAR(p), escapes))) break;
-      SG_APPEND1(h, t, Sg_Cons(SG_DYNAMIC_WINDER_AFTER(SG_CAR(p)), SG_CDR(p)));
+      /* Handler format: ((marks . thunk) . chain) */
+      SG_APPEND1(h, t, Sg_Cons(Sg_Cons(SG_OBJ(winder->marks), winder->after), SG_CDR(p)));
     }
   }
 
   SG_FOR_EACH(p, target) {
+    SgDynamicWinder *winder = SG_DYNAMIC_WINDER(SG_CAR(p));
     SgObject chain = Sg_Memq(SG_CAR(p), escapes);
     SgObject next_winders = SG_CDR(chain);
     /* For composable continuations, don't include winders that were
@@ -2231,7 +2271,8 @@ static SgObject throw_cont_compute_handlers(SgContinuation *c,
         next_winders = SG_NIL;
       }
     }
-    SG_APPEND1(h, t, Sg_Cons(SG_DYNAMIC_WINDER_BEFORE(SG_CAR(p)), next_winders));
+    /* Handler format: ((marks . thunk) . chain) */
+    SG_APPEND1(h, t, Sg_Cons(Sg_Cons(SG_OBJ(winder->marks), winder->before), next_winders));
   }
 
   return h;
@@ -2527,12 +2568,14 @@ static SgObject throw_delimited_continuation_body(SgObject handlers,
    outside of the prompt chain.
    The VM dynamicWinders should contain only the prompt winders,
    so the handler is not in the winders, we should strip it.
+   Handler format: ((marks . thunk) . chain)
  */
 static SgObject strip_delimied_cc_handlers(SgObject handlers)
 {
   SgVM *vm = theVM;
   while (!SG_NULLP(handlers)) {
-    SgObject handler = SG_CAAR(handlers);
+    SgObject handler_entry = SG_CAAR(handlers);
+    SgObject handler = SG_CDR(handler_entry);  /* Extract thunk from (marks . thunk) */
     SgObject cp;
     SG_FOR_EACH(cp, vm->dynamicWinders) {
       if (SG_EQ(SG_DYNAMIC_WINDER_BEFORE(SG_CAR(cp)), handler)
@@ -3364,8 +3407,9 @@ static SgObject abort_body(SgPrompt *prompt, SgObject winders, SgObject args)
   /* Skip winders that are no longer in the current dynamic extent.
      This handles the case where an abort_cc frame was captured in a
      delimited continuation and the stored winders include items
-     outside the captured scope. */
-  while (SG_PAIRP(winders) && !winder_in_scope_p(vm, SG_CAAR(winders))) {
+     outside the captured scope.
+     Handler format: ((marks . thunk) . chain) - extract thunk for scope check */
+  while (SG_PAIRP(winders) && !winder_in_scope_p(vm, SG_CDR(SG_CAAR(winders)))) {
     winders = SG_CDR(winders);
   }
 
@@ -3432,12 +3476,15 @@ static SgObject call_in_cont_compute_handlers(SgContinuation *c,
 
   /* Always compute AFTER handlers for exiting current dynamic-winds */
   SG_FOR_EACH(p, current) {
+    SgDynamicWinder *winder = SG_DYNAMIC_WINDER(SG_CAR(p));
     if (!SG_FALSEP(Sg_Memq(SG_CAR(p), escapes))) break;
-    SG_APPEND1(h, t, Sg_Cons(SG_DYNAMIC_WINDER_AFTER(SG_CAR(p)), SG_CDR(p)));
+    /* Handler format: ((marks . thunk) . chain) */
+    SG_APPEND1(h, t, Sg_Cons(Sg_Cons(SG_OBJ(winder->marks), winder->after), SG_CDR(p)));
   }
 
   /* Then compute BEFORE handlers for entering continuation's dynamic-winds */
   SG_FOR_EACH(p, target) {
+    SgDynamicWinder *winder = SG_DYNAMIC_WINDER(SG_CAR(p));
     SgObject chain = Sg_Memq(SG_CAR(p), escapes);
     SgObject next_winders = SG_CDR(chain);
     if (prompt && SG_PAIRP(next_winders)) {
@@ -3446,7 +3493,8 @@ static SgObject call_in_cont_compute_handlers(SgContinuation *c,
         next_winders = SG_NIL;
       }
     }
-    SG_APPEND1(h, t, Sg_Cons(SG_DYNAMIC_WINDER_BEFORE(SG_CAR(p)), next_winders));
+    /* Handler format: ((marks . thunk) . chain) */
+    SG_APPEND1(h, t, Sg_Cons(Sg_Cons(SG_OBJ(winder->marks), winder->before), next_winders));
   }
 
   return h;
