@@ -1753,7 +1753,6 @@ static SgContMarks * splice_marks(SgVM *vm, SgContMarks *marks)
   return head;
 }
 
-static SgObject throw_continuation_cc(SgObject, void **);
 static SgObject merge_winders(SgObject, SgObject);
 static SgObject take_prompt_winders(SgPrompt *, SgObject);
 static SgObject capture_prompt_winders(SgPrompt *, SgObject);
@@ -1763,78 +1762,303 @@ static SgPrompt *make_prompt(SgObject tag, SgObject handler, SgVM *vm);
 static void install_prompt(SgVM *, SgPrompt *);
 static void remove_prompt(SgVM *, SgPrompt *);
 static SgPromptNode * remove_prompts(SgVM *, SgObject);
-static SgObject abort_body(SgPromptNode *node, SgObject winders, SgObject args);
 static void continuation_violation(SgObject who, SgObject message,
 				   SgObject promptTag);
+
+/*
+  Unified continuation invocation infrastructure.
+  
+  All continuation operations (throw_continuation_body, throw_delimited_continuation_body,
+  abort_body, call_in_cont_body) share a common pattern:
+  1. Process handlers one by one (calling before/after thunks)
+  2. Update dynamic winders appropriately
+  3. Execute operation-specific completion logic
+  
+  This infrastructure unifies the handler iteration and provides
+  a clean dispatch mechanism for the completion step.
+ */
+
+/* Operation types for continuation invocation */
+typedef enum {
+  CONT_OP_THROW,          /* Regular continuation throw */
+  CONT_OP_THROW_DELIMITED,/* Delimited continuation throw */
+  CONT_OP_ABORT,          /* Abort to prompt */
+  CONT_OP_CALL_IN_CONT    /* Call proc in continuation context */
+} ContOpType;
+
+/* Winder merge policy */
+typedef enum {
+  WINDER_MERGE,  /* Merge with current dynamic winders */
+  WINDER_SET     /* Directly set dynamic winders */
+} WinderPolicy;
+
+/* Context for continuation invocation operations */
+typedef struct ContInvokeCtxRec {
+  ContOpType op;           /* Operation type */
+  WinderPolicy winder_policy; /* How to update winders */
+  SgObject handlers;       /* Remaining handlers to process */
+  SgContinuation *cont;    /* Target continuation (NULL for abort) */
+  SgPrompt *prompt;        /* Associated prompt */
+  SgObject arg1;           /* Primary argument (args for throw/abort, proc for call_in_cont) */
+  SgObject arg2;           /* Secondary argument (args for call_in_cont) */
+} ContInvokeCtx;
+
+/* Forward declarations */
+static SgObject cont_invoke_body(ContInvokeCtx *ctx);
+static SgObject cont_invoke_cc(SgObject result, void **data);
+static SgObject cont_invoke_complete(ContInvokeCtx *ctx);
 
 #define CONT_ERR(who, msg, tag)						\
   continuation_violation(SG_INTERN(who), SG_MAKE_STRING(msg), tag)
 
 
+/* Forward declarations for operations used by completion handlers */
+static SgObject throw_continuation_end(SgVM *, SgObject);
+static SgPromptNode * search_prompt_node(SgVM *, SgObject);
+static SgObject throw_cont_compute_handlers(SgContinuation *, SgPrompt *, SgVM *);
+static SgObject abort_invoke_handler(SgPrompt *, SgObject);
+static SgObject strip_delimied_cc_handlers(SgObject);
+static int winder_in_scope_p(SgVM *, SgObject);
+static SgContMarks * strip_marks(SgVM *, SgPromptNode *);
+
+/*
+  Unified continuation invocation: handler iteration callback.
+  This is called after each handler (before/after thunk) completes.
+ */
+static SgObject cont_invoke_cc(SgObject result, void **data)
+{
+  ContInvokeCtx ctx;
+  ctx.op = (ContOpType)(intptr_t)data[0];
+  ctx.winder_policy = (WinderPolicy)(intptr_t)data[1];
+  ctx.handlers = SG_OBJ(data[2]);
+  ctx.cont = (SgContinuation*)data[3];
+  ctx.prompt = (SgPrompt*)data[4];
+  ctx.arg1 = SG_OBJ(data[5]);
+  ctx.arg2 = SG_OBJ(data[6]);
+
+  /* For abort operation, skip handlers no longer in scope */
+  if (ctx.op == CONT_OP_ABORT) {
+    SgVM *vm = theVM;
+    while (SG_PAIRP(ctx.handlers) &&
+	   !winder_in_scope_p(vm, SG_CAAR(ctx.handlers))) {
+      ctx.handlers = SG_CDR(ctx.handlers);
+    }
+  }
+  /* For delimited continuation, strip handlers outside prompt scope */
+  if (ctx.op == CONT_OP_THROW_DELIMITED) {
+    ctx.handlers = strip_delimied_cc_handlers(ctx.handlers);
+  }
+
+  return cont_invoke_body(&ctx);
+}
+
+/*
+  Unified continuation invocation: main iteration body.
+  Processes handlers one by one, then calls completion handler.
+ */
+static SgObject cont_invoke_body(ContInvokeCtx *ctx)
+{
+  SgVM *vm = theVM;
+
+  if (SG_PAIRP(ctx->handlers)) {
+    SgObject handler, chain;
+    void *data[7];
+
+    handler = SG_CAAR(ctx->handlers);
+    chain = SG_CDAR(ctx->handlers);
+
+    /* Pack context into data array for CC callback */
+    data[0] = (void*)(intptr_t)ctx->op;
+    data[1] = (void*)(intptr_t)ctx->winder_policy;
+    data[2] = (void*)SG_CDR(ctx->handlers);
+    data[3] = (void*)ctx->cont;
+    data[4] = (void*)ctx->prompt;
+    data[5] = (void*)ctx->arg1;
+    data[6] = (void*)ctx->arg2;
+
+    Sg_VMPushCC(cont_invoke_cc, data, 7);
+
+    /* Update dynamic winders based on policy */
+    if (ctx->winder_policy == WINDER_MERGE && ctx->prompt) {
+      vm->dynamicWinders = merge_winders(vm->dynamicWinders, chain);
+    } else {
+      vm->dynamicWinders = chain;
+    }
+
+    return Sg_VMApply0(handler);
+  } else {
+    /* All handlers processed - dispatch to operation-specific completion */
+    return cont_invoke_complete(ctx);
+  }
+}
+
+/*
+  Unified continuation invocation: operation-specific completion.
+  Called after all handlers have been processed.
+ */
+static SgObject cont_invoke_complete(ContInvokeCtx *ctx)
+{
+  SgVM *vm = theVM;
+
+  switch (ctx->op) {
+  case CONT_OP_THROW: {
+    /* Regular continuation throw completion */
+    SgContinuation *c = ctx->cont;
+    SgPrompt *prompt = ctx->prompt;
+    SgObject args = ctx->arg1;
+
+    if (c->cstack == NULL) save_cont(vm);
+    if (prompt) {
+      /* Composable continuation: add frames atop current continuation */
+      vm->cont = splice_cont(vm, c->cont, prompt);
+      vm->marks = splice_marks(vm, c->marks);
+      if (c->winders != vm->dynamicWinders) {
+	SgObject to_merge = capture_prompt_winders(prompt, c->winders);
+	vm->dynamicWinders = merge_winders(to_merge, vm->dynamicWinders);
+      }
+    } else {
+      /* Full continuation: replace current */
+      vm->cont = c->cont;
+      vm->marks = c->marks;
+      vm->dynamicWinders = c->winders;
+      rebuild_prompts_from_cont(vm);
+    }
+    return throw_continuation_end(vm, args);
+  }
+
+  case CONT_OP_THROW_DELIMITED: {
+    /* Delimited continuation throw completion */
+    SgContinuation *c = ctx->cont;
+    SgPrompt *prompt = ctx->prompt;
+    SgObject args = ctx->arg1;
+
+    SgPromptNode *node = remove_prompts(vm, prompt->tag);
+    if (!node) {
+      CONT_ERR("delimited-continuation",
+	       "Stale prompt in delimited continuation", prompt->tag);
+    }
+
+    remove_prompt(vm, node->prompt);
+    vm->cont = node->frame->prev;
+    vm->marks = strip_marks(vm, node);
+
+    /* Create new prompt for the continuation */
+    SgPrompt *new_prompt = make_prompt(prompt->tag, SG_FALSE, vm);
+
+    CHECK_STACK(CONT_FRAME_SIZE, vm);
+    PUSH_PROMPT_CONT(vm, new_prompt);
+    install_prompt(vm, new_prompt);
+
+    if (!SG_FALSEP(node->prompt->handler)) {
+      if (node->prompt != prompt) {
+	save_cont(vm);
+	vm->cont = splice_cont(vm, c->cont, prompt);
+	vm->marks = splice_marks(vm, c->marks);
+      }
+      return throw_continuation_end(vm, args);
+    }
+
+    /* Continue as composable continuation */
+    {
+      ContInvokeCtx throw_ctx;
+      SgObject wind_handlers = throw_cont_compute_handlers(c, prompt, vm);
+      throw_ctx.op = CONT_OP_THROW;
+      throw_ctx.winder_policy = WINDER_MERGE;
+      throw_ctx.handlers = wind_handlers;
+      throw_ctx.cont = c;
+      throw_ctx.prompt = prompt;
+      throw_ctx.arg1 = args;
+      throw_ctx.arg2 = SG_NIL;
+      return cont_invoke_body(&throw_ctx);
+    }
+  }
+
+  case CONT_OP_ABORT: {
+    /* Abort to prompt completion */
+    SgPrompt *prompt = ctx->prompt;
+    SgObject args = ctx->arg1;
+
+    SgPromptNode *cur_node = remove_prompts(vm, prompt->tag);
+    if (!cur_node)
+      CONT_ERR("abort-current-continuation", "Stale prompt", prompt->tag);
+    prompt = cur_node->prompt;
+
+    if (prompt->cstack != vm->cstack) {
+      vm->escapeReason = SG_VM_ESCAPE_ABORT;
+      vm->escapeData[0] = cur_node;
+      vm->escapeData[1] = args;
+      longjmp(prompt->cstack->jbuf, 1);
+    }
+
+    remove_prompt(vm, prompt);
+    vm->cont = cur_node->frame->prev;
+    vm->marks = strip_marks(vm, cur_node);
+    return abort_invoke_handler(prompt, args);
+  }
+
+  case CONT_OP_CALL_IN_CONT: {
+    /* Call proc in continuation context completion */
+    SgContinuation *c = ctx->cont;
+    SgPrompt *prompt = ctx->prompt;
+    SgObject proc = ctx->arg1;
+    SgObject args = ctx->arg2;
+
+    if (c->cstack == NULL) save_cont(vm);
+    if (prompt && c->type == SG_COMPOSABLE_CONTINUATION) {
+      vm->cont = splice_cont(vm, c->cont, prompt);
+      vm->marks = splice_marks(vm, c->marks);
+      if (c->winders != vm->dynamicWinders) {
+	SgObject to_merge = capture_prompt_winders(prompt, c->winders);
+	vm->dynamicWinders = merge_winders(to_merge, vm->dynamicWinders);
+      }
+    } else if (prompt && c->type == SG_DELIMIETED_CONTINUATION) {
+      vm->cont = c->cont;
+      {
+	SgContMarks *marks = c->marks;
+	while (marks && !marks->entries) {
+	  marks = marks->prev;
+	}
+	vm->marks = marks;
+      }
+      vm->dynamicWinders = c->winders;
+      rebuild_prompts_from_cont(vm);
+    } else {
+      vm->cont = c->cont;
+      vm->marks = c->marks;
+      vm->dynamicWinders = c->winders;
+      rebuild_prompts_from_cont(vm);
+    }
+
+    if (SG_NULLP(args)) return Sg_VMApply0(proc);
+    return Sg_VMApply(proc, args);
+  }
+
+  default:
+    Sg_Error(UC("Unknown continuation operation type: %d"), ctx->op);
+    return SG_UNDEF;
+  }
+}
+
+/* Forward declaration */
 static SgObject throw_delimited_continuation_body(SgObject,
 						  SgContinuation *,
 						  SgObject,
 						  SgPrompt *);
-static SgObject throw_continuation_end(SgVM *, SgObject);
 
 static SgObject throw_continuation_body(SgObject handlers,
 					SgContinuation *c,
 					SgObject args,
 					SgPrompt *prompt)
 {
-  SgVM *vm = Sg_VM();
-  /* (if (not (eq? new (current-dynamic-winders))) perform-dynamic-wind) */
-  if (SG_PAIRP(handlers)) {
-    SgObject handler, chain, next;
-    void *data[4];
-    handler = SG_CAAR(handlers);
-    chain = SG_CDAR(handlers);
-    data[0] = (void*)SG_CDR(handlers);
-    data[1] = (void*)c;
-    data[2] = (void*)args;
-    data[3] = prompt;
-    Sg_VMPushCC(throw_continuation_cc, data, 4);
-    /* FIXME best to reconstruct chain itself during the computation... */
-    next = (prompt)
-      ? merge_winders(vm->dynamicWinders, chain)
-      : chain;
-    vm->dynamicWinders = next;
-    /* Sg_Printf(Sg_StandardErrorPort(), UC("dw: %A\n"), vm->dynamicWinders); */
-    return Sg_VMApply0(handler);
-  } else {
-    /* 
-       if the target continuation is a full continuation, we can abandon
-       the current continuation. however, if the target continuation is
-       partial, we must return to the current continuation after executing
-       the partial continuation.
-    */
-    if (c->cstack == NULL) save_cont(vm);
-    if (prompt) {
-      /* if the tag is there, then it's composable continuation
-	 means, we add the continuation frame atop of the current
-	 continuation.
-	 As the continuation is not oneshot, we need to copy the
-	 cont frame from the continuation.
-       */
-      vm->cont = splice_cont(vm, c->cont, prompt);
-      vm->marks = splice_marks(vm, c->marks);
-      if (c->winders != vm->dynamicWinders) {
-	/* continuation is invoked outside of the winder's dynamic extent.
-	   Merge only winders that are inside the continuation's scope
-	   (not the ones that were in place at prompt creation time).
-	 */
-	SgObject to_merge = capture_prompt_winders(prompt, c->winders);
-	vm->dynamicWinders = merge_winders(to_merge, vm->dynamicWinders);
-      }
-    } else {
-      vm->cont = c->cont;
-      vm->marks = c->marks;
-      vm->dynamicWinders = c->winders;
-      /* Rebuild prompt chain to match the restored cont chain */
-      rebuild_prompts_from_cont(vm);
-    }
-    return throw_continuation_end(vm, args);
-  }
+  ContInvokeCtx ctx;
+  ctx.op = CONT_OP_THROW;
+  ctx.winder_policy = prompt ? WINDER_MERGE : WINDER_SET;
+  ctx.handlers = handlers;
+  ctx.cont = c;
+  ctx.prompt = prompt;
+  ctx.arg1 = args;
+  ctx.arg2 = SG_NIL;
+  return cont_invoke_body(&ctx);
 }
 
 static SgObject throw_continuation_end(SgVM *vm, SgObject args)
@@ -1863,15 +2087,6 @@ static SgObject throw_continuation_end(SgVM *vm, SgObject args)
     vm->valuesCount = argc;
   }
   return vm->ac;
-}
-
-static SgObject throw_continuation_cc(SgObject result, void **data)
-{
-  SgObject handlers = SG_OBJ(data[0]);
-  SgContinuation *c = (SgContinuation*)data[1];
-  SgObject args = SG_OBJ(data[2]);
-  SgPrompt *prompt = (SgPrompt*)data[3];
-  return throw_continuation_body(handlers, c, args, prompt);
 }
 
 /* remove and re-order continuation's handlers */
@@ -2290,73 +2505,21 @@ SgObject Sg_VMCallComp(SgObject proc, SgObject tag)
   The continuation procedure has data: (cont . tag)
   where cont is the composable continuation and tag identifies the boundary.
 */
-static SgObject throw_delimited_continuation_cc(SgObject, void **);
 
 static SgObject throw_delimited_continuation_body(SgObject handlers,
 						  SgContinuation *c,
 						  SgObject args,
 						  SgPrompt *prompt)
 {
-  SgVM *vm = theVM;
-  /* Process abort handlers (post-thunks for unwinding) */
-  if (SG_PAIRP(handlers)) {
-    SgObject handler, chain;
-    void *data[4];
-    handler = SG_CAAR(handlers);
-    chain = SG_CDAR(handlers);
-    data[0] = (void*)SG_CDR(handlers);
-    data[1] = (void*)c;
-    data[2] = (void*)args;
-    data[3] = (void*)prompt;
-    Sg_VMPushCC(throw_delimited_continuation_cc, data, 4);
-    /* For abort/post-thunks, directly SET winders to the chain (not merge)
-       This is like abort_body which also sets vm->dynamicWinders = chain */
-    vm->dynamicWinders = chain;
-    return Sg_VMApply0(handler);
-  } else {
-    /* All abort handlers processed. Now we need to:
-       1. Set up the new prompt
-       2. Compute wind-in handlers (pre-thunks) to restore the continuation's
-          dynamic extent
-       3. Run those handlers, then apply the continuation */
-    SgPromptNode *node = remove_prompts(vm, prompt->tag);
-    if (!node) {
-      CONT_ERR("delimited-continuation",
-	       "Stale prompt in delimited continuation", prompt->tag);
-    }
-    
-    /* Remove the original prompt and set continuation to just before
-       the prompt */
-    remove_prompt(vm, node->prompt);
-    vm->cont = node->frame->prev;
-    vm->marks = strip_marks(vm, node);
-
-    /* Create a new prompt for the continuation */
-    SgPrompt *new_prompt = make_prompt(prompt->tag, SG_FALSE, vm);
-    
-    CHECK_STACK(CONT_FRAME_SIZE, vm);
-    PUSH_PROMPT_CONT(vm, new_prompt);
-    install_prompt(vm, new_prompt);
-
-    /* If the prompt handler is not set, then don't execute winders
-       This behaviour is an emulation of the call/delimited-cc
-       implemented with abort/cc and call/comp.
-       I believe this is *not* a right solution, but it works...
-     */
-    if (!SG_FALSEP(node->prompt->handler)) {
-      /* If the prompts are not the same, then it's not an escape,
-	 so reinstall the continuation by splicing*/
-      if (node->prompt != prompt) {
-	save_cont(vm);
-	vm->cont = splice_cont(vm, c->cont, prompt);
-	vm->marks = splice_marks(vm, c->marks);
-      }
-      return throw_continuation_end(vm, args);
-    }
-    /* here we invoke the continuation like composable continuation */
-    SgObject wind_handlers = throw_cont_compute_handlers(c, prompt, vm);
-    return throw_continuation_body(wind_handlers, c, args, prompt);
-  }
+  ContInvokeCtx ctx;
+  ctx.op = CONT_OP_THROW_DELIMITED;
+  ctx.winder_policy = WINDER_SET;  /* Always directly set winders */
+  ctx.handlers = handlers;
+  ctx.cont = c;
+  ctx.prompt = prompt;
+  ctx.arg1 = args;
+  ctx.arg2 = SG_NIL;
+  return cont_invoke_body(&ctx);
 }
 
 /* Strip the delimited cc handlers.
@@ -2380,16 +2543,6 @@ static SgObject strip_delimied_cc_handlers(SgObject handlers)
   }
  end:
   return handlers;
-}
-
-static SgObject throw_delimited_continuation_cc(SgObject result, void **data)
-{
-  SgObject handlers = SG_OBJ(data[0]);
-  SgContinuation *c = (SgContinuation*)data[1];
-  SgObject args = SG_OBJ(data[2]);
-  SgPrompt *prompt = (SgPrompt*)data[3];
-  return throw_delimited_continuation_body(strip_delimied_cc_handlers(handlers),
-					   c, args, prompt);
 }
 
 /* call-with-current-continuation with prompt delimiting (Racket-like call/cc) */
@@ -3203,10 +3356,11 @@ static int winder_in_scope_p(SgVM *vm, SgObject winder)
   return FALSE;
 }
 
-static SgObject abort_cc(SgObject, void **);
 static SgObject abort_body(SgPrompt *prompt, SgObject winders, SgObject args)
 {
+  ContInvokeCtx ctx;
   SgVM *vm = theVM;
+
   /* Skip winders that are no longer in the current dynamic extent.
      This handles the case where an abort_cc frame was captured in a
      delimited continuation and the stored winders include items
@@ -3214,46 +3368,15 @@ static SgObject abort_body(SgPrompt *prompt, SgObject winders, SgObject args)
   while (SG_PAIRP(winders) && !winder_in_scope_p(vm, SG_CAAR(winders))) {
     winders = SG_CDR(winders);
   }
-  if (SG_PAIRP(winders)) {
-    SgObject winder, chain;
-    void *data[3];
-    winder = SG_CAAR(winders);
-    chain = SG_CDAR(winders);
-    data[0] = prompt;
-    data[1] = SG_CDR(winders);
-    data[2] = args;
-    Sg_VMPushCC(abort_cc, data, 3);
 
-    vm->dynamicWinders = chain;
-    return Sg_VMApply0(winder);
-  } else {
-    /* make sure the node is in the prompt chain
-
-       NOTE: when this abort_cc frame is captured in a continuation,
-       the captured node is not loger valid.
-    */
-    SgPromptNode *cur_node = remove_prompts(vm, prompt->tag);
-    if (!cur_node)
-      CONT_ERR("abort-current-continuation", "Stale prompt", prompt->tag);
-    SgPrompt *prompt = cur_node->prompt;
-
-    if (prompt->cstack != vm->cstack) {
-      vm->escapeReason = SG_VM_ESCAPE_ABORT;
-      vm->escapeData[0] = cur_node;
-      vm->escapeData[1] = args;
-      longjmp(prompt->cstack->jbuf, 1);
-    }
-    /* reset the cont frame after the winder invocation */
-    remove_prompt(vm, prompt);
-    vm->cont = cur_node->frame->prev;
-    vm->marks = strip_marks(vm, cur_node);
-    return abort_invoke_handler(prompt, args);
-  }
-}
-
-static SgObject abort_cc(SgObject r, void **data)
-{
-  return abort_body((SgPrompt *)(data[0]), SG_OBJ(data[1]), SG_OBJ(data[2]));
+  ctx.op = CONT_OP_ABORT;
+  ctx.winder_policy = WINDER_SET;  /* Always directly set winders */
+  ctx.handlers = winders;
+  ctx.cont = NULL;  /* abort doesn't have a continuation */
+  ctx.prompt = prompt;
+  ctx.arg1 = args;
+  ctx.arg2 = SG_NIL;
+  return cont_invoke_body(&ctx);
 }
 
 SgObject Sg_VMAbortCC(SgObject tag, SgObject args)
@@ -3273,81 +3396,21 @@ SgObject Sg_VMAbortCC(SgObject tag, SgObject args)
   return abort_body(node->prompt, h, args);
 }
 
-static SgObject call_in_cont_cc(SgObject result, void **data);
-
 static SgObject call_in_cont_body(SgObject handlers,
 				  SgContinuation *c,
 				  SgObject proc,
 				  SgObject args,
 				  SgPrompt *prompt)
 {
-  SgVM *vm = Sg_VM();
-  if (SG_PAIRP(handlers)) {
-    SgObject handler, chain;
-    void *data[5];
-    handler = SG_CAAR(handlers);
-    chain = SG_CDAR(handlers);
-    data[0] = (void*)SG_CDR(handlers);
-    data[1] = (void*)c;
-    data[2] = (void*)proc;
-    data[3] = (void*)args;
-    data[4] = (void*)prompt;
-    Sg_VMPushCC(call_in_cont_cc, data, 5);
-    /* Update dynamic winders */
-    if (prompt) {
-      vm->dynamicWinders = merge_winders(vm->dynamicWinders, chain);
-    } else {
-      vm->dynamicWinders = chain;
-    }
-    return Sg_VMApply0(handler);
-  } else {
-    /* All handlers processed, now call proc in the continuation's context */
-
-    /* Restore continuation's context */
-    if (c->cstack == NULL) save_cont(vm);
-    if (prompt && c->type == SG_COMPOSABLE_CONTINUATION) {
-      /* Composable continuation: splice onto current */
-      vm->cont = splice_cont(vm, c->cont, prompt);
-      vm->marks = splice_marks(vm, c->marks);
-      if (c->winders != vm->dynamicWinders) {
-	SgObject to_merge = capture_prompt_winders(prompt, c->winders);
-	vm->dynamicWinders = merge_winders(to_merge, vm->dynamicWinders);
-      }
-    } else if (prompt && c->type == SG_DELIMIETED_CONTINUATION) {
-      /* Delimited (escape) continuation: replace up to prompt, don't compose */
-      vm->cont = c->cont;
-      /* Skip leading empty mark frames to avoid polluting thunk's context */
-      {
-        SgContMarks *marks = c->marks;
-        while (marks && !marks->entries) {
-          marks = marks->prev;
-        }
-        vm->marks = marks;
-      }
-      vm->dynamicWinders = c->winders;
-      rebuild_prompts_from_cont(vm);
-    } else {
-      /* Full continuation: replace current */
-      vm->cont = c->cont;
-      vm->marks = c->marks;
-      vm->dynamicWinders = c->winders;
-      rebuild_prompts_from_cont(vm);
-    }
-
-    /* Call proc with args - result will return through the continuation */
-    if (SG_NULLP(args)) return Sg_VMApply0(proc);
-    return Sg_VMApply(proc, args);
-  }
-}
-
-static SgObject call_in_cont_cc(SgObject result, void **data)
-{
-  SgObject handlers = SG_OBJ(data[0]);
-  SgContinuation *c = (SgContinuation*)data[1];
-  SgObject proc = SG_OBJ(data[2]);
-  SgObject args = SG_OBJ(data[3]);
-  SgPrompt *prompt = (SgPrompt*)data[4];
-  return call_in_cont_body(handlers, c, proc, args, prompt);
+  ContInvokeCtx ctx;
+  ctx.op = CONT_OP_CALL_IN_CONT;
+  ctx.winder_policy = prompt ? WINDER_MERGE : WINDER_SET;
+  ctx.handlers = handlers;
+  ctx.cont = c;
+  ctx.prompt = prompt;
+  ctx.arg1 = proc;   /* proc in arg1 */
+  ctx.arg2 = args;   /* args in arg2 */
+  return cont_invoke_body(&ctx);
 }
 
 /* Compute handlers specifically for call-in-continuation.
