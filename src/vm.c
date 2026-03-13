@@ -3187,8 +3187,6 @@ static SgObject abort_invoke_handler(SgPrompt *prompt, SgObject args)
   return Sg_VMApply(handler, args);
 }
 
-static SgObject abort_cc(SgObject, void **);
-
 /* Check if a winder (after-thunk) is still in the current dynamicWinders.
    This is needed because when an abort_cc frame is captured in a delimited
    continuation and later restored, some stored winders may no longer be
@@ -3205,7 +3203,8 @@ static int winder_in_scope_p(SgVM *vm, SgObject winder)
   return FALSE;
 }
 
-static SgObject abort_body(SgPromptNode *node, SgObject winders, SgObject args)
+static SgObject abort_cc(SgObject, void **);
+static SgObject abort_body(SgPrompt *prompt, SgObject winders, SgObject args)
 {
   SgVM *vm = theVM;
   /* Skip winders that are no longer in the current dynamic extent.
@@ -3220,7 +3219,7 @@ static SgObject abort_body(SgPromptNode *node, SgObject winders, SgObject args)
     void *data[3];
     winder = SG_CAAR(winders);
     chain = SG_CDAR(winders);
-    data[0] = node;
+    data[0] = prompt;
     data[1] = SG_CDR(winders);
     data[2] = args;
     Sg_VMPushCC(abort_cc, data, 3);
@@ -3233,9 +3232,9 @@ static SgObject abort_body(SgPromptNode *node, SgObject winders, SgObject args)
        NOTE: when this abort_cc frame is captured in a continuation,
        the captured node is not loger valid.
     */
-    SgPromptNode *cur_node = remove_prompts(vm, node->prompt->tag);
+    SgPromptNode *cur_node = remove_prompts(vm, prompt->tag);
     if (!cur_node)
-      CONT_ERR("abort-current-continuation", "Stale prompt", node->prompt->tag);
+      CONT_ERR("abort-current-continuation", "Stale prompt", prompt->tag);
     SgPrompt *prompt = cur_node->prompt;
 
     if (prompt->cstack != vm->cstack) {
@@ -3254,7 +3253,7 @@ static SgObject abort_body(SgPromptNode *node, SgObject winders, SgObject args)
 
 static SgObject abort_cc(SgObject r, void **data)
 {
-  return abort_body((SgPromptNode *)(data[0]), SG_OBJ(data[1]), SG_OBJ(data[2]));
+  return abort_body((SgPrompt *)(data[0]), SG_OBJ(data[1]), SG_OBJ(data[2]));
 }
 
 SgObject Sg_VMAbortCC(SgObject tag, SgObject args)
@@ -3271,7 +3270,7 @@ SgObject Sg_VMAbortCC(SgObject tag, SgObject args)
   c.cstack = node->prompt->cstack;
   h = throw_cont_compute_handlers(&c, node->prompt, vm);
 
-  return abort_body(node, h, args);
+  return abort_body(node->prompt, h, args);
 }
 
 static SgObject call_in_cont_cc(SgObject result, void **data);
