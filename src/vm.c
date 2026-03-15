@@ -2237,11 +2237,6 @@ static SgObject throw_cont_compute_handlers(SgContinuation *c,
   SgObject target = remove_common_winders(current, escapes);
   SgObject h = SG_NIL, t = SG_NIL, p;
 
-  /* Sg_Printf(Sg_StandardErrorPort(), UC("targt: %S\n"), target);
-  Sg_Printf(Sg_StandardErrorPort(), UC("p->dw: %S\n"), prompt ? prompt->winders : SG_FALSE);
-  Sg_Printf(Sg_StandardErrorPort(), UC("c->dw: %S\n"), c->winders);
-  Sg_Printf(Sg_StandardErrorPort(), UC("v->dw: %S\n\n"), vm->dynamicWinders); */
-
   if (prompt) target = take_prompt_winders(prompt, target);
 
   /* When the continuation is partial continuation,
@@ -2249,10 +2244,21 @@ static SgObject throw_cont_compute_handlers(SgContinuation *c,
      So, skip the current ones.
    */
   if (c->cstack) {
+    SgObject seen_afters = SG_NIL;
     if (prompt) current = take_prompt_winders(prompt, current);
     SG_FOR_EACH(p, current) {
       SgDynamicWinder *winder = SG_DYNAMIC_WINDER(SG_CAR(p));
-      if (!SG_FALSEP(Sg_Memq(SG_CAR(p), escapes))) break;
+      if (!SG_FALSEP(Sg_Memq(SG_CAR(p), escapes))) {
+        /* Track after thunks from common winders to skip duplicates */
+        if (SG_FALSEP(Sg_Memq(winder->after, seen_afters))) {
+          seen_afters = Sg_Cons(winder->after, seen_afters);
+        }
+        continue;
+      }
+      /* Skip non-common winders whose after was already in a common winder */
+      if (!SG_FALSEP(Sg_Memq(winder->after, seen_afters))) {
+        continue;
+      }
       /* Handler format: ((marks . thunk) . chain) */
       SG_APPEND1(h, t, Sg_Cons(Sg_Cons(SG_OBJ(winder->marks), winder->after), SG_CDR(p)));
     }
