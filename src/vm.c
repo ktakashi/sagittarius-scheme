@@ -101,7 +101,8 @@ static inline SgObject make_box(SgObject value)
 }
 
 static SgObject evaluate_safe(SgObject program, SgWord *code);
-static SgObject run_loop();
+static INLINE SgObject run_loop();
+static INLINE void ** vm_new_cont(SgCContinuationProc *after, int datasize);
 
 static void vm_finalize(SgObject obj, void *data)
 {
@@ -996,9 +997,8 @@ static SgObject next_eval_cc(SgObject v, void **data)
 SgObject Sg_VMEval(SgObject sexp, SgObject env)
 {
   SgVM *vm = theVM;
-  void *data[1];
+  void **data = vm_new_cont(next_eval_cc, 1);
   data[0] = env;
-  Sg_VMPushCC(next_eval_cc, data, 1);
   if (vm->state != IMPORTING) vm->state = COMPILING;
   return Sg_VMCompile(sexp, env);
 }
@@ -1040,14 +1040,14 @@ static SgObject environment_cc(SgObject result, void **data)
 
 SgObject Sg_VMEnvironment(SgObject lib, SgObject spec)
 {
-  void *data[1];
   if (SG_UNDEFP(pass1_import)) {
     init_pass1_import();
   }
   /* make spec look like import-spec */
   spec = Sg_Cons(SG_INTERN("import"), spec);
+
+  void **data = vm_new_cont(environment_cc, 1);
   data[0] = lib;
-  Sg_VMPushCC(environment_cc, data, 1);
   return Sg_VMApply2(pass1_import, spec, lib);
 }
 
@@ -1083,16 +1083,13 @@ static void push_cont_marks(SgVM *vm, SgContFrame *cont)
   vm->marks = cm;
 }
 
-void Sg_VMPushCC(SgCContinuationProc *after, void **data, int datasize)
+static INLINE void ** vm_new_cont(SgCContinuationProc *after, int datasize)
 {
-  int i;
-  SgContFrame *cc;
-  SgObject *s;
   SgVM *vm = Sg_VM();
 
   CHECK_STACK(CONT_FRAME_SIZE + datasize, vm);
-  s = SP(vm);
-  cc = (SgContFrame*)s;
+  SgObject *s = SP(vm);
+  SgContFrame *cc = (SgContFrame*)s;
   s += CONT_FRAME_SIZE;
   cc->prev = CONT(vm);
   cc->size = datasize;
@@ -1100,12 +1097,18 @@ void Sg_VMPushCC(SgCContinuationProc *after, void **data, int datasize)
   cc->pc = (SgWord*)after;
   cc->fp = C_CONT_MARK;
   cc->cl = CL(vm);
-  for (i = 0; i < datasize; i++) {
-    PUSH(s, SG_OBJ(data[i]));
-  }
   push_cont_marks(vm, cc);
   CONT(vm) = cc;
-  FP(vm) = SP(vm) = s;
+  FP(vm) = SP(vm) = s + datasize;
+  return s;
+}
+
+void Sg_VMPushCC(SgCContinuationProc *after, void **data, int datasize)
+{
+  SgObject *s = vm_new_cont(after, datasize);
+  for (int i = 0; i < datasize; i++) {
+    PUSH(s, SG_OBJ(data[i]));
+  }
 }
 
 static SgWord boundaryFrameMark = NOP;
@@ -1232,8 +1235,6 @@ SgObject Sg_Apply(SgObject proc, SgObject args)
 
 /*
   VMApply families.
-
-  NB: make sure before call these functions, we need to call Sg_VMPushCC.
  */
 SgObject Sg_VMApply(SgObject proc, SgObject args)
 {
@@ -1336,13 +1337,11 @@ static SgObject make_dynamic_winder(SgObject before, SgObject after)
 
 SgObject Sg_VMDynamicWind(SgObject before, SgObject thunk, SgObject after)
 {
-  void *data[3];
-  /* TODO should we check type? */
+  void **data = vm_new_cont(dynamic_wind_before_cc, 3);
   data[0] = (void*)before;
   data[1] = (void*)thunk;
   data[2] = (void*)after;
-  
-  Sg_VMPushCC(dynamic_wind_before_cc, data, 3);
+
   return Sg_VMApply0(before);
 }
 
@@ -1351,17 +1350,14 @@ static SgObject dynamic_wind_before_cc(SgObject result, void **data)
   SgObject before = SG_OBJ(data[0]);
   SgObject body = SG_OBJ(data[1]);
   SgObject after = SG_OBJ(data[2]);
-  SgObject prev, dw;
-  void *d[2];
   SgVM *vm = Sg_VM();
-
-  dw = make_dynamic_winder(before, after);
-  
-  prev = vm->dynamicWinders;
+  SgObject dw = make_dynamic_winder(before, after);
+  SgObject prev = vm->dynamicWinders;
+  void **d = vm_new_cont(dynamic_wind_body_cc, 2);
   d[0] = (void*)dw;
   d[1] = (void*)prev;
   vm->dynamicWinders = Sg_Cons(dw, prev);
-  Sg_VMPushCC(dynamic_wind_body_cc, d, 2);
+
   return Sg_VMApply0(body);
 }
 
@@ -1369,10 +1365,10 @@ static SgObject dynamic_wind_body_cc(SgObject result, void **data)
 {
   SgObject dw = SG_OBJ(data[0]);
   SgObject prev = SG_OBJ(data[1]);
-  void *d[3];
   SgVM *vm = Sg_VM();
   
   vm->dynamicWinders = prev;
+  void **d = vm_new_cont(dynamic_wind_after_cc, 3);
   d[0] = (void*)result;
   d[1] = (void*)(intptr_t)vm->valuesCount;
   if (vm->valuesCount > 1) {
@@ -1385,7 +1381,6 @@ static SgObject dynamic_wind_body_cc(SgObject result, void **data)
   } else {
     d[2] = NULL;
   }
-  Sg_VMPushCC(dynamic_wind_after_cc, d, 3);
   return Sg_VMApply0(SG_DYNAMIC_WINDER_AFTER(dw));
 }
 
@@ -1875,19 +1870,16 @@ static SgObject cont_invoke_body(ContInvokeCtx *ctx)
   SgVM *vm = theVM;
 
   if (SG_PAIRP(ctx->handlers)) {
-    SgObject handler_entry, handler, chain;
-    SgContMarks *winder_marks, *saved_marks;
-    void *data[8];
-
     /* Handler format: ((marks . thunk) . chain) */
-    handler_entry = SG_CAAR(ctx->handlers);
-    winder_marks = (SgContMarks *)SG_CAR(handler_entry);
-    handler = SG_CDR(handler_entry);
-    chain = SG_CDAR(ctx->handlers);
+    SgObject handler_entry = SG_CAAR(ctx->handlers);
+    SgContMarks *winder_marks = (SgContMarks *)SG_CAR(handler_entry);
+    SgObject handler = SG_CDR(handler_entry);
+    SgObject chain = SG_CDAR(ctx->handlers);
 
     /* Save current marks for restoration after handler returns */
-    saved_marks = vm->marks;
+    SgContMarks *saved_marks = vm->marks;
 
+    void **data = vm_new_cont(cont_invoke_cc, 8);
     /* Pack context into data array for CC callback */
     data[0] = (void*)(intptr_t)ctx->op;
     data[1] = (void*)(intptr_t)ctx->winder_policy;
@@ -1897,8 +1889,6 @@ static SgObject cont_invoke_body(ContInvokeCtx *ctx)
     data[5] = (void*)ctx->arg1;
     data[6] = (void*)ctx->arg2;
     data[7] = (void*)saved_marks;  /* Save marks for restoration */
-
-    Sg_VMPushCC(cont_invoke_cc, data, 8);
 
     /* Update dynamic winders based on policy */
     if (ctx->winder_policy == WINDER_MERGE && ctx->prompt) {
@@ -1916,7 +1906,6 @@ static SgObject cont_invoke_body(ContInvokeCtx *ctx)
        This is needed because `temporarily` swaps parameter values using
        the current parameterization, not the captured one. */
     if (!(ctx->op == CONT_OP_THROW &&
-          ctx->prompt &&
           ctx->cont &&
           ctx->cont->type == SG_COMPOSABLE_CONTINUATION)) {
       vm->marks = winder_marks;
@@ -3151,7 +3140,7 @@ SgObject Sg_VMThrowException(SgVM *vm, SgObject exception, int continuableP)
        here and escape from current C stack. If the run_loop procedure
        sees the flag, then it handles this call properly.
      */
-    void *data[2];
+    void **data = vm_new_cont(raise_cc, 2);
     data[0] = exception;
     if (continuableP) {
       data[1] = raise_continuable_proc;
@@ -3159,7 +3148,6 @@ SgObject Sg_VMThrowException(SgVM *vm, SgObject exception, int continuableP)
       data[1] = raise_proc;
     }
     vm->escapeReason = SG_VM_ESCAPE_RAISE;
-    Sg_VMPushCC(raise_cc, data, 2);
     longjmp(vm->cstack->jbuf, 1);
   }
   /* short cut, if there's no exception handlers, then we don't have to
@@ -3772,7 +3760,7 @@ static SgObject process_queued_requests_cc(SgObject result, void **data)
 
 static void process_queued_requests(SgVM *vm)
 {
-  void *data[3];
+  void **data = vm_new_cont(process_queued_requests_cc, 3);
   /* preserve the current continuation */
   data[0] = (void*)vm->ac;
   data[1] = (void*)(intptr_t)vm->valuesCount;
@@ -3786,8 +3774,6 @@ static void process_queued_requests(SgVM *vm)
   } else {
     data[2] = SG_NIL;
   }
-
-  Sg_VMPushCC(process_queued_requests_cc, data, 3);
   
   vm->attentionRequest = FALSE;
 
@@ -4185,7 +4171,7 @@ static void show_inst_count(void *data)
 # pragma warning( disable : 4102 4101)
 #endif
 
-SgObject run_loop()
+static INLINE SgObject run_loop()
 {
   SgVM *vm = Sg_VM();
 

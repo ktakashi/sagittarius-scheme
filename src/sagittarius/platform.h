@@ -67,6 +67,22 @@
 # define UNUSED(x) x
 #endif
 
+#ifndef INLINE
+# if defined(_MSC_VER)
+    /* Microsoft Visual C */
+#  define INLINE __inline
+# elif defined(__clang__) || defined(__GNUC__)
+    /* Clang or GCC */
+#  define INLINE inline __attribute__((always_inline))
+# elif defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L)
+    /* C99 / C11 */
+#  define INLINE inline
+# else
+    /* No inline support */
+#  define INLINE
+# endif
+#endif
+
 #include <stdint.h>
 
 /* Types */
