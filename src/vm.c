@@ -101,7 +101,7 @@ static inline SgObject make_box(SgObject value)
 }
 
 static SgObject evaluate_safe(SgObject program, SgWord *code);
-static INLINE SgObject run_loop();
+static SgObject run_loop();
 static INLINE void ** vm_new_cont(SgCContinuationProc *after, int datasize);
 
 static void vm_finalize(SgObject obj, void *data)
@@ -4171,7 +4171,7 @@ static void show_inst_count(void *data)
 # pragma warning( disable : 4102 4101)
 #endif
 
-static INLINE SgObject run_loop()
+static SgObject run_loop()
 {
   SgVM *vm = Sg_VM();
 
