@@ -1083,10 +1083,9 @@ static SgObject predicate_rec(SgObject c, SgClass *klass)
   } else if (SG_COMPOUND_CONDITIONP(c)) {
     SgObject cp = SG_COMPOUND_CONDITION(c)->components;
     if (!SG_NULLP(cp)) {
-      void *data[2];
+      void **data = Sg__VMPushCC(predicate_cc, 2);
       data[0] = klass;
       data[1] = SG_CDR(cp);
-      Sg_VMPushCC(predicate_cc, data, 2);
       return predicate_rec(SG_CAR(cp), klass);
     }
   }
@@ -1101,11 +1100,11 @@ static SgObject predicate_cc(SgObject result, void **data)
   if (!SG_FALSEP(result)) return SG_TRUE;
   else {
     SgObject c = SG_OBJ(data[1]);
-    void *next_data[2];
     if (SG_NULLP(c)) return SG_FALSE; /* no more */
+
+    void **next_data = Sg__VMPushCC(predicate_cc, 2);;
     next_data[0] = data[0];
     next_data[1] = SG_CDR(c);
-    Sg_VMPushCC(predicate_cc, next_data, 2);
     return predicate_rec(SG_CAR(c), SG_CLASS(data[0]));
   }
 }

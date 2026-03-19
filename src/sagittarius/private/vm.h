@@ -492,6 +492,8 @@ SG_EXTERN SgObject Sg_VMEnvironment(SgObject lib, SgObject spec);
 
 /* dynamic-wind */
 SG_EXTERN void     Sg_VMPushCC(SgCContinuationProc *after, void **data, int datasize);
+/* only for internal use, e.g. stub generation */
+SG_EXTERN SgObject* Sg__VMPushCC(SgCContinuationProc *after, int datasize);
 SG_EXTERN SgObject Sg_VMDynamicWind(SgObject before, SgObject thunk, SgObject after);
 /* c-friendly wrapper from Gauche */
 SG_EXTERN SgObject Sg_VMDynamicWindC(SgSubrProc *before, SgSubrProc *body, SgSubrProc *after, void *data);

@@ -724,14 +724,11 @@
 
   (define-cise-stmt dict-update!
     ((_ dict searcher xtractor cc set unwrap)
-     `(let ((e::SgDictEntry*)
-	    (data::(.array void* (2))))
+     `(let ((e::SgDictEntry*))
 	(set! e (,searcher (,xtractor ,dict) (cast intptr_t key)
 			   SG_DICT_CREATE 0))
 	(unless (-> e value) (cast void (,set ,dict e default)))
-	(set! (aref data 0) (cast void* e))
-	(set! (aref data 1) (cast void* ,dict))
-	(Sg_VMPushCC ,cc data 2)
+	(vm-push-cc ,cc (cast void* e) (cast void* ,dict))
 	(result (Sg_VMApply1 proc (,unwrap ,dict e))))))
   
   ;; update!
@@ -1818,10 +1815,8 @@
   (define-c-proc comparator-check-type (c::<comparator> obj) :constant
     (if (logand (-> c flags) SG_COMPARATOR_ANY_TYPE)
 	(result SG_TRUE)
-	(let* ([data::(.array void* (2))])
-	  (set! (aref data 0) c)
-	  (set! (aref data 1) obj)
-	  (Sg_VMPushCC comparator-check-type-cc data 2)
+	(begin
+	  (vm-push-cc comparator-check-type-cc c obj)
 	  (result (Sg_VMApply1 (-> c typeFn) obj)))))
 
   (define-c-proc comparator-equal? (c::<comparator> a b) :constant

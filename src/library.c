@@ -758,10 +758,9 @@ static SgObject vm_search_library_cc1(SgObject name, void **data)
     Sg_VMPushCC(vm_search_library_after, NULL, 0);
     return r;
   } else {
-    void *d[2];
+    void **d = Sg__VMPushCC(vm_search_library_cc0, 2);
     d[0] = data[1];		/* libname */
     d[1] = SG_CDR(data[2]);	/* paths */
-    Sg_VMPushCC(vm_search_library_cc0, d, 2);
     return name;
   }
 }
@@ -770,7 +769,6 @@ static SgObject vm_search_library_load_after(SgObject result, void **data)
 {
   SgVM *vm = Sg_VM();
   int state = (int)(intptr_t)data[5];
-  void *d[3];
 
   vm->flags = (int)(intptr_t)data[6];
   vm->currentLibrary = data[0];
@@ -778,10 +776,10 @@ static SgObject vm_search_library_load_after(SgObject result, void **data)
   if (state == RE_CACHE_NEEDED) {
     Sg_WriteCache(data[1], SG_CAAR(data[4]), Sg_ReverseX(SG_CAR(vm->cache)));
   }
+  void **d = Sg__VMPushCC(vm_search_library_cc1, 3);
   d[0] = data[3];		/* save */
   d[1] = data[2];		/* libname */
   d[2] = data[4];		/* paths */
-  Sg_VMPushCC(vm_search_library_cc1, d, 3);
       
   return data[1];		/* name */
 }
@@ -834,21 +832,19 @@ static SgObject vm_search_library_cc0(SgObject name, void **data)
   vm->cache = Sg_Cons(SG_NIL, vm->cache);
   state = Sg_ReadCache(path);
   if (state != CACHE_READ) {
-    void *d[6];
+    void **d = Sg__VMPushCC(vm_search_library_load, 6);
     d[0] = vm->currentLibrary;
     d[1] = name;
     d[2] = data[0];		/* libname */
     d[3] = (void *)(intptr_t)save;
     d[4] = paths;
     d[5] = (void *)(intptr_t)state;
-    Sg_VMPushCC(vm_search_library_load, d, 6);
     return name;
   } else {
-    void *d[3];
+    void **d = Sg__VMPushCC(vm_search_library_cc1, 3);;
     d[0] = (void *)(intptr_t)save;
     d[1] = data[0];
     d[2] = paths;
-    Sg_VMPushCC(vm_search_library_cc1, d, 3);
     return name;
   }
 
@@ -861,7 +857,6 @@ static SgObject vm_search_library(SgObject name, SgObject olibname)
 {
   SgObject libname = convert_name_to_symbol(name), paths;
   SgObject lib = Sg_HashTableRef(ALL_LIBRARIES, libname, SG_FALSE);
-  void *d[2];
   
   /* ok, easy case */
   if (!SG_FALSEP(lib)) {
@@ -876,9 +871,10 @@ static SgObject vm_search_library(SgObject name, SgObject olibname)
 
   /* ok, we make continuation per possible path */
   paths = get_possible_paths(Sg_VM(), name, TRUE);
+
+  void **d = Sg__VMPushCC(vm_search_library_cc0, 2);
   d[0] = libname;
   d[1] = paths;
-  Sg_VMPushCC(vm_search_library_cc0, d, 2);
   return name;			/* return name */
 }
 

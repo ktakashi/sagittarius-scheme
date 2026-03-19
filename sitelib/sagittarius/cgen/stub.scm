@@ -730,4 +730,23 @@
 	  (slot-ref type 'boxer)
 	  (slot-ref cvar 'c-expr)
 	  (if (slot-ref cvar 'constant) 'TRUE 'FALSE)))
+
+    ;; only stub
+  (define-cise-macro (vm-push-cc form env)    
+    (ensure-stmt-ctx form env)
+    (match form
+      ((_ after args ...)
+       (let ((n (length args))
+	     (name (cgen-gensym))
+	     (eenv (expr-env env)))
+	 (define (render i name arg) `(set! (aref ,name ,i) ,arg))
+	 `("void **" ,(render-rec name eenv)
+	   " = Sg__VMPushCC(" ,(render-rec after eenv) ","
+	   ,(render-rec n eenv) ");"
+	   ,@(do ((i 0 (+ i 1))
+		  (args args (cdr args))
+		  (r '() (cons ";" (cons (render-rec (render i name (car args)) eenv) r))))
+		 ((null? args)
+		  (reverse! r))))))))
+	       
 )

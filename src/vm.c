@@ -1103,6 +1103,11 @@ static INLINE void ** vm_new_cont(SgCContinuationProc *after, int datasize)
   return s;
 }
 
+SgObject* Sg__VMPushCC(SgCContinuationProc *after, int datasize)
+{
+  return vm_new_cont(after, datasize);
+}
+
 void Sg_VMPushCC(SgCContinuationProc *after, void **data, int datasize)
 {
   SgObject *s = vm_new_cont(after, datasize);
