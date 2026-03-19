@@ -755,7 +755,7 @@ static SgObject vm_search_library_cc1(SgObject name, void **data)
   if (!SG_FALSEP(r)) {
     if (!SG_FALSEP(SG_LIBRARY_DEFINEED(r)))
       SG_LIBRARY_DEFINEED(r) = SG_NIL;
-    Sg_VMPushCC(vm_search_library_after, NULL, 0);
+    Sg__VMPushCC(vm_search_library_after, 0);
     return r;
   } else {
     void **d = Sg__VMPushCC(vm_search_library_cc0, 2);
@@ -812,6 +812,7 @@ static SgObject vm_search_library_load(SgObject name, void **data)
   tport = Sg_MakeTranscodedPort(SG_PORT(bport), default_load_transcoder);
   Sg_ApplyDirective(tport, SG_CDAR(data[4]), &context);
 
+  /* here we still use Sg_VMPushCC, somehow I'm getting SEGV... */
   Sg_VMPushCC(vm_search_library_load_after, d, 7);
   return Sg_VMLoadFromPort(tport);
 }
@@ -849,7 +850,7 @@ static SgObject vm_search_library_cc0(SgObject name, void **data)
   }
 
  exit:
-  Sg_VMPushCC(vm_search_library_after, NULL, 0);
+  Sg__VMPushCC(vm_search_library_after, 0);
   return SG_FALSE;		/* failed to search */
 }
 

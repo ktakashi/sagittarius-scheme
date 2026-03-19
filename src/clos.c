@@ -930,16 +930,16 @@ static SgObject unpack_argument(SgObject proc, SgObject **oargs, int *oargc,
 static SgObject procedure_invoker(SgObject *args, int argc, void *data)
 {
   void **dvec = (void**)data;
-  SgObject proc;
   SgObject h = SG_NIL, t = SG_NIL;
-  void *next[3];
-  int i;
   /* retrive data */
-  proc = SG_CAR(SG_OBJ(dvec[0]));
+  SgObject proc = SG_CAR(SG_OBJ(dvec[0]));
+
   dvec[0] = SG_CDR(SG_OBJ(dvec[0]));
 
   ASSERT(SG_METHODP(proc));
+
   /* prepare call frame */
+  void **next = Sg__VMPushCC(invoke_cc, 3);
   next[0] = dvec;
   next[1] = SG_OBJ(args);
   next[2] = SG_OBJ((intptr_t)argc);
@@ -970,8 +970,8 @@ static SgObject procedure_invoker(SgObject *args, int argc, void *data)
     }
     dvec[2] = (void*)FALSE;
   }
-  Sg_VMPushCC(invoke_cc, next, 3);
-  for (i = 0; i < argc; i++) {
+
+  for (int i = 0; i < argc; i++) {
     SG_APPEND1(h, t, args[i]);
   }
   return Sg_VMApply(SG_METHOD_PROCEDURE(proc), h);
@@ -1216,9 +1216,9 @@ static SgObject slot_ref_rec(SgClass* klass, SgObject obj,
 			     SgObject name, int boundp)
 {
   SgSlotAccessor *accessor = lookup_slot_info(klass, name);
-  void *data[3];
   if (accessor) {
     if (accessor->getter) {
+      void *data[3];
       data[0] = obj;
       data[1] = name;
       data[2] = (void*)(intptr_t)boundp;
@@ -1226,23 +1226,23 @@ static SgObject slot_ref_rec(SgClass* klass, SgObject obj,
     } else {
       /* scheme accessor, assume obj is instance */
       if (boundp && SG_PROCEDUREP(accessor->boundP)) {
+	void **data = Sg__VMPushCC(slot_boundp_cc, 3);
 	data[0] = obj;
 	data[1] = name;
 	data[2] = (void*)(intptr_t)boundp;
-	Sg_VMPushCC(slot_boundp_cc, data, 3);
 	return Sg_VMApply1(accessor->boundP, obj);
       } else if (!SG_PROCEDUREP(accessor->getterS)) {
 	SgObject val = SG_INSTANCE(obj)->slots[accessor->index];
+	void *data[3];
 	data[0] = obj;
 	data[1] = name;
 	data[2] = (void*)(intptr_t)boundp;
 	return slot_ref_cc(val, data);
       } else {
-	/* Hope this will be removed by compiler... */
+	void **data = Sg__VMPushCC(slot_ref_cc, 3);
 	data[0] = obj;
 	data[1] = name;
 	data[2] = (void*)(intptr_t)boundp;
-	Sg_VMPushCC(slot_ref_cc, data, 3);
 	return Sg_VMApply1(accessor->getterS, obj);
       }
     }
@@ -1260,10 +1260,10 @@ SgObject Sg_VMSlotRef(SgObject obj, SgObject name)
 {
   SgClass *klass = Sg_ClassOf(obj);
   if (!SG_FALSEP(klass->redefined)) {
-    void *data[2];
+    void **data = Sg__VMPushCC(vmslot_ref_cc, 2);
     data[0] = obj;
     data[1] = name;
-    Sg_VMPushCC(vmslot_ref_cc, data, 2);
+    
     return redefine_instance_class(obj, klass);
   }
   return slot_ref_rec(klass, obj, name, FALSE);
@@ -1300,11 +1300,11 @@ SgObject Sg_VMSlotSet(SgObject obj, SgObject name, SgObject value)
 {
   SgClass *klass = Sg_ClassOf(obj);
   if (!SG_FALSEP(klass->redefined)) {
-    void *data[3];
+    void **data = Sg__VMPushCC(vmslot_set_cc, 3);
     data[0] = obj;
     data[1] = name;
     data[2] = value;
-    Sg_VMPushCC(vmslot_set_cc, data, 3);
+    
     return redefine_instance_class(obj, klass);
   }
   return slot_set_rec(klass, obj, name, value);
@@ -1409,10 +1409,10 @@ SgObject Sg_VMSlotBoundP(SgObject obj, SgObject slot)
 {
   SgClass *klass = Sg_ClassOf(obj);
   if (!SG_FALSEP(klass->redefined)) {
-    void *data[2];
+    void **data = Sg__VMPushCC(vmslot_boundp_cc, 2);
     data[0] = obj;
     data[1] = slot;
-    Sg_VMPushCC(vmslot_boundp_cc, data, 2);
+    
     return redefine_instance_class(obj, klass);
   }
   return slot_ref_rec(klass, obj, slot, TRUE);
@@ -1447,7 +1447,7 @@ SgObject Sg_VMClassOf(SgObject obj)
   /* for now */
   SgClass *klass = Sg_ClassOf(obj);
   if (!SG_FALSEP(klass->redefined)) {
-    Sg_VMPushCC(vmclassof_cc, NULL, 0);
+    Sg__VMPushCC(vmclassof_cc, 0);
     return redefine_instance_class(obj, klass);
   }
   return SG_OBJ(klass);
@@ -1463,10 +1463,10 @@ SgObject Sg_VMIsA(SgObject obj, SgClass *klass)
   /* for now */
   SgClass *k = Sg_ClassOf(obj);
   if (!SG_FALSEP(k->redefined)) {
-    void *data[2];
+    void **data = Sg__VMPushCC(vmisa_cc, 2);
     data[0] = obj;
     data[1] = klass;
-    Sg_VMPushCC(vmisa_cc, data, 2);
+    
     return redefine_instance_class(obj, k);
   }
   return SG_MAKE_BOOL(Sg_SubtypeP(k, klass));
@@ -2632,10 +2632,10 @@ SgObject Sg_VMSlotInitializeUsingAccessor(SgObject obj, SgObject acc,
     SgObject v = Sg_GetKeyword(SG_KEYWORD_INIT_THUNK, SG_CDR(slot),
 			       SG_UNDEF);
     if (!SG_UNDEFP(v)) {
-      void *data[2];
+      void **data = Sg__VMPushCC(slot_initialize_cc, 2);
       data[0] = obj;
       data[1] = ac;
-      Sg_VMPushCC(slot_initialize_cc, data, 2);
+      
       return Sg_VMApply0(v);
     }
   }
@@ -2648,12 +2648,11 @@ static SgObject object_initialize_cc(SgObject result, void **data);
 static SgObject object_initialize1(SgObject obj, SgObject slots,
 				   SgObject initargs)
 {
-  void *next[3];
   if (SG_NULLP(slots)) return obj;
+  void **next = Sg__VMPushCC(object_initialize_cc, 3);
   next[0] = obj;
   next[1] = SG_CDR(slots);
   next[2] = initargs;
-  Sg_VMPushCC(object_initialize_cc, next, 3);
   return Sg_VMSlotInitializeUsingAccessor(obj, SG_CAR(slots), initargs);
 }
 
