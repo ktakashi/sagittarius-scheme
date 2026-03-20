@@ -1,0 +1,168 @@
+#!/usr/bin/env sash
+;;; Sagittarius Benchmark Runner
+;;; Runs benchmarks and outputs timing in machine-readable format
+
+(import (rnrs)
+        (sagittarius)
+        (scheme repl))
+
+;; Determine the directory of this script
+(define script-dir
+  (let ((script-path (car (command-line))))
+    (let ((last-slash (let loop ((i (- (string-length script-path) 1)))
+                        (cond ((< i 0) #f)
+                              ((char=? (string-ref script-path i) #\/) i)
+                              (else (loop (- i 1)))))))
+      (if last-slash
+          (substring script-path 0 (+ last-slash 1))
+          "./"))))
+
+(define gambit-dir (string-append script-dir "gambit-benchmarks"))
+(add-load-path gambit-dir)
+
+;; Benchmark configurations: (name . iterations)
+(define benchmark-configs
+  '(;; GABRIEL benchmarks
+    (boyer     . 3)
+    (browse    . 120)
+    (cpstak    . 80)
+    (ctak      . 25)
+    (dderiv    . 160000)
+    (deriv     . 320000)
+    (destruc   . 100)
+    (diviter   . 200000)
+    (divrec    . 140000)
+    (puzzle    . 12)
+    (takl      . 35)
+    (triangl   . 1)
+    ;; ARITHMETIC benchmarks
+    (fft       . 200)
+    (fib       . 1)
+    (fibc      . 50)
+    (fibfp     . 1)
+    (mbrot     . 10)
+    (pnpoly    . 10000)
+    (sum       . 1000)
+    (sumfp     . 600)
+    (tak       . 200)
+    ;; MISCELLANEOUS benchmarks
+    (ack       . 1)
+    (conform   . 4)
+    (earley    . 20)
+    (graphs    . 15)
+    (mazefun   . 100) 
+    (nqueens   . 150)
+    (paraffins . 100)
+    (peval     . 20)
+    (scheme    . 3000)
+    (compiler  . 20)))
+
+;;; Compatibility definitions for gambit benchmarks
+(define exact->inexact inexact)
+(define inexact->exact exact)
+
+(define-syntax FLOATvector-const (syntax-rules () ((_ . lst) (list->vector 'lst))))
+(define-syntax FLOATvector? (syntax-rules () ((_ x) (vector? x))))
+(define-syntax FLOATvector (syntax-rules () ((_ . lst) (vector . lst))))
+(define-syntax FLOATmake-vector (syntax-rules () ((_ n . init) (make-vector n . init))))
+(define-syntax FLOATvector-ref (syntax-rules () ((_ v i) (vector-ref v i))))
+(define-syntax FLOATvector-set! (syntax-rules () ((_ v i x) (vector-set! v i x))))
+(define-syntax FLOATvector-length (syntax-rules () ((_ v) (vector-length v))))
+(define-syntax nuc-const (syntax-rules () ((_ . lst) (list->vector 'lst))))
+(define-syntax FLOAT+ (syntax-rules () ((_ . lst) (+ . lst))))
+(define-syntax FLOAT- (syntax-rules () ((_ . lst) (- . lst))))
+(define-syntax FLOAT* (syntax-rules () ((_ . lst) (* . lst))))
+(define-syntax FLOAT/ (syntax-rules () ((_ . lst) (/ . lst))))
+(define-syntax FLOAT= (syntax-rules () ((_ . lst) (= . lst))))
+(define-syntax FLOAT< (syntax-rules () ((_ . lst) (< . lst))))
+(define-syntax FLOAT<= (syntax-rules () ((_ . lst) (<= . lst))))
+(define-syntax FLOAT> (syntax-rules () ((_ . lst) (> . lst))))
+(define-syntax FLOAT>= (syntax-rules () ((_ . lst) (>= . lst))))
+(define-syntax FLOATnegative? (syntax-rules () ((_ x) (negative? x))))
+(define-syntax FLOATpositive? (syntax-rules () ((_ x) (positive? x))))
+(define-syntax FLOATzero? (syntax-rules () ((_ x) (zero? x))))
+(define-syntax FLOATabs (syntax-rules () ((_ x) (abs x))))
+(define-syntax FLOATsin (syntax-rules () ((_ x) (sin x))))
+(define-syntax FLOATcos (syntax-rules () ((_ x) (cos x))))
+(define-syntax FLOATatan (syntax-rules () ((_ x) (atan x))))
+(define-syntax FLOATsqrt (syntax-rules () ((_ x) (sqrt x))))
+(define-syntax FLOATmin (syntax-rules () ((_ . lst) (min . lst))))
+(define-syntax FLOATmax (syntax-rules () ((_ . lst) (max . lst))))
+(define-syntax FLOATround (syntax-rules () ((_ x) (round x))))
+(define-syntax FLOATinexact->exact (syntax-rules () ((_ x) (inexact x))))
+(define-syntax GENERIC+ (syntax-rules () ((_ . lst) (+ . lst))))
+(define-syntax GENERIC- (syntax-rules () ((_ . lst) (- . lst))))
+(define-syntax GENERIC* (syntax-rules () ((_ . lst) (* . lst))))
+(define-syntax GENERIC/ (syntax-rules () ((_ . lst) (/ . lst))))
+(define-syntax GENERICquotient (syntax-rules () ((_ x y) (quotient x y))))
+(define-syntax GENERICremainder (syntax-rules () ((_ x y) (remainder x y))))
+(define-syntax GENERICmodulo (syntax-rules () ((_ x y) (modulo x y))))
+(define-syntax GENERIC= (syntax-rules () ((_ . lst) (= . lst))))
+(define-syntax GENERIC< (syntax-rules () ((_ . lst) (< . lst))))
+(define-syntax GENERIC<= (syntax-rules () ((_ . lst) (<= . lst))))
+(define-syntax GENERIC> (syntax-rules () ((_ . lst) (> . lst))))
+(define-syntax GENERIC>= (syntax-rules () ((_ . lst) (>= . lst))))
+(define-syntax GENERICexpt (syntax-rules () ((_ x y) (expt x y))))
+
+(define (fatal-error . x)
+  (display "fatal-error: " (current-error-port))
+  (for-each (lambda (v) (display v (current-error-port))) x)
+  (newline (current-error-port))
+  (exit 1))
+
+(define (run-benchmark name count ok? run-maker . args)
+  (let ((run (apply run-maker args)))
+    (run-bench name count ok? run)))
+
+(define (run-bench name count ok? run)
+  (let loop ((i 0) (result (list 'undefined)))
+    (if (< i count)
+        (loop (+ i 1) (run))
+        result)))
+
+;; Run a single benchmark with timing
+(define (run-single-benchmark bench-name)
+  (let ((config (assq bench-name benchmark-configs)))
+    (unless config
+      (display "ERROR:Unknown benchmark:" (current-error-port))
+      (display bench-name (current-error-port))
+      (newline (current-error-port))
+      (exit 1))
+    (let* ((iterations (cdr config))
+           (bench-file (string-append gambit-dir "/" 
+                                      (symbol->string bench-name) ".scm"))
+           (iter-name (string->symbol (string-append (symbol->string bench-name) "-iters"))))
+      ;; Define the iteration count in the current environment
+      (eval `(define ,iter-name ,iterations) (interaction-environment))
+      ;; Load and run the benchmark with timing
+      (let-values (((real-start user-start sys-start) (time-usage)))
+        (load bench-file)
+        (let ((main-proc (eval 'main (interaction-environment))))
+          (main-proc))
+        (let-values (((real-end user-end sys-end) (time-usage)))
+          (let ((real-ms (* (- real-end real-start) 1000)))
+            (display "RESULT:")
+            (display bench-name)
+            (display ":")
+            (display (inexact real-ms))
+            (newline)
+            (flush-output-port (current-output-port))))))))
+
+;; List all available benchmarks
+(define (list-benchmarks)
+  (display "BENCHMARKS:")
+  (for-each (lambda (config)
+              (display " ")
+              (display (car config)))
+            benchmark-configs)
+  (newline))
+
+;; Main entry point
+(define args (cdr (command-line)))
+(cond
+ ((null? args)
+  (list-benchmarks))
+ ((string=? (car args) "--list")
+  (list-benchmarks))
+ (else
+  (run-single-benchmark (string->symbol (car args)))))
