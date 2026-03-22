@@ -14,7 +14,7 @@ Repository layout
   - `src/sagittarius/`: Header files
   - `*.stub`: Stub files that generate C code for Scheme-C bindings
 - `boot/`: Bootstrap code (compiler and core libraries)
-- `lib/`: Core Scheme library directory (rnrs, core, clos, compat)
+- `lib/`: Core Scheme library directory (rnrs, core, clos, compat, sagittarius)
 - `sitelib/`: Utility Scheme libraries (srfi, rfc, crypto, etc.)
 - `ext/`: Extension libraries with native C bindings
   - `threads/`, `socket/`, `crypto/`, `ffi/`, `zlib/`, etc.
@@ -206,6 +206,14 @@ Key source patterns
 - `lib_*.c` in `src/`: Generated from `lib_*.stub` or compiled Scheme
 - `*.stub` files: Define C-Scheme bindings using a macro DSL
 - Libraries follow R6RS/R7RS naming: `(library name)` maps to `library/name.scm`
+
+Scheme library dependencies
+---------------------------
+
+- `lib/` directory should only contain builtin libraries.
+  No `sitelib/` or `ext/**` dependencies
+- `ext/*/sagittarius/` directory should only be allowed to contain `lib/`.
+  Some exceptions are allowed (e.g. `(sagittarius crypto *)`)
 
 Environment variables
 ---------------------
