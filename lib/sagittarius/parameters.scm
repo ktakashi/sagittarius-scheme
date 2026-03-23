@@ -47,8 +47,6 @@
 	    (sagittarius)
 	    (sagittarius continuations))
 
-(define mark (list 0)) ;; unique mark
-
 (define (parameterize-value p v)
   (let ((val (parameter-convert p v)))
     (if (thread-parameter? p)
