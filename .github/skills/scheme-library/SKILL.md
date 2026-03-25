@@ -61,16 +61,16 @@ This guide provides best practices for developing Scheme libraries for Sagittari
 ### Library Form
 
 ```scheme
+#!nounbound
 (library (library-path name)
-    (export
-     procedure-1
-     procedure-2
-     <class-name>
-     +constant+)
+    (export procedure-1
+            procedure-2
+            <class-name>
+            +constant+)
     (import (rnrs)
             (other dependencies))
 
-  ;; Library implementation
+;; Library implementation
   
 )
 ```
@@ -80,16 +80,6 @@ This guide provides best practices for developing Scheme libraries for Sagittari
 - Library `(text json)` → file `sitelib/text/json.scm`
 - SRFI `(srfi :64 testing)` → file `sitelib/srfi/%3a64/testing.scm`
   - Note: `:` is encoded as `%3a` in filenames
-
-### Performance Directives
-
-For performance-critical code, add directives before the library form:
-
-```scheme
-#!core          ; Use core primitives directly
-#!nobacktrace   ; Disable backtrace information for speed
-#!nounbound     ; Assume all bindings are defined (skip unbound checks)
-```
 
 ## Testing
 

@@ -184,6 +184,51 @@
 (test-equal 25 (+ 1 (reset (* 2 (shift k1 (* 3 (shift k2 (k1 (k2 4)))))))))
 
 (let ()
+  (define run-with-state
+    (lambda (proc seed)
+      (define tag (make-continuation-prompt-tag))
+      (let f ((val seed)
+              (k (lambda ()
+                   (reset-at
+                    tag
+                    (call-with-values
+			(lambda ()
+			  (proc (lambda ()
+				  (shift-at tag k (lambda (g p f) (g k))))
+				(lambda (v)
+				  (shift-at tag k (lambda (g p f) (p k v))))))
+                      (lambda args
+			(lambda (g p f)
+			  (apply f args))))))))
+	((k)
+	 (lambda (k)
+           (f val (lambda () (k val))))
+	 (lambda (k new-val)
+           (f new-val k))
+	 values))))
+
+  (test-equal '(a b)
+	      (run-with-state
+	       (lambda (get put)
+		 (let ([x (get)])
+		   (put 'b)
+		   (list x (get))))
+	       'a))
+  
+  (test-equal '(a b c d)
+	      (run-with-state
+	       (lambda (get1 put1)
+		 (run-with-state
+		  (lambda (get2 put2)
+		    (let* ((x (get1))
+			   (y (get2)))
+		      (put1 'c)
+		      (put2 'd)
+		      (list x y (get1) (get2))))
+		  'b))
+	       'a)))
+
+(let ()
   (define call-with-non-composable-continuation call/delim-cc)
   (test-equal 990
 	      (let ([tag (make-continuation-prompt-tag)])
@@ -223,6 +268,14 @@
 (test-equal 8 (prompt (+ 5 (prompt (+ 2 (control k1 (+ 1 (control k2 (k1 6)))))))))
 (test-equal 18 (prompt
 		(+ 12 (prompt (+ 5 (prompt (+ 2 (control k1 (control k2 (control k3 (k3 6)))))))))))
+
+(let ((tag (make-continuation-prompt-tag)))
+  (test-equal 7 (prompt-at tag (+ 2 (control-at tag k (k 5)))))
+  (test-equal 5 (prompt-at tag (+ 2 (control-at tag k 5))))
+  (test-equal 12 (prompt-at tag
+		  (+ 5 (prompt-at tag 
+			 (+ 2 (control-at tag k1 
+				(+ 1 (control-at tag k2 (k2 6))))))))))
 
 (define-syntax let/prompt
   (syntax-rules ()

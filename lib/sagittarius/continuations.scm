@@ -59,8 +59,8 @@
 	    default-continuation-prompt-tag
 	    make-continuation-prompt-tag continuation-prompt-tag?
 
-	    shift reset
-	    prompt control)
+	    shift-at reset-at shift reset
+	    prompt-at control-at prompt control)
     (import (except (core) call/cc call-with-current-continuation)
 	    (core syntax)
 	    (core record)
@@ -235,40 +235,58 @@
 ;; (define-prompt-macros reset reset-at call-with-continuation-prompt)
 
 ;; ;; From SRFI-226 implementation
-(define-syntax reset
+(define-syntax reset-at
   (lambda (x)
     (syntax-case x ()
-      [(reset e1 e2 ...)
-       #'(call-with-continuation-prompt
-	  (lambda ()
-	    e1 e2 ...))])))
-
-(define-syntax shift
-  (lambda (x)
-    (syntax-case x ()
-      [(shift k e1 e2 ...)
-       #'(call-with-composable-continuation
-	  (lambda (c)
-            (define k (lambda args (reset (apply c args))))
-            (abort-current-continuation (default-continuation-prompt-tag)
-					(lambda () e1 e2 ...))))])))
-
-(define-syntax prompt
-  (lambda (x)
-    (syntax-case x ()
-      [(prompt e1 e2 ...)
+      ((_ prompt-tag e1 e2 ...)
        #'(call-with-continuation-prompt
 	  (lambda () e1 e2 ...)
-	  (default-continuation-prompt-tag)
-	  (lambda (thunk) (thunk)))])))
-  
-(define-syntax control
+	  prompt-tag)))))
+(define-syntax reset
+  (syntax-rules ()
+    ((_ e1 e2 ...)
+     (reset-at (default-continuation-prompt-tag) e1 e2 ...))))
+
+(define-syntax shift-at
   (lambda (x)
     (syntax-case x ()
-      [(control k e1 e2 ...)
-       #'(call-with-composable-continuation
-	  (lambda (k)
-	    (abort-current-continuation (default-continuation-prompt-tag)
-					(lambda () e1 e2 ...))))])))
+      ((_ prompt-tag k e1 e2 ...)
+       #'(let ((tag prompt-tag))
+	   (call-with-composable-continuation
+	    (lambda (c)
+              (define k (lambda args (reset (apply c args))))
+              (abort-current-continuation tag (lambda () e1 e2 ...)))
+	    tag))))))
+(define-syntax shift
+  (syntax-rules ()
+    ((_ k e1 e2 ...)
+     (shift-at (default-continuation-prompt-tag) k e1 e2 ...))))
+
+(define-syntax prompt-at
+  (lambda (x)
+    (syntax-case x ()
+      ((_ prompt-tag e1 e2 ...)
+       #'(call-with-continuation-prompt
+	  (lambda () e1 e2 ...)
+	  prompt-tag
+	  (lambda (thunk) (thunk)))))))
+(define-syntax prompt
+  (syntax-rules ()
+    ((_ e1 e2 ...)
+     (prompt-at (default-continuation-prompt-tag) e1 e2 ...))))
+
+(define-syntax control-at
+  (lambda (x)
+    (syntax-case x ()
+      ((_ prompt-tag k e1 e2 ...)
+       #'(let ((tag prompt-tag))
+	   (call-with-composable-continuation
+	    (lambda (k)
+	      (abort-current-continuation tag (lambda () e1 e2 ...)))
+	    tag))))))
+(define-syntax control
+  (syntax-rules ()
+    ((_ k e1 e2 ...)
+     (control-at (default-continuation-prompt-tag) k e1 e2 ...))))
 
 )
