@@ -710,15 +710,31 @@ static void init_cond_features()
 #undef EXT_FEATURE
 }
 
+static SgObject start_cc(SgObject tag, void **data)
+{
+  SgObject start = data[0];
+  SgObject args = data[1];
+  return Sg_VMCallCP(start, tag, SG_FALSE, args);
+}
+
+static SgObject start_rec(SgObject *argv, int argc, void *data)
+{
+  void **d = (void **)data;
+  SgObject tag = d[2];
+  Sg_VMPushCC(start_cc, d, 2);
+  return Sg_VMApply0(tag);
+}
+
 /* Starting point of the Sagittarius engine */
 void Sg_Start(SgObject fileOrPort, SgObject commandLine,
 	      const char *fmt, SgObject rest)
 {
   SgObject lib = Sg_FindLibrary(SG_INTERN("(core program)"), FALSE);
-  SgObject args = SG_NIL;
   SgObject start = Sg_FindBinding(lib, SG_INTERN("start"), SG_UNBOUND);
   
   if (SG_UNBOUNDP(start)) Sg_Panic("`start` is not found");
+
+  SgObject args = SG_NIL;
   if (SG_LISTP(rest)) {
     while (*fmt) {
       if (SG_NULLP(rest)) break;
@@ -738,8 +754,19 @@ void Sg_Start(SgObject fileOrPort, SgObject commandLine,
       }
     }
   }
-  Sg_Apply3(SG_GLOC_GET(SG_GLOC(start)), fileOrPort, commandLine, args);
-
+  SgObject slib = Sg_FindLibrary(SG_INTERN("(sagittarius)"), FALSE);
+  SgObject tag = Sg_FindBinding(slib,
+				SG_INTERN("default-continuation-prompt-tag"),
+				SG_UNBOUND);
+  if (SG_UNBOUNDP(tag))
+    Sg_Panic("`default-continuation-prompt-tag` is not found");
+  
+  void **data = SG_NEW_ARRAY(void *, 3);
+  data[0] = SG_GLOC_GET(SG_GLOC(start));
+  data[1] = SG_LIST3(fileOrPort, commandLine, args);
+  data[2] = SG_GLOC_GET(SG_GLOC(tag));
+  SgObject prepare_subr = Sg_MakeSubr(start_rec, data, 0, 0, SG_FALSE);
+  Sg_Apply0(prepare_subr);
 }
 /* somehow Visual Studio 2010 requires this to create dll.*/
 #ifdef _MSC_VER
