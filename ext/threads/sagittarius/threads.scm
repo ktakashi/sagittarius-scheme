@@ -63,14 +63,20 @@
 	    ;;current-time time? time->seconds seconds->time
 
 	    ;; exceptions
-	    join-timeout-exception? abandoned-mutex-exception?
-	    terminated-thread-exception? uncaught-exception?
-	    thread-interrupt-exception? ;; extra
+	    &thread-exception thread-exception? make-thread-exception
+	    &join-timeout-exception join-timeout-exception?
+	    make-join-timeout-exception
+	    &terminated-thread-exception terminated-thread-exception?
+	    make-terminated-thread-exception
+	    &abandoned-mutex-exception abandoned-mutex-exception?
+	    make-abandoned-mutex-exception
+	    &uncaught-exception uncaught-exception? make-uncaught-exception
+	    &thread-interrupt-exception thread-interrupt-exception? ;; extra
+
 	    thead-exception-thread
 	    abandoned-mutex-exception-mutex
 	    terminated-thread-exception-terminator
 	    uncaught-exception-reason
-	    make-uncaught-exception
 
 	    ;; semaphore
 	    semaphore? make-semaphore open-semaphore
@@ -101,6 +107,7 @@
   (initialize-builtin-condition &abandoned-mutex-exception &thread-exception mutex)
   (initialize-builtin-condition &terminated-thread-exception &thread-exception terminator)
   (initialize-builtin-condition &uncaught-exception &thread-exception reason)
+  (initialize-builtin-condition &thread-interrupt-exception &thread-exception)
   
   (define-condition-accessor thead-exception-thread
     &thread-exception &thread-exception-thread)
