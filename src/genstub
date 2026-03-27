@@ -98,7 +98,10 @@
 			(cgen-unit-toplevel-nodes unit))
 	    (if (memq :export-reader-macro oexports)
 		'(:export-reader-macro)
-		'())))
+		'())
+	    ;; added during C initialisation
+	    (cond ((assq :c-variables oexports) => cdr)
+		  (else '()))))
 
   (define (collect-macros)
     (filter macro? (hashtable-map

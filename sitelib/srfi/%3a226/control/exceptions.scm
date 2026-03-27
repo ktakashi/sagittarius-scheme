@@ -36,35 +36,31 @@
 	    raise-continuable
 	    guard
 	    else =>)
-    (import (except (rename (rnrs)
-			    (with-exception-handler %with-exception-handler)
-			    (raise-continuable %raise-continuable))
+    (import (except (rnrs)
+		    with-exception-handler
+		    raise-continuable
 		    guard)
-	    (sagittarius continuations))
-(define handler-stack-continuation-mark-key
-  (let ((mark-key (make-continuation-mark-key 'exception-handler)))
-    (lambda () mark-key)))
-(define (exception-handler-stack)
-  (continuation-mark-set-first (current-continuation-marks)
-			       (handler-stack-continuation-mark-key)))
+	    (sagittarius)
+	    (sagittarius continuations)
+	    (sagittarius parameters))
+
+(define (exception-handler-stack) (current-exception-handlers))
 (define (current-exception-handler) (car (exception-handler-stack)))
 (define (with-exception-handler handler thunk)
-  ;; Use both continuation marks (for SRFI-226 semantics) AND
-  ;; native R6RS handler (for C-level exceptions like thread-join!)
-  (with-continuation-mark (handler-stack-continuation-mark-key)
-      (cons handler (exception-handler-stack))
-    (%with-exception-handler handler thunk)))
+  (parameterize ((current-exception-handlers
+		  (cons handler (current-exception-handlers))))
+    (thunk)))
 
 (define-syntax guard
   (lambda (stx)
     (syntax-case stx ()
       [(_ (id c1 c2 ...) e1 e2 ...)
        (identifier? #'id)
-       #`(call-with-current-continuation
+       #`(call-with-delimited-current-continuation
 	  (lambda (guard-k)
 	    (with-exception-handler
 	     (lambda (c)
-	       (call-with-current-continuation
+	       (call-with-delimited-current-continuation
 		(lambda (handler-k)
 		  (call-in-continuation guard-k
 		   (lambda ()
@@ -101,11 +97,9 @@
       [_
        (syntax-violation 'guard "invalid syntax" stx)])))
 
-(define raise-continuable
-  (lambda (con)
-    ;; Use native raise-continuable which will invoke native exception handlers
-    ;; This works with our with-exception-handler that installs both
-    ;; continuation mark handlers and native handlers
-    (%raise-continuable con)))
+(define (raise-continuable con)
+  (let ((handler (current-exception-handler)))
+    (parameterize ((current-exception-handlers (cdr (exception-handler-stack))))
+      (handler con))))
 
 )

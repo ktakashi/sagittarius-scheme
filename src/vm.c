@@ -360,6 +360,15 @@ int Sg_RootVMP(SgVM *vm)
 
 #define Sg_VM() theVM
 
+/* parameter */
+static SgObject current_exception_handlers_parameter = SG_FALSE;
+static SgObject vm_exception_handlers(SgVM *vm)
+{
+  SgObject r;
+  SG_CALL_SUBR0(r, current_exception_handlers_parameter);
+  return r;
+}
+
 /* some convenient accessors */
 #define PC(vm)             (vm)->pc
 #define AC(vm)             (vm)->ac
@@ -1448,7 +1457,7 @@ SgObject Sg_VMWithErrorHandler(SgObject handler, SgObject thunk,
 
   c->prev = vm->escapePoint;
   c->ehandler = handler;
-  c->xhandler = vm->exceptionHandlers;
+  c->xhandler = vm_exception_handlers(vm);
   c->winders = vm->dynamicWinders;
   c->cstack = vm->cstack;
   c->cont = vm->cont;
@@ -3133,12 +3142,13 @@ SgObject Sg_VMAttachStackTrace(SgVM *vm, SgObject condition, int skipTop)
 SgObject Sg_VMThrowException(SgVM *vm, SgObject exception, int continuableP)
 {
   exception = Sg_VMAttachStackTrace(vm, exception, FALSE);
+  SgObject eh = vm_exception_handlers(vm);
   /* should never happen but I usually make mistake so lean to safer side. */
-  if (SG_NULLP(vm->exceptionHandlers)) {
-    vm->exceptionHandlers = DEFAULT_EXCEPTION_HANDLER;
+  if (SG_NULLP(eh)) {
+    eh = vm->exceptionHandlers = DEFAULT_EXCEPTION_HANDLER;
   }
 
-  if (vm->exceptionHandlers != DEFAULT_EXCEPTION_HANDLER) {
+  if (eh != DEFAULT_EXCEPTION_HANDLER) {
     /* 
        To avoid calling exception handers outside of current continuation
        (c.f. using Sg_Apply families), we need call raise/raise-continuable
@@ -4291,11 +4301,19 @@ static void set_current_error_port(UNUSED(SgObject x), SgObject value) {
   Sg_SetCurrentErrorPort(value);
 }
 
+static SgObject current_exception_handlers(UNUSED(SgObject x)) {
+  return Sg_VM()->exceptionHandlers;
+}
+
+static void set_current_exception_handlers(UNUSED(SgObject x), SgObject value) {
+  Sg_VM()->exceptionHandlers = value;
+}
 
 void Sg__PostInitVM()
 {
   SgObject lib = Sg_FindLibrary(SG_INTERN("(core errors)"), FALSE);
   SgObject clib = Sg_FindLibrary(SG_INTERN("(core)"), FALSE);
+  SgObject slib = Sg_FindLibrary(SG_INTERN("(sagittarius)"), FALSE);
   SgObject b = Sg_FindBinding(lib, SG_INTERN("raise"), SG_UNBOUND);
   if (SG_UNBOUNDP(b)) {
     Sg_Panic("`raise` was not found.");
@@ -4315,20 +4333,23 @@ void Sg__PostInitVM()
   }
   raise_continuable_proc = SG_GLOC_GET(SG_GLOC(b));
 
-#define ADD_PARAMETER(var, name, ref, set)			\
+#define ADD_PARAMETER(lib, var, name, ref, set)			\
   do {								\
     SgObject n__ = SG_INTERN(name);				\
     (var) = Sg_MakeCoreParameter(n__, SG_UNDEF, ref, set);	\
-    Sg_InsertBinding(clib, n__, var);				\
+    Sg_InsertBinding(lib, n__, var);				\
   } while (0)
 
-  ADD_PARAMETER(currentInputPort, "current-input-port",
+  ADD_PARAMETER(clib, currentInputPort, "current-input-port",
 		current_input_port, set_current_input_port);
-  ADD_PARAMETER(currentOutputPort, "current-output-port",
+  ADD_PARAMETER(clib, currentOutputPort, "current-output-port",
 		current_output_port, set_current_output_port);
-  ADD_PARAMETER(currentErrorPort, "current-error-port",
+  ADD_PARAMETER(clib, currentErrorPort, "current-error-port",
 		current_error_port, set_current_error_port);
-  
+  ADD_PARAMETER(slib, current_exception_handlers_parameter,
+		"current-exception-handlers",
+		current_exception_handlers, set_current_exception_handlers);
+
   lib = Sg_FindLibrary(SG_INTERN("(sagittarius compiler)"), FALSE);
   b = Sg_FindBinding(lib, SG_INTERN("init-compiler"), SG_UNBOUND);
   if (SG_UNBOUNDP(b)) {
