@@ -49,7 +49,7 @@
 	    continuation-mark-set?
 	    continuation-mark-set->list continuation-mark-set->list*
 	    current-continuation-marks
-	    continuation-mark-set-first
+	    continuation-mark-set-first continuation-mark-set->iterator
 	    call-with-immediate-continuation-mark
 
 	    call-in-continuation

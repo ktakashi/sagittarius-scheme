@@ -37,6 +37,7 @@
 	    current-parameterization
 	    parameterization? call-with-parameterization
 
+	    make-thread-local
 	    thread-local? <thread-local> tlref tlset!
 	    
 	    parameterize

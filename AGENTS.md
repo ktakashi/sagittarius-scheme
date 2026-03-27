@@ -228,3 +228,8 @@ Review checklist
 - All tests executed by `ctest` must pass
 - Run `./dist.sh gen` if stub or precompiled library files were modified
 - Rebuild after modifying C source files
+
+**IMPORTANT**
+-------------
+
+- Temporary files *MUST* be created in the workspace.

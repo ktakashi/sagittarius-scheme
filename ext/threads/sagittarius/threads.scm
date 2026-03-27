@@ -70,6 +70,7 @@
 	    abandoned-mutex-exception-mutex
 	    terminated-thread-exception-terminator
 	    uncaught-exception-reason
+	    make-uncaught-exception
 
 	    ;; semaphore
 	    semaphore? make-semaphore open-semaphore
