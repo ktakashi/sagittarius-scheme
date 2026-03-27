@@ -24,8 +24,9 @@
 (test-assert (continuation-prompt-tag? (default-continuation-prompt-tag)))
 (test-assert (continuation-prompt-tag? (make-continuation-prompt-tag)))
 
-(test-error continuation-violation? (call/comp values))
-(test-error continuation-violation? (call/delim-cc values))
+(let ((tag (make-continuation-prompt-tag)))
+  (test-error continuation-violation? (call/comp values tag))
+  (test-error continuation-violation? (call/delim-cc values tag)))
 
 (let ((p1 (make-continuation-prompt-tag 'p1)))
   (define (check)
@@ -287,7 +288,7 @@
 	(let ((var val) ...) body ...))
       tag))))
 
-(let/prompt ()
+(let ()
   (define call-with-non-composable-continuation call/delim-cc)
   (define tag (make-continuation-prompt-tag))
   (call-with-continuation-prompt
@@ -363,7 +364,7 @@
  )
 
 (test-equal '((1 3 5) . 11)
-	    (let/prompt ([res '()])
+	    (let ([res '()])
               (define put!
 		(lambda (obj)
 		  (set! res (cons obj res))))
