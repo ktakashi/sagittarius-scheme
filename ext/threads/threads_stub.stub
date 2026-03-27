@@ -30,10 +30,10 @@
 ;; thread is VM
 (define-c-proc thread? (obj) ::<boolean> :constant SG_VMP)
 
-(define-c-proc make-thread (thunk::<procedure> 
-			    :optional (name (Sg_Gensym 
-					     (SG_STRING
-					      (SG_MAKE_STRING "thread-")))))
+(define-c-proc %make-thread (thunk::<procedure> 
+			     :optional (name (Sg_Gensym 
+					      (SG_STRING
+					       (SG_MAKE_STRING "thread-")))))
   
   Sg_MakeThread)
 

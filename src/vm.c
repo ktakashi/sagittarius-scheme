@@ -2701,7 +2701,8 @@ SgObject Sg_VMCallCP(SgObject proc, SgObject tag,
   CHECK_STACK(CONT_FRAME_SIZE, vm);
   PUSH_PROMPT_CONT(vm, prompt);
   install_prompt(vm, prompt);
-  
+
+  if (SG_NULLP(args)) return Sg_VMApply0(proc);
   return Sg_VMApply(proc, args);
 }
 
@@ -3808,6 +3809,8 @@ static void process_queued_requests(SgVM *vm)
 
 #define RET_INSN()						\
   do {								\
+    /* skip the prompt_frame here */				\
+    CONT(vm) = skip_prompt_frame(vm);				\
     if (CONT(vm) == NULL || BOUNDARY_FRAME_MARK_P(CONT(vm))) {	\
       /* no more continuation */				\
       return AC(vm);						\

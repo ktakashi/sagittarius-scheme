@@ -110,6 +110,9 @@
   (define-condition-accessor uncaught-exception-reason
     &uncaught-exception &uncaught-exception-reason)
 
+  (define (make-thread thunk :optional (name (gensym "thread-")))
+    (%make-thread (lambda () (call/prompt thunk)) name))
+  
   ;; NB: actually, we can make mutex recursively by default.
   ;;     I'm not sure if it's a good proposal or not, so for now,
   ;;     like this.
