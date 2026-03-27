@@ -50,9 +50,10 @@
       (apply-directive! port 'r6rs *r6rs-read-context*)
       (let loop ((e (read-with-context port rc)) (r '()))
 	(if (eof-object? e)
-	    (begin
-	      (eval `(program . ,(reverse! r)) (environment '(r6rs-script)))
-	      (exit))
+	    (call/prompt
+	     (lambda ()
+	       (eval `(program . ,(reverse! r)) (environment '(r6rs-script)))
+	       (exit)))
 	    (loop (read-with-context port rc) (cons e r))))))
   
   (define (script file/port prompt opt)
@@ -88,19 +89,20 @@
 	(apply-directive! in 'r7rs *r6rs-read-context*)
 	;; put cond-expand into the environment
 	(eval '(import (only (sagittarius) cond-expand)) #f)
-	(load-from-port in)))
+	(load-from-port/prompt in)))
     
     (cond ((assq :preimports opt) =>
 	   (lambda (preimports) (for-each import-it (cdr preimports)))))
     (cond ((assq :expressions opt) =>
 	   (lambda (expr)
 	     (call-with-port (open-string-input-port (cdr expr))
-	       load-from-port))))
+	       load-from-port/prompt))))
       
     (if file/port
 	(let ((exit-code (cond ((eq? prompt 'r7rs) (load-r7rs file/port))
-			       ((port? file/port) (load-from-port file/port))
-			       (else (load file/port)))))
+			       ((port? file/port)
+				(load-from-port/prompt file/port))
+			       (else (load/prompt file/port)))))
 	  (or (and-let* ((main? (assq :main? opt))
 			 ( (cdr main?) )
 			 (main (find-binding (current-library) 'main #f))

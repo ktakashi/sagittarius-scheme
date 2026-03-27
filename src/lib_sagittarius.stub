@@ -278,8 +278,8 @@
     (path::<string> paths :optional (suffix::<string> #f) (raise::<boolean> #f))
     (result (Sg_FindFile path paths (?: (SG_FALSEP #f) NULL suffix)
 			 (not raise))))
-  
-  (define (load path)
+  (define (load path) (load/prompt path #f))
+  (define (load/prompt path :optional (tag (default-continuation-prompt-tag)))
     (define (ensure-path path)
       (if (file-exists? path)
 	  path
@@ -288,7 +288,7 @@
     (let* ((real-path (ensure-path path))
 	   (in (open-file-input-port real-path #f
 				     'block (*current-load-transcoder*))))
-      (load-from-port in)))
+      (load-from-port/prompt in tag)))
   ;; for performance
   (define-c-proc make-read-context-for-load () Sg_MakeReadContextForLoad)
   (define-c-proc usec-time-usage ()
@@ -298,7 +298,9 @@
 	  (result (Sg_Values3 (Sg_MakeIntegerFromU64 r)
 			      (Sg_MakeIntegerFromU64 u)
 			      (Sg_MakeIntegerFromU64 s))))))
-  (define (load-from-port port)
+  (define (load-from-port port) (load-from-port/prompt port #f))
+
+  (define (load-from-port/prompt port :optional (tag (default-continuation-prompt-tag)))
     (let ((saved-port (current-loading-port))
 	  (saved-flag (vm-load-flags))
 	  (rc (make-read-context-for-load)))
@@ -316,7 +318,9 @@
 	    (if (eof-object? expr)
 		#t
 		(begin
-		  (eval expr #f)
+		  (if tag
+		      (call/prompt (lambda () (eval expr #f)) tag)
+		      (eval expr #f))
 		  (loop))))))
       (*current-loading-port* port)
       (vm-load-flags #f)

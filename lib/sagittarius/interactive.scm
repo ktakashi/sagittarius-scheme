@@ -2,7 +2,7 @@
 ;;;
 ;;; interactive.scm - REPL
 ;;;  
-;;;   Copyright (c) 2010-2013  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2026  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -35,6 +35,7 @@
 
 ;; not to create scope with let-syntax ...
 ;;#!r6rs
+#!nounbound
 (library (sagittarius interactive)
     (export read-eval-print-loop
 	    current-printer
@@ -95,7 +96,8 @@
 		    (define param (make-parameter* param name)))))))))
 
     (define-parameter (exception-printer c out) (report-error c out))
-    (define-parameter (evaluator form env) (eval form env))
+    (define-parameter (evaluator form env)
+      (call/prompt (lambda () (eval form env))))
     (define-parameter (printer . args)
       (for-each (lambda (o) (write/ss o) (newline)) args))
     (define-parameter (reader in) (read-with-context in *read-context*))
