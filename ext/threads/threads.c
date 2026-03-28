@@ -109,7 +109,9 @@ static void* thread_entry(void *data)
       default:
 	Sg_Panic("unknown escape");
       case SG_VM_ESCAPE_ERROR:
-	exc = Sg_MakeUncaughtException(vm, SG_OBJ(vm->escapeData[1]));
+	exc = Sg_Condition(SG_LIST2(Sg_MakeMessageCondition(SG_MAKE_STRING("uncaught condition")),
+				    Sg_MakeUncaughtException(vm, SG_OBJ(vm->escapeData[1]))));
+	exc = Sg_VMAttachStackTrace(vm, exc, TRUE);
 	vm->result = exc;
 	vm->threadErrorP = TRUE;
 	break;

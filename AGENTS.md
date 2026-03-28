@@ -232,4 +232,4 @@ Review checklist
 **IMPORTANT**
 -------------
 
-- Temporary files *MUST* be created in the workspace.
+- MUST use only the worksapce. DON'T use outside of the directory.
