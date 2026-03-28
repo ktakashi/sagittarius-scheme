@@ -41,10 +41,12 @@
 	    force
 	    make-promise
 	    promise?)
-    (import (rnrs)
+    (import (except (rnrs) guard)
 	    (rnrs mutable-pairs)
 	    (sagittarius parameters)
 	    (except (sagittarius continuations) with-continuation-marks)
+	    ;; Import SRFI-226 guard for proper exception handling with prompts
+	    (only (srfi :226 control exceptions) guard raise-continuable)
 	    ;; Import uncaught-exception from threads to use consistent type
 	    (srfi :226 control threads))
 
