@@ -1889,6 +1889,9 @@
       (result (Sg_VMCallInCont (cast SgContinuation* (SG_CAR data))
 			       (cast SgPrompt* (SG_CDR data))
 			       proc args))))
+
+  (define-c-proc %call-in-initial-continuation (thunk::<procedure>) :no-export
+    Sg_VMCallInInitialContinuation)
   
   (define-c-proc call-with-immediate-continuation-mark 
     (key proc::<procedure> :optional (default #f))
@@ -1948,6 +1951,9 @@
 
   (define (call-in-continuation (k continuation?) proc . args)
     (%call-in-continuation k proc args))
+
+  (define (call-in-initial-continuation thunk)
+    (%call-in-initial-continuation (lambda () (call/prompt thunk))))
   
   (define (current-parameterization)
     (or (%current-parameterization) (make-parameterization)))

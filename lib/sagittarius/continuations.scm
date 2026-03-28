@@ -52,7 +52,7 @@
 	    continuation-mark-set-first continuation-mark-set->iterator
 	    call-with-immediate-continuation-mark
 
-	    call-in-continuation
+	    call-in-continuation call-in-initial-continuation
 
 	    make-continuation-mark-key continuation-mark-key?
 

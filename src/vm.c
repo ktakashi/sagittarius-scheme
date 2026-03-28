@@ -3547,6 +3547,63 @@ SgObject Sg_VMCallInCont(SgContinuation *c, SgPrompt *prompt, SgObject proc, SgO
   return call_in_cont_body(handlers, c, proc, args, prompt);
 }
 
+/*
+  call-in-initial-continuation implementation.
+  
+  Runs thunk in a "clean" execution context:
+  - Cleared marks (except parameterization)
+  - No winders
+  - No visible prompts
+  
+  Uses continuation chain to properly save/restore state without
+  blocking the VM loop.
+*/
+static SgObject initial_cont_restore_cc(SgObject result, void **data)
+{
+  SgVM *vm = Sg_VM();
+
+  vm->marks = (SgContMarks *)data[0];
+  vm->dynamicWinders = (SgObject)data[1];
+  vm->prompts = (SgPromptNode *)data[2];
+  
+  return result;
+}
+
+SgObject Sg_VMCallInInitialContinuation(SgObject thunk)
+{
+  SgVM *vm = theVM;
+  SgObject param_key = Sg_ParameterizationContinuationMarkKey();
+  SgObject parameterization = Sg_CurrentParameterization();
+  
+  /* Create fresh marks with only parameterization */
+  SgContMarks *fresh_marks = SG_NEW(SgContMarks);
+  fresh_marks->frame = NULL;
+  fresh_marks->prev = NULL;
+  
+  if (!SG_FALSEP(parameterization)) {
+    SgMarkEntry *param_entry = SG_NEW(SgMarkEntry);
+    param_entry->key = param_key;
+    param_entry->value = parameterization;
+    param_entry->next = NULL;
+    fresh_marks->entries = param_entry;
+  } else {
+    fresh_marks->entries = NULL;
+  }
+  void **data = vm_new_cont(initial_cont_restore_cc, 3);
+  data[0] = vm->marks;
+  data[1] = vm->dynamicWinders;
+  data[2] = vm->prompts;
+  
+  /* Set up clean context */
+  vm->marks = fresh_marks;
+  vm->dynamicWinders = SG_NIL;
+  vm->prompts = NULL;
+  
+  /* Push continuation to restore state when thunk returns */
+  /* Call thunk - VM will handle the rest */
+  return Sg_VMApply0(thunk);
+}
+
 SgObject evaluate_safe(SgObject program, SgWord *code)
 {
   SgCStack cstack;

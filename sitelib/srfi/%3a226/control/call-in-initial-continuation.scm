@@ -39,30 +39,23 @@
 	    ;; Initial continuation
 	    call-in-initial-continuation)
     (import (rnrs)
-	    (rename (sagittarius threads)
-		    (uncaught-exception? %uncaught-exception?)
-		    (uncaught-exception-reason %uncaught-exception-reason))
-	    (sagittarius parameters)
+	    (rename (sagittarius continuations)
+		    (call-in-initial-continuation %call-in-initial-continuation))
 	    ;; Import uncaught-exception from threads to use consistent type
 	    (srfi :226 control threads))
 
 ;; call-in-initial-continuation runs thunk in a fresh continuation context
-;; while preserving the current parameterization
-;; FIXME: using thread is too expensive for this...
+;; while preserving the current parameterization.
+;;
+;; Implementation:
+;; 1. %call-in-initial-continuation clears marks (except parameterization),
+;;    winders, and prompts via C binding
+;; 2. Install a default prompt so call/cc works inside
+;; 3. Wrap uncaught exceptions in uncaught-exception-condition
 (define (call-in-initial-continuation thunk)
-  (let ((ps (current-parameterization)))
-    ;; Create and run a thread to get fresh continuation context
-    ;; The thread preserves parameterization but has no continuation marks
-    (let ((t (make-thread
-	      (lambda ()
-		(call-with-parameterization ps thunk)))))
-      (thread-start! t)
-      ;; Catch uncaught-exception from thread and re-raise as continuable
-      ;; so exception handlers can return replacement values
-      (guard (e
-	      ((%uncaught-exception? e)
-	       (raise-continuable (make-uncaught-exception-condition
-				   (%uncaught-exception-reason e)))))
-	(thread-join! t)))))
+  (guard (e (else
+	     ;; Re-raise as continuable uncaught-exception-condition
+	     (raise-continuable (make-uncaught-exception-condition e))))
+    (%call-in-initial-continuation thunk)))
 
 )
