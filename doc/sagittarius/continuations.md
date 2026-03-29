@@ -17,6 +17,14 @@ Returns `#t` if the given _obj_ is a continuation object, otherwise `#f`.
 
 NOTE: a continuation object is also a procedure.
 
+###### [!Function] `composable-continuation?` _obj_
+
+Returns `#t` if the given _obj_ is a composable continuation object,
+otherwise `#f`.
+
+If the _obj_ is a composable continuation, then it is also a
+continuation object.
+
 ###### [!Function] `call-with-continuation-prompt` _proc_ :optional _tag_ _abort-handler_ :rest _args_
 ###### [!Function] `call/prompt` _proc_ :optional _tag_ _abort-handler_ :rest _args_
 
@@ -75,6 +83,13 @@ For example, the script below shows `1,3,2,3` instead of `1,3`
 If the _tag_ is not specified, then `(default-continuation-prompt-tag)` is used.
 
 If the prompt is not found, then it raises an error.
+
+###### [!Function] `call-with-delimited-current-continuation` _proc_ :optional _tag_
+###### [!Function] `call/delim-cc` _proc_ :optional _tag_
+
+Similar to `call-with-current-continuation`, though it only captures
+the continuation up until the given _tag_.
+
 
 ###### [!Function] `continuation-prompt-tag?` _obj_
 
