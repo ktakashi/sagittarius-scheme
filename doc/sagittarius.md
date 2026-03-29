@@ -1048,12 +1048,18 @@ Evaluate _expr_ and shows time usage.
 
 The macro return the result of _expr_.
 
+* @[[sagittarius/atomic.md](sagittarius/atomic.md)]
+* @[[sagittarius/continuations.md](sagittarius/continuations.md)]
 * @[[sagittarius/control.md](sagittarius/control.md)]
+* @[[sagittarius/crypto.md](sagittarius/crypto.md)]
+* @[[sagittarius/debug.md](sagittarius/debug.md)]
 * @[[sagittarius/ffi.md](sagittarius/ffi.md)]
 * @[[sagittarius/filewatch.md](sagittarius/filewatch.md)]
+* @[[sagittarius/generators.md](sagittarius/generators.md)]
 * @[[sagittarius/io.md](sagittarius/io.md)]
 * @[[sagittarius/mop.md](sagittarius/mop.md)]
 * @[[sagittarius/object.md](sagittarius/object.md)]
+* @[[sagittarius/pam.md](sagittarius/pam.md)]
 * @[[sagittarius/process.md](sagittarius/process.md)]
 * @[[sagittarius/pty.md](sagittarius/pty.md)]
 * @[[sagittarius/reader.md](sagittarius/reader.md)]
@@ -1062,8 +1068,3 @@ The macro return the result of _expr_.
 * @[[sagittarius/socket.md](sagittarius/socket.md)]
 * @[[sagittarius/threads.md](sagittarius/threads.md)]
 * @[[sagittarius/timezone.md](sagittarius/timezone.md)]
-* @[[sagittarius/debug.md](sagittarius/debug.md)]
-* @[[sagittarius/generators.md](sagittarius/generators.md)]
-* @[[sagittarius/crypto.md](sagittarius/crypto.md)]
-* @[[sagittarius/atomic.md](sagittarius/atomic.md)]
-* @[[sagittarius/pam.md](sagittarius/pam.md)]
