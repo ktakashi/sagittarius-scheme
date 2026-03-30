@@ -22,17 +22,19 @@
 ;; CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 ;; SOFTWARE.
 
-(import (rnrs)
+(import (except (rnrs)
+		guard call-with-current-continuation call/cc
+		raise raise-continuable with-exception-handler)
         (srfi :226 control)
 	(srfi :64 testing))
 
 (define-syntax test
-  (syntax-rules (values)
-    ((_ (values v ...) expr)
-     (let-values ((r expr))
-       (test-equal 'expr (list v ...) r)))
-    ((_ expected expr)
-     (test-equal expected (call/prompt (lambda () expr))))))
+  (syntax-rules ()
+    ((_ expected-expr expr)
+     (let-values ((expected expected-expr)
+		  (result (call/prompt (lambda () expr))))
+       ;;(print 'expected-expr 'expr)
+       (test-equal 'expr expected result)))))
 
 ;;; Helpers
 
@@ -412,7 +414,6 @@
              (raise-continuable 991))))
 
 ;;; Initial Continuations
-
 (test #f (with-continuation-mark 'key 'mark
            (call-in-initial-continuation
             (lambda ()

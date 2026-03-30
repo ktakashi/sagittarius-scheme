@@ -141,6 +141,8 @@
 	(begin
 	  (set! (-> (Sg_VM) exceptionHandlers) handler)
 	  (result SG_UNDEF))))
+  (define-c-proc current-exception-handlers-mark ()
+    Sg_CurrentExceptionHandlersMark)
   ;; misc
   (define-c-proc variable? (o) ::<boolean> :constant
     (result (or (SG_SYMBOLP o) (SG_IDENTIFIERP o))))

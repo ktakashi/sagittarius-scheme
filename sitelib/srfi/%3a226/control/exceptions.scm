@@ -32,7 +32,7 @@
 (library (srfi :226 control exceptions)
     (export with-exception-handler
 	    exception-handler-stack
-	    raise
+	    (rename (%raise raise))
 	    raise-continuable
 	    guard
 	    else =>)
@@ -47,8 +47,8 @@
 (define (exception-handler-stack) (current-exception-handlers))
 (define (current-exception-handler) (car (exception-handler-stack)))
 (define (with-exception-handler handler thunk)
-  (parameterize ((current-exception-handlers
-		  (cons handler (current-exception-handlers))))
+  (with-continuation-mark (current-exception-handlers-mark)
+      (cons handler (current-exception-handlers))
     (thunk)))
 
 (define-syntax guard
@@ -56,11 +56,11 @@
     (syntax-case stx ()
       [(_ (id c1 c2 ...) e1 e2 ...)
        (identifier? #'id)
-       #`(call-with-delimited-current-continuation
+       #`(call-with-current-continuation
 	  (lambda (guard-k)
 	    (with-exception-handler
 	     (lambda (c)
-	       (call-with-delimited-current-continuation
+	       (call-with-current-continuation
 		(lambda (handler-k)
 		  (call-in-continuation guard-k
 		   (lambda ()
@@ -99,7 +99,20 @@
 
 (define (raise-continuable con)
   (let ((handler (current-exception-handler)))
-    (parameterize ((current-exception-handlers (cdr (exception-handler-stack))))
+    (with-continuation-mark (current-exception-handlers-mark)
+	(cdr (exception-handler-stack))
       (handler con))))
+
+(define (%raise con)
+  (when (null? (current-exception-handler))
+    (abort/cc (default-continuation-prompt-tag) (lambda () (raise con))))
+  (let f ((con con))
+    (let ((handler (current-exception-handler)))
+      (with-continuation-mark (current-exception-handlers-mark)
+	  (cdr (exception-handler-stack))
+	(handler con)
+	(f (condition (make-who-condition 'raise)
+		      (make-message-condition "returned from non-continuable")
+		      (make-non-continuable-violation)))))))
 
 )

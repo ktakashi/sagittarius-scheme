@@ -360,13 +360,39 @@ int Sg_RootVMP(SgVM *vm)
 
 #define Sg_VM() theVM
 
+static inline void vm_add_cont_marks(SgVM *vm, SgObject entries);
+
+static SgObject ceh_mark = SG_FALSE;
+static SgObject ceh_rec(SgObject *args, int argc, void *data)
+{
+  SgMarkEntry *e = Sg_CurrentFirstContinuationMark(SG_FALSE, ceh_mark);
+  SgVM *vm = Sg_VM();
+  if (SG_NULLP(args[0])) {
+    if (e) return e->value;
+    return vm->exceptionHandlers;
+  } else {
+    if (e) {
+      SgObject *v = Sg_MakeVector(1, Sg_Cons(ceh_mark, SG_CAR(args[0])));
+      vm_add_cont_marks(Sg_VM(), v);
+    } else {
+      vm->exceptionHandlers = SG_CAR(args[0]);
+    }
+    return SG_UNDEF;
+  }
+}
 /* parameter */
-static SgObject current_exception_handlers_parameter = SG_FALSE;
+static SG_DEFINE_SUBR(current_exception_handlers_subr, 0, 1, ceh_rec,
+		      SG_FALSE, NULL);
 static SgObject vm_exception_handlers(SgVM *vm)
 {
   SgObject r;
-  SG_CALL_SUBR0(r, current_exception_handlers_parameter);
+  SG_CALL_SUBR0(r, &current_exception_handlers_subr);
   return r;
+}
+
+SgObject Sg_CurrentExceptionHandlersMark()
+{
+  return ceh_mark;
 }
 
 /* some convenient accessors */
@@ -1643,7 +1669,7 @@ static SgPromptNode *insert_prompt(SgVM *vm, SgPromptNode *node,
   return n;
 }
 
-static SgPromptNode *search_prompt_node(SgVM *vm, SgObject tag)
+static inline SgPromptNode *search_prompt_node(SgVM *vm, SgObject tag)
 {
   SgPromptNode *node = vm->prompts;
   
@@ -2735,9 +2761,8 @@ SgObject Sg_VMCallCB(SgObject thunk)
 
 /* this will be wrapped by the with-continuation-mark macro
    entries is a vector of pairs: #((key1 . value1) (key2 . value2) ...) */
-SgObject Sg_VMCallCM(SgObject entries, SgObject thunk)
+static inline void vm_add_cont_marks(SgVM *vm, SgObject entries)
 {
-  SgVM *vm = theVM;
   long i, len = SG_VECTOR_SIZE(entries);
   
   /* If the current mark frame is associated with a prompt frame,
@@ -2777,6 +2802,11 @@ SgObject Sg_VMCallCM(SgObject entries, SgObject thunk)
       vm->marks->entries = e;
     }
   }
+}
+
+SgObject Sg_VMCallCM(SgObject entries, SgObject thunk)
+{
+  vm_add_cont_marks(Sg_VM(), entries);
   return Sg_VMApply0(thunk);
 }
 
@@ -2830,27 +2860,21 @@ int Sg_ContinuationMarkSetP(SgObject o)
     SG_VECTOR_ELEMENT(o, 0) == cont_mark_set_sym;
 }
 
-static SgObject continuation_marks(SgContFrame *cont,
+#define FOR_EACH_ENTRY(entry)					\
+  for (; (entry); (entry) = (entry)->next)
+
+static SgObject continuation_marks(SgVM *vm,
+				   SgContFrame *cont,
 				   SgContMarks *marks,
 				   SgObject tag)
 {
   SgObject r;
   SgObject frames = SG_NIL;
   SgContMarks *cur = marks;
-  SgVM *vm = theVM;
   SgPromptNode *prompt_node = NULL;
 
   /* Find the prompt node for the given tag to determine the boundary */
-  if (!SG_FALSEP(tag)) {
-    SgPromptNode *node = vm->prompts;
-    while (node) {
-      if (node->prompt->tag == tag) {
-	prompt_node = node;
-	break;
-      }
-      node = node->next;
-    }
-  }
+  if (!SG_FALSEP(tag)) prompt_node = search_prompt_node(vm, tag);
 
   /* Collect marks from each frame.
      When we encounter the prompt boundary frame, we include its marks
@@ -2861,9 +2885,8 @@ static SgObject continuation_marks(SgContFrame *cont,
     SgObject frame_marks = SG_NIL;
     SgObject tail = SG_NIL;
     int is_prompt_boundary = (prompt_node && cur->frame == prompt_node->frame);
-    
     /* Collect all entries in this frame, preserving order (most recent first) */
-    while (entry) {
+    FOR_EACH_ENTRY(entry) {
       SgObject pair = Sg_Cons(Sg_Cons(entry->key, entry->value), SG_NIL);
       if (SG_NULLP(frame_marks)) {
 	frame_marks = tail = pair;
@@ -2871,7 +2894,6 @@ static SgObject continuation_marks(SgContFrame *cont,
 	SG_SET_CDR(tail, pair);
 	tail = pair;
       }
-      entry = entry->next;
     }
     
     /* Add this frame even if empty (needed for
@@ -2909,13 +2931,58 @@ SgObject Sg_ContinuationMarks(SgObject k, SgObject tag)
 				    k, SG_NIL);
   }
   c = SG_CAR(SG_SUBR_DATA(k));
-  return continuation_marks(c->cont, c->marks, tag);
+  return continuation_marks(theVM, c->cont, c->marks, tag);
 }
 
 SgObject Sg_CurrentContinuationMarks(SgObject tag)
 {
   SgVM *vm = theVM;
-  return continuation_marks(vm->cont, vm->marks, tag);
+  return continuation_marks(vm, vm->cont, vm->marks, tag);
+}
+
+static SgMarkEntry * first_continuation_mark(SgVM *vm,
+					     SgContFrame *cont,
+					     SgContMarks *marks,
+					     SgObject tag,
+					     SgObject key)
+{
+  SgContMarks *cur = marks;
+  SgPromptNode *prompt_node = NULL;
+  /* Find the prompt node for the given tag to determine the boundary */
+  if (!SG_FALSEP(tag)) prompt_node = search_prompt_node(vm, tag);
+
+  while (cur) {
+    SgMarkEntry *entry = cur->entries;
+    int is_prompt_boundary = (prompt_node && cur->frame == prompt_node->frame);
+    /* Collect all entries in this frame, preserving order (most recent first) */
+    FOR_EACH_ENTRY(entry) {
+      if (entry->key == key) return entry;
+    }
+    /* If this was the prompt boundary, stop */
+    if (is_prompt_boundary) return NULL;
+    
+    cur = cur->prev;
+  }
+  return NULL;
+}
+
+SgMarkEntry * Sg_FirstContinuationMark(SgObject k, SgObject promptTag,
+				       SgObject key)
+{
+  SgContinuation *c;
+  if (!Sg_ContinuationP(k)) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("continuation-marks"),
+				    SG_MAKE_STRING("continuation"),
+				    k, SG_NIL);
+  }
+  c = SG_CAR(SG_SUBR_DATA(k));
+  return first_continuation_mark(Sg_VM(), c->cont, c->marks, promptTag, key);
+}
+
+SgMarkEntry * Sg_CurrentFirstContinuationMark(SgObject promptTag, SgObject key)
+{
+  SgVM *vm = theVM;
+  return first_continuation_mark(vm, vm->cont, vm->marks, promptTag, key);
 }
 
 /* given load path must be unshifted.
@@ -4358,14 +4425,6 @@ static void set_current_error_port(UNUSED(SgObject x), SgObject value) {
   Sg_SetCurrentErrorPort(value);
 }
 
-static SgObject current_exception_handlers(UNUSED(SgObject x)) {
-  return Sg_VM()->exceptionHandlers;
-}
-
-static void set_current_exception_handlers(UNUSED(SgObject x), SgObject value) {
-  Sg_VM()->exceptionHandlers = value;
-}
-
 void Sg__PostInitVM()
 {
   SgObject lib = Sg_FindLibrary(SG_INTERN("(core errors)"), FALSE);
@@ -4403,9 +4462,10 @@ void Sg__PostInitVM()
 		current_output_port, set_current_output_port);
   ADD_PARAMETER(clib, currentErrorPort, "current-error-port",
 		current_error_port, set_current_error_port);
-  ADD_PARAMETER(slib, current_exception_handlers_parameter,
-		"current-exception-handlers",
-		current_exception_handlers, set_current_exception_handlers);
+  SgObject n = SG_INTERN("current-exception-handlers");
+  SG_PROCEDURE_NAME(&current_exception_handlers_subr) = n;
+  Sg_InsertBinding(slib, n, &current_exception_handlers_subr);
+  ceh_mark = SG_GENSYM("current-exception-handlers-mark");
 
   lib = Sg_FindLibrary(SG_INTERN("(sagittarius compiler)"), FALSE);
   b = Sg_FindBinding(lib, SG_INTERN("init-compiler"), SG_UNBOUND);
