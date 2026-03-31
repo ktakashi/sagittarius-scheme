@@ -752,7 +752,8 @@ void Sg_ReportErrorInternal(volatile SgObject e, SgObject out)
   }
   SG_VM_RUNTIME_FLAG_SET(vm, SG_ERROR_BEING_REPORTED);
   SG_UNWIND_PROTECT {
-    if (Sg_MainThreadP()) {
+    if (Sg_MainThreadP() &&
+	!SG_VM_RUNTIME_FLAG_IS_SET(vm, SG_ERROR_BEING_HANDLED)) {
       Sg_FlushAllPort(FALSE);
       Sg_ReportError(e, out);
     }
@@ -3261,7 +3262,7 @@ void Sg_VMDefaultExceptionHandler(SgObject e)
 {
   SgVM *vm = Sg_VM();
   SgContinuation *c = vm->escapePoint;
-  
+
   if (c) {
     SgObject result = SG_FALSE, dvals[DEFAULT_VALUES_SIZE], *rvals;
     int valscount = 0, i, ext_count = 0;
@@ -3621,21 +3622,14 @@ SgObject Sg_VMCallInCont(SgContinuation *c, SgPrompt *prompt, SgObject proc, SgO
   - Cleared marks (except parameterization)
   - No winders
   - No visible prompts
-  
-  Uses continuation chain to properly save/restore state without
-  blocking the VM loop.
+
+  We don't use Sg_VMApply0 here to keep the context of
+  the `thunk` isolated, means the execution will be done
+  in the virtually the initial context, i.e. all the
+  continuations, metadata or others are reset to the
+  *initial* state. This is conceptially the same as
+  executing the `thunk` in a different thread.
 */
-static SgObject initial_cont_restore_cc(SgObject result, void **data)
-{
-  SgVM *vm = Sg_VM();
-
-  vm->marks = (SgContMarks *)data[0];
-  vm->dynamicWinders = (SgObject)data[1];
-  vm->prompts = (SgPromptNode *)data[2];
-  
-  return result;
-}
-
 SgObject Sg_VMCallInInitialContinuation(SgObject thunk)
 {
   SgVM *vm = theVM;
@@ -3656,19 +3650,56 @@ SgObject Sg_VMCallInInitialContinuation(SgObject thunk)
   } else {
     fresh_marks->entries = NULL;
   }
-  void **data = vm_new_cont(initial_cont_restore_cc, 3);
-  data[0] = vm->marks;
-  data[1] = vm->dynamicWinders;
-  data[2] = vm->prompts;
-  
-  /* Set up clean context */
+  /* save the partial continuation to heap */
+  save_cont(vm);
+  SgContMarks *saved_marks = vm->marks;
+  SgObject saved_winders = vm->dynamicWinders;
+  SgPromptNode *saved_prompts= vm->prompts;
+  SgContFrame *saved_cont = vm->cont;
+  SgObject saved_exception_handlers = vm->exceptionHandlers;
+  SgObject saved_cl = vm->cl;
+
+  /* Set up clean context, incl. continuations */
   vm->marks = fresh_marks;
   vm->dynamicWinders = SG_NIL;
   vm->prompts = NULL;
+  vm->exceptionHandlers = DEFAULT_EXCEPTION_HANDLER;
+  vm->fp = vm->sp = vm->stack;
+  vm->cont = (SgContFrame *)vm->sp;
+  vm->cl = NULL;
+  SG_VM_RUNTIME_FLAG_SET(vm, SG_ERROR_BEING_HANDLED);
   
-  /* Push continuation to restore state when thunk returns */
-  /* Call thunk - VM will handle the rest */
-  return Sg_VMApply0(thunk);
+  SgObject r;
+  int errorP = FALSE;
+
+  SG_UNWIND_PROTECT {
+    r = Sg_Apply0(thunk);
+  } SG_WHEN_ERROR {
+    errorP = TRUE;
+    switch (vm->escapeReason) {
+    case SG_VM_ESCAPE_ERROR:
+      r = vm->escapeData[1];
+      break;
+    default:
+      r = SG_UNDEF;
+      break;
+    }
+    vm->escapeReason = SG_VM_ESCAPE_NONE; /* reset */
+  } SG_END_PROTECT;
+  SG_VM_RUNTIME_FLAG_CLEAR(vm, SG_ERROR_BEING_HANDLED);
+  /* restor */
+  vm->marks = saved_marks;
+  vm->dynamicWinders = saved_winders;
+  vm->prompts = saved_prompts;
+  vm->exceptionHandlers = saved_exception_handlers;
+  vm->cont = saved_cont;
+  vm->cl = saved_cl;
+  /* virtually this C function is the same as Sg_VM* series */
+  vm->ac = r;
+  vm->pc = PC_TO_RETURN;
+
+  if (errorP) r = Sg_Raise(r, FALSE);
+  return r;
 }
 
 SgObject evaluate_safe(SgObject program, SgWord *code)

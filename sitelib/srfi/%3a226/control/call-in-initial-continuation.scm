@@ -38,10 +38,11 @@
 	    
 	    ;; Initial continuation
 	    call-in-initial-continuation)
-    (import (except (rnrs) guard raise-continuable)
+    (import (except (rnrs) guard raise-continuable raise)
 	    (rename (sagittarius continuations)
 		    (call-in-initial-continuation %call-in-initial-continuation))
 	    ;; Import uncaught-exception from threads to use consistent type
+	    (only (sagittarius) current-exception-handlers)
 	    (srfi :226 control exceptions)
 	    (srfi :226 control threads))
 
@@ -54,9 +55,6 @@
 ;; 2. Install a default prompt so call/cc works inside
 ;; 3. Wrap uncaught exceptions in uncaught-exception-condition
 (define (call-in-initial-continuation thunk)
-  (with-exception-handler
-   (lambda (con)
-     (raise-continuable (make-uncaught-exception-condition con)))
-   (lambda () (%call-in-initial-continuation thunk))))
-
+  (guard (e (else (raise-continuable (make-uncaught-exception-condition e))))
+    (%call-in-initial-continuation thunk)))
 )
