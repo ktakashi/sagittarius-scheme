@@ -106,7 +106,7 @@
 		      (thread-local-default tl)))
 (define (tlset! tl obj)
   (weak-hashtable-set! (current-dynamic-environment) tl obj
-		       (or (and (thread-local-inheritable? tl)
+		       (or (and (not (thread-local-inheritable? tl))
 				*dictionary-transient-entry*)
 			   0)))
 
