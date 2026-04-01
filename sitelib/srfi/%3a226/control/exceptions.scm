@@ -51,51 +51,77 @@
       (cons handler (current-exception-handlers))
     (thunk)))
 
+;; Continuation mark key for detecting intervening prompts
+(define %guard-mark-key (make-continuation-mark-key 'guard))
+
+;; Helper:
+;; return value from guard clause via thunk, respecting intervening prompts
+;; Takes a thunk rather than a value so the expression is evaluated in the
+;; right context.
+;; Logic:
+;; - If mark visible: no blocking prompt, use call-in-continuation
+;; - If mark NOT visible but default prompt available: user prompt blocks,
+;;   abort through it
+;; - If mark NOT visible and no default prompt: marks were cleared,
+;;   use call-in-continuation
+(define (%guard-return guard-k thunk)
+  (cond
+   ((continuation-mark-set-first #f %guard-mark-key)
+    ;; Mark visible - no blocking prompt, use call-in-continuation
+    (call-in-continuation guard-k thunk))
+   ((continuation-prompt-available? (default-continuation-prompt-tag))
+    ;; Mark not visible but prompt available - there's a blocking prompt,
+    ;; abort through it
+    (abort/cc (default-continuation-prompt-tag) thunk))
+   (else
+    ;; Mark not visible and no prompt - marks were cleared, use
+    ;; call-in-continuation
+    (call-in-continuation guard-k thunk))))
+
 (define-syntax guard
   (lambda (stx)
     (syntax-case stx ()
-      [(_ (id c1 c2 ...) e1 e2 ...)
+      ((_ (id c1 c2 ...) e1 e2 ...)
        (identifier? #'id)
        #`(call-with-current-continuation
 	  (lambda (guard-k)
-	    (with-exception-handler
-	     (lambda (c)
-	       (call-with-current-continuation
-		(lambda (handler-k)
-		  (call-in-continuation guard-k
-		   (lambda ()
-		     (let ([id c])
-		       #,(let f ([c1 #'c1] [c2* #'(c2 ...)])
-			   (syntax-case c2* ()
-			     [()
-			      (with-syntax
-				  ([rest
-				    #'(call-in-continuation handler-k
-					(lambda () (raise-continuable c)))])
-				(syntax-case c1 (else =>)
-				  [(else e1 e2 ...)
-				   #'(begin e1 e2 ...)]
-				  [(e0) #'e0]
-				  [(e0 => e1)
-				   #'(let ([t e0]) (if t (e1 t) rest))]
-				  [(e0 e1 e2 ...)
-				   #'(if e0
-					 (begin e1 e2 ...)
-					 rest)]))]
-			     [(c2 c3 ...)
-			      (with-syntax ([rest (f #'c2 #'(c3 ...))])
-				(syntax-case c1 (=>)
-				  [(e0) #'(let ([t e0]) (if t t rest))]
-				  [(e0 => e1)
-				   #'(let ([t e0]) (if t (e1 t) rest))]
-				  [(e0 e1 e2 ...)
-				   #'(if e0
-					 (begin e1 e2 ...)
-					 rest)]))]))))))))
-	     (lambda ()
-	       e1 e2 ...))))]
-      [_
-       (syntax-violation 'guard "invalid syntax" stx)])))
+	    (with-continuation-mark %guard-mark-key #t
+	      (with-exception-handler
+	       (lambda (c)
+		 (call-with-current-continuation
+		  (lambda (handler-k)
+		    (let ((id c))
+		      #,(let f ((c1 #'c1) (c2* #'(c2 ...)))
+			  (syntax-case c2* ()
+			    (()
+			     (with-syntax
+				 ((rest
+				   #'(call-in-continuation handler-k
+				       (lambda () (raise-continuable c)))))
+			       (syntax-case c1 (else =>)
+				 ((else e1 e2 ...)
+				  #'(%guard-return guard-k (lambda () e1 e2 ...)))
+				 ((e0) #'(%guard-return guard-k (lambda () e0)))
+				 ((e0 => e1)
+				  #'(let ((t e0)) (if t (%guard-return guard-k (lambda () (e1 t))) rest)))
+				 ((e0 e1 e2 ...)
+				  #'(if e0
+					(%guard-return guard-k (lambda () e1 e2 ...))
+					rest)))))
+			    ((c2 c3 ...)
+			     (with-syntax ((rest (f #'c2 #'(c3 ...))))
+			       (syntax-case c1 (=>)
+				 ((e0) #'(let ((t e0)) (if t (%guard-return guard-k (lambda () t)) rest)))
+				 ((e0 => e1)
+				  #'(let ((t e0)) (if t (%guard-return guard-k (lambda () (e1 t))) rest)))
+				 ((e0 e1 e2 ...)
+				  #'(if e0
+					(%guard-return guard-k (lambda () e1 e2 ...))
+					rest)))))))))))
+	       (lambda ()
+		 e1 e2 ...))))))
+      (_
+       (syntax-violation 'guard "invalid syntax" stx)))))
 
 (define (raise-continuable con)
   (let ((handler (current-exception-handler)))
