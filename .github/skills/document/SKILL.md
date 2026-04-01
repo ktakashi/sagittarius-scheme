@@ -81,6 +81,48 @@ Example code inclusion
 
 The code inclusion must specify the title and path.
 
+Writing Style Guidelines
+========================
+
+When writing documentation for Sagittarius libraries, follow these guidelines:
+
+Content Guidelines
+------------------
+
+- **Keep descriptions short and concise**: Focus on essential information.
+  Avoid lengthy explanations unless necessary for understanding.
+
+- **Omit obvious examples**: Do not provide examples for self-explanatory
+  procedures, such as predicates (`foo?`) or simple getters/setters.
+
+- **Externalize long examples**: If an example exceeds 15 lines, create
+  a file in the appropriate `example/` subdirectory and use the example
+  code inclusion syntax instead of embedding it inline.
+
+- **All examples must run**: Every code example in the documentation must
+  be executable and produce the expected output. Test each example using
+  the Sagittarius interpreter before finalizing the documentation:
+  
+  ```shell
+  ./build/sagittarius -Llib -Lsitelib -L'ext/*' -Dbuild test-example.scm
+  ```
+  
+  If an example requires extensions that may not be available (e.g., threads),
+  simplify the example to demonstrate the concept without those dependencies.
+
+Example placement
+-----------------
+
+For long examples:
+
+1. Create an appropriate directory under `example/` if it doesn't exist
+2. Write the example code in a `.scm` file
+3. Use the example code inclusion syntax in the documentation:
+
+```markdown
+* @[-[Title describing the example](example/category/example-name.scm)]
+```
+
 Build the document
 ==================
 
