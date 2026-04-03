@@ -649,12 +649,30 @@
          (+ 1 (reset (* 2 (shift k (k (k 4))))))
          (+ 1 (reset (* 2 (shift k1 (* 3 (shift k2 (k1 (k2 4))))))))))
 (test '(7 5 12 8 18)
-      (list
+      (let ()
+	(define-syntax prompt
+          (syntax-rules ()
+            [(prompt e1 e2 ...)
+             (call-with-continuation-prompt
+              (lambda ()
+                e1 e2 ...)
+              (default-continuation-prompt-tag)
+              (lambda (thunk)
+                (thunk)))]))
+        (define-syntax control
+          (syntax-rules ()
+            [(control k e1 e2 ...)
+             (call-with-composable-continuation
+              (lambda (k)
+                (abort-current-continuation (default-continuation-prompt-tag)
+                  (lambda ()
+                    e1 e2 ...))))]))
+	(list
          (prompt (+ 2 (control k (k 5))))
          (prompt (+ 2 (control k 5)))
          (prompt (+ 5 (prompt (+ 2 (control k1 (+ 1 (control k2 (k2 6))))))))
          (prompt (+ 5 (prompt (+ 2 (control k1 (+ 1 (control k2 (k1 6))))))))
-         (prompt (+ 12 (prompt (+ 5 (prompt (+ 2 (control k1 (control k2 (control k3 (k3 6))))))))))))
+         (prompt (+ 12 (prompt (+ 5 (prompt (+ 2 (control k1 (control k2 (control k3 (k3 6)))))))))))))
 
 (test #t (continuation? (call/cc values)))
 (test #t (continuation? (call-with-composable-continuation values)))

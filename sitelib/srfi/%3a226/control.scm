@@ -1,6 +1,6 @@
 ;;; -*- mode:scheme; coding:utf-8 -*-
 ;;;
-;;; srfi/%3a226/control.scm - SRFI-226 Control Operators
+;;; srfi/%3a226/control.scm - SRFI-226 Control Features
 ;;;
 ;;;   Copyright (c) 2026  Takashi Kato  <ktakashi@ymail.com>
 ;;;
@@ -63,10 +63,6 @@
 
 	    ;; From shift-reset
 	    shift reset shift-at reset-at
-	    control prompt control-at prompt-at
-
-	    ;; From inspection
-	    ;; (continuation? and non-composable-continuation? from continuations)
 
 	    ;; From continuation-marks
 	    with-continuation-mark
