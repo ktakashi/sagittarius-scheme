@@ -1,0 +1,144 @@
+;;; -*- mode:scheme; coding:utf-8 -*-
+;;;
+;;; srfi/%3a226/control/exceptions.scm - SRFI-226 exceptions
+;;;
+;;;   Copyright (c) 2026  Takashi Kato  <ktakashi@ymail.com>
+;;;
+;;;   Redistribution and use in source and binary forms, with or without
+;;;   modification, are permitted provided that the following conditions
+;;;   are met:
+;;;
+;;;   1. Redistributions of source code must retain the above copyright
+;;;      notice, this list of conditions and the following disclaimer.
+;;;
+;;;   2. Redistributions in binary form must reproduce the above copyright
+;;;      notice, this list of conditions and the following disclaimer in the
+;;;      documentation and/or other materials provided with the distribution.
+;;;
+;;;   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+;;;   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+;;;   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+;;;   A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+;;;   OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+;;;   SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+;;;   TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+;;;   PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+;;;   LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+;;;   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+;;;
+
+#!nounbound
+(library (srfi :226 control exceptions)
+    (export with-exception-handler
+	    exception-handler-stack
+	    (rename (%raise raise))
+	    raise-continuable
+	    guard
+	    else =>)
+    (import (except (rnrs)
+		    with-exception-handler
+		    raise-continuable
+		    guard)
+	    (sagittarius)
+	    (sagittarius continuations)
+	    (sagittarius parameters))
+
+(define (exception-handler-stack) (current-exception-handlers))
+(define (current-exception-handler) (car (exception-handler-stack)))
+(define (with-exception-handler handler thunk)
+  (with-continuation-mark (current-exception-handlers-mark)
+      (cons handler (current-exception-handlers))
+    (thunk)))
+
+;; Continuation mark key for detecting intervening prompts
+(define %guard-mark-key (make-continuation-mark-key 'guard))
+
+;; Helper:
+;; return value from guard clause via thunk, respecting intervening prompts
+;; Takes a thunk rather than a value so the expression is evaluated in the
+;; right context.
+;; Logic:
+;; - If mark visible: no blocking prompt, use call-in-continuation
+;; - If mark NOT visible but default prompt available: user prompt blocks,
+;;   abort through it
+;; - If mark NOT visible and no default prompt: marks were cleared,
+;;   use call-in-continuation
+(define (%guard-return guard-k thunk)
+  (cond
+   ((continuation-mark-set-first #f %guard-mark-key)
+    ;; Mark visible - no blocking prompt, use call-in-continuation
+    (call-in-continuation guard-k thunk))
+   ((continuation-prompt-available? (default-continuation-prompt-tag))
+    ;; Mark not visible but prompt available - there's a blocking prompt,
+    ;; abort through it
+    (abort/cc (default-continuation-prompt-tag) thunk))
+   (else
+    ;; Mark not visible and no prompt - marks were cleared, use
+    ;; call-in-continuation
+    (call-in-continuation guard-k thunk))))
+
+(define-syntax guard
+  (lambda (stx)
+    (syntax-case stx ()
+      ((_ (id c1 c2 ...) e1 e2 ...)
+       (identifier? #'id)
+       #`(call-with-current-continuation
+	  (lambda (guard-k)
+	    (with-continuation-mark %guard-mark-key #t
+	      (with-exception-handler
+	       (lambda (c)
+		 (call-with-current-continuation
+		  (lambda (handler-k)
+		    (let ((id c))
+		      #,(let f ((c1 #'c1) (c2* #'(c2 ...)))
+			  (syntax-case c2* ()
+			    (()
+			     (with-syntax
+				 ((rest
+				   #'(call-in-continuation handler-k
+				       (lambda () (raise-continuable c)))))
+			       (syntax-case c1 (else =>)
+				 ((else e1 e2 ...)
+				  #'(%guard-return guard-k (lambda () e1 e2 ...)))
+				 ((e0) #'(%guard-return guard-k (lambda () e0)))
+				 ((e0 => e1)
+				  #'(let ((t e0)) (if t (%guard-return guard-k (lambda () (e1 t))) rest)))
+				 ((e0 e1 e2 ...)
+				  #'(if e0
+					(%guard-return guard-k (lambda () e1 e2 ...))
+					rest)))))
+			    ((c2 c3 ...)
+			     (with-syntax ((rest (f #'c2 #'(c3 ...))))
+			       (syntax-case c1 (=>)
+				 ((e0) #'(let ((t e0)) (if t (%guard-return guard-k (lambda () t)) rest)))
+				 ((e0 => e1)
+				  #'(let ((t e0)) (if t (%guard-return guard-k (lambda () (e1 t))) rest)))
+				 ((e0 e1 e2 ...)
+				  #'(if e0
+					(%guard-return guard-k (lambda () e1 e2 ...))
+					rest)))))))))))
+	       (lambda ()
+		 e1 e2 ...))))))
+      (_
+       (syntax-violation 'guard "invalid syntax" stx)))))
+
+(define (raise-continuable con)
+  (let ((handler (current-exception-handler)))
+    (with-continuation-mark (current-exception-handlers-mark)
+	(cdr (exception-handler-stack))
+      (handler con))))
+
+(define (%raise con)
+  (when (null? (current-exception-handler))
+    (abort/cc (default-continuation-prompt-tag) (lambda () (raise con))))
+  (let f ((con con))
+    (let ((handler (current-exception-handler)))
+      (with-continuation-mark (current-exception-handlers-mark)
+	  (cdr (exception-handler-stack))
+	(handler con)
+	(f (condition (make-who-condition 'raise)
+		      (make-message-condition "returned from non-continuable")
+		      (make-non-continuable-violation)))))))
+
+)

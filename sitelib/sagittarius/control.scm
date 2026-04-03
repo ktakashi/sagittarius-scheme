@@ -240,13 +240,10 @@
     (lambda (x)
       (syntax-case x ()
 	((_ body handler ...)
-	 #'(let ((h (lambda () handler ...)))
-	     (receive r (with-error-handler
-			  (lambda (e) (h) (raise e))
-			  (lambda () body)
-			  #t)
-	       (h)
-	       (apply values r))))
+	 #'(dynamic-wind
+	       values
+	       (lambda () (call-with-continuation-barrier (lambda () body)))
+	       (lambda () handler ...)))
 	(_ (syntax-violation 'unwind-protect
 			     "malformed unwind-protect" (unwrap-syntax x))))))
 

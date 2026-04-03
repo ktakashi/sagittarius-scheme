@@ -26,7 +26,8 @@
 ;;  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;
 (library (sagittarius)
-    (export :only-bindings)
+    (export :only-bindings
+	    (:c-variables current-exception-handlers))
     (import (core))
 
   (decl-code
@@ -129,7 +130,7 @@
     :no-side-effect
     (result (Sg_VectorReverseX (Sg_VectorCopy vec 0 -1 SG_UNBOUND) start end)))
 
-  (define-c-proc current-exception-handlers (:optional handler)
+  #;(define-c-proc current-exception-handlers (:optional handler)
     ;; Don't raise an error here, in case of this type of this
     ;;   (current-exception-handler (list (lambda (e) #t)))
     ;; above case is actually not recommended but it's allowed
@@ -140,6 +141,8 @@
 	(begin
 	  (set! (-> (Sg_VM) exceptionHandlers) handler)
 	  (result SG_UNDEF))))
+  (define-c-proc current-exception-handlers-mark ()
+    Sg_CurrentExceptionHandlersMark)
   ;; misc
   (define-c-proc variable? (o) ::<boolean> :constant
     (result (or (SG_SYMBOLP o) (SG_IDENTIFIERP o))))
@@ -1888,6 +1891,9 @@
       (result (Sg_VMCallInCont (cast SgContinuation* (SG_CAR data))
 			       (cast SgPrompt* (SG_CDR data))
 			       proc args))))
+
+  (define-c-proc %call-in-initial-continuation (thunk::<procedure>) :no-export
+    Sg_VMCallInInitialContinuation)
   
   (define-c-proc call-with-immediate-continuation-mark 
     (key proc::<procedure> :optional (default #f))
@@ -1947,6 +1953,9 @@
 
   (define (call-in-continuation (k continuation?) proc . args)
     (%call-in-continuation k proc args))
+
+  (define (call-in-initial-continuation thunk)
+    (%call-in-initial-continuation (lambda () (call/prompt thunk))))
   
   (define (current-parameterization)
     (or (%current-parameterization) (make-parameterization)))

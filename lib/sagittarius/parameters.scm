@@ -106,7 +106,7 @@
 		      (thread-local-default tl)))
 (define (tlset! tl obj)
   (weak-hashtable-set! (current-dynamic-environment) tl obj
-		       (or (and (thread-local-inheritable? tl)
+		       (or (and (not (thread-local-inheritable? tl))
 				*dictionary-transient-entry*)
 			   0)))
 
@@ -123,10 +123,13 @@
 		  (else (parameter-val p)))
 	    (if conv (conv v) v))))
 
+;; Thread parameters should be inheritable by default to match
+;; SRFI-18 expectations: threads inherit the dynamic environment
+;; of their parent thread.
 (define (make-thread-parameter init :optional (converter #f))
   (let ((init (if converter (converter init) init)))
     (make <thread-parameter> :converter converter
-	  :init (make-thread-local init))))
+	  :init (make-thread-local init #t))))  ;; #t = inheritable
 
 (define (%parameter-value-set! p v)
   (cond ((is-a? p <thread-parameter>)

@@ -66,15 +66,8 @@ SgObject Sg_ParameterizationContinuationMarkKey()
 
 SgObject Sg_CurrentParameterization()
 {
-  /* maybe should we make specific C API for this to reduce allocation? */
-  SgObject marks = Sg_CurrentContinuationMarks(SG_FALSE);
-  SgObject frames = SG_VECTOR_ELEMENT(marks, 1), cp;
-
-  SG_FOR_EACH(cp, frames) {
-    SgObject r = Sg_Assq(continuation_mark, SG_CAR(cp));
-    if (!SG_FALSEP(r)) return SG_CDR(r);
-  }
-  return SG_FALSE;
+  SgMarkEntry *e = Sg_CurrentFirstContinuationMark(SG_FALSE, continuation_mark);
+  return (e) ? e->value : SG_FALSE;
 }
 
 SgObject Sg_ParameterizationRef(SgObject p, SgObject key)

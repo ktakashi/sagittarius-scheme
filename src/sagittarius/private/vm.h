@@ -469,6 +469,7 @@ SG_EXTERN SgObject Sg_VMCallComp(SgObject proc, SgObject tag);
 SG_EXTERN SgObject Sg_VMCallDelimitedCC(SgObject proc, SgObject tag);
 SG_EXTERN SgObject Sg_VMAbortCC(SgObject tag, SgObject args);
 SG_EXTERN SgObject Sg_VMCallInCont(SgContinuation *c, SgPrompt *prompt, SgObject proc, SgObject args);
+SG_EXTERN SgObject Sg_VMCallInInitialContinuation(SgObject thunk);
 SG_EXTERN SgObject Sg_MakeContinuationPromptTag(SgObject name);
 SG_EXTERN int      Sg_ContinuationP(SgObject o);
 SG_EXTERN int      Sg_ComposableContinuationP(SgObject o);
@@ -476,6 +477,11 @@ SG_EXTERN int      Sg_ContinuationPromptAvailableP(SgObject tag, SgObject cont);
 SG_EXTERN int      Sg_ContinuationMarkSetP(SgObject o);
 SG_EXTERN SgObject Sg_ContinuationMarks(SgObject k, SgObject promptTag);
 SG_EXTERN SgObject Sg_CurrentContinuationMarks(SgObject promptTag);
+SG_EXTERN SgMarkEntry * Sg_FirstContinuationMark(SgObject k, SgObject promptTag,
+						 SgObject key);
+SG_EXTERN SgMarkEntry * Sg_CurrentFirstContinuationMark(SgObject promptTag,
+							SgObject key);
+SG_EXTERN SgObject Sg_CurrentExceptionHandlersMark();
 SG_EXTERN SgVM*    Sg_VM();	/* get vm */
 SG_EXTERN int      Sg_SetCurrentVM(SgVM *vm);
 SG_EXTERN int      Sg_AttachVM(SgVM *vm);
