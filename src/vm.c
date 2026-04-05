@@ -73,9 +73,15 @@ static SgKernel *root = NULL;	/* main kernel */
 #if defined(_MSC_VER) || defined(_SG_WIN_SUPPORT)
 static __declspec(thread) SgVM *theVM;
 #else
-#include <pthread.h>
+# include <pthread.h>
 static pthread_key_t the_vm_key;
-#define theVM ((SgVM*)pthread_getspecific(the_vm_key))
+# define theVM ((SgVM*)pthread_getspecific(the_vm_key))
+#endif
+
+#ifdef __GNUC__
+# define MOSTLY_FALSE(expr) __builtin_expect(!!(expr), FALSE)
+#else
+# define MOSTLY_FALSE(expr) expr
 #endif
 
 static SgSubr default_exception_handler_rec;
@@ -851,21 +857,33 @@ static SgObject currentErrorPort = SG_FALSE;
 SgObject Sg_CurrentOutputPort()
 {
   SgObject r;
-  SG_CALL_SUBR0(r, currentOutputPort);
+  if (MOSTLY_FALSE(SG_FALSEP(currentOutputPort))) {
+    r = Sg_VM()->currentOutputPort;
+  } else {
+    SG_CALL_SUBR0(r, currentOutputPort);
+  }
   return r;
 }
 
 SgObject Sg_CurrentErrorPort()
 {
   SgObject r;
-  SG_CALL_SUBR0(r, currentErrorPort);
+  if (MOSTLY_FALSE(SG_FALSEP(currentErrorPort))) {
+    r = Sg_VM()->currentErrorPort;
+  } else {
+    SG_CALL_SUBR0(r, currentErrorPort);
+  }
   return r;
 }
 
 SgObject Sg_CurrentInputPort()
 {
   SgObject r;
-  SG_CALL_SUBR0(r, currentInputPort);
+  if (MOSTLY_FALSE(SG_FALSEP(currentInputPort))) {
+    r = Sg_VM()->currentInputPort;
+  } else {
+    SG_CALL_SUBR0(r, currentInputPort);
+  }
   return r;
 }
 
@@ -1107,14 +1125,6 @@ static void print_prompts(SgVM *vm, SgPromptNode *node);
 static void print_marks(SgVM *vm, SgContMarks *marks);
 static void print_summary(SgVM *vm);
 static void expand_stack(SgVM *vm);
-
-/* it does not improve performance */
-/* #ifdef __GNUC__ */
-#if 0
-#define MOSTLY_FALSE(expr) __builtin_expect(!!(expr), FALSE)
-#else
-#define MOSTLY_FALSE(expr) expr
-#endif
 
 #define CHECK_STACK(size, vm)					\
   do {								\
