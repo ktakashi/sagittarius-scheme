@@ -869,6 +869,11 @@ SgObject Sg_CurrentInputPort()
   return r;
 }
 
+SgObject Sg_CurrentLogPort()
+{
+  return Sg_VM()->logPort;
+}
+
 void Sg_SetCurrentOutputPort(SgObject p)
 {
   if (!SG_OUTPUT_PORTP(p)) {
@@ -887,6 +892,16 @@ void Sg_SetCurrentErrorPort(SgObject p)
 				    p, SG_NIL);
   }
   Sg_VM()->currentErrorPort = p;
+}
+
+void Sg_SetCurrentLogPort(SgObject p)
+{
+  if (!SG_OUTPUT_PORTP(p)) {
+    Sg_WrongTypeOfArgumentViolation(SG_INTERN("current-error-port"),
+				    SG_MAKE_STRING("output port"),
+				    p, SG_NIL);
+  }
+  Sg_VM()->logPort = p;
 }
 
 void Sg_SetCurrentInputPort(SgObject p)

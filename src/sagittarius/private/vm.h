@@ -508,10 +508,12 @@ SG_EXTERN SgObject Sg_VMDynamicWindC(SgSubrProc *before, SgSubrProc *body, SgSub
 SG_EXTERN SgObject Sg_CurrentOutputPort();
 SG_EXTERN SgObject Sg_CurrentErrorPort();
 SG_EXTERN SgObject Sg_CurrentInputPort();
+SG_EXTERN SgObject Sg_CurrentLogPort();
 
 SG_EXTERN void Sg_SetCurrentOutputPort(SgObject p);
 SG_EXTERN void Sg_SetCurrentErrorPort(SgObject p);
 SG_EXTERN void Sg_SetCurrentInputPort(SgObject p);
+SG_EXTERN void Sg_SetCurrentLogPort(SgObject p);
 
 SG_EXTERN SgObject Sg_VMCurrentLibrary();
 

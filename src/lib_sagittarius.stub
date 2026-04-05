@@ -265,7 +265,7 @@
 	    ((SG_EQ level 'fatal) (set! f SG_FATAL_LEVEL))
 	    (else (return SG_FALSE)))
       (result (SG_VM_LOG_LEVEL (Sg_VM) f))))
-  (define-c-proc vm-log-port () :no-side-effect (result (-> (Sg_VM) logPort)))
+  (define-c-proc vm-log-port () :no-side-effect Sg_CurrentLogPort)
   (define-c-proc vm-load-flags (:optional f)
     (cond ((SG_UNBOUNDP f) (result (SG_MAKE_INT (-> (Sg_VM) flags))))
 	  ((SG_INTP f)    (set! (-> (Sg_VM) flags) (cast int (SG_INT_VALUE f))))

@@ -3264,7 +3264,6 @@ void Sg_DefaultPortPrinter(SgObject obj, SgPort *port, SgWriteContext *ctx)
 
 void Sg__InitPort()
 {
-  SgVM *vm = Sg_VM();
   SgLibrary *clib = Sg_FindLibrary(SG_INTERN("(sagittarius clos)"), TRUE);
   Sg_InitMutex(&active_buffered_ports.lock, FALSE);
   active_buffered_ports.ports
@@ -3277,19 +3276,20 @@ void Sg__InitPort()
   sg_stderr = Sg_MakeFileBinaryOutputPort(Sg_StandardError(),
 					  SG_BUFFER_MODE_NONE);
 
-  vm->currentInputPort = Sg_MakeTranscodedPort(sg_stdin,
+  Sg_SetCurrentInputPort(Sg_MakeTranscodedPort(sg_stdin,
 			    Sg_IsUTF16Console(Sg_StandardIn())
-			      ? Sg_MakeNativeConsoleTranscoder()
-			      : Sg_MakeNativeTranscoder());
-  vm->currentOutputPort = Sg_MakeTranscodedPort(sg_stdout,
+			     ? Sg_MakeNativeConsoleTranscoder()
+			     : Sg_MakeNativeTranscoder()));
+  Sg_SetCurrentOutputPort(Sg_MakeTranscodedPort(sg_stdout,
 			     Sg_IsUTF16Console(Sg_StandardOut())
 			      ? Sg_MakeNativeConsoleTranscoder()
-			      : Sg_MakeNativeTranscoder());
-  vm->currentErrorPort = Sg_MakeTranscodedPort(sg_stderr,
-			     Sg_IsUTF16Console(Sg_StandardError())
-			      ? Sg_MakeNativeConsoleTranscoder()
-			      : Sg_MakeNativeTranscoder());
-  vm->logPort = vm->currentErrorPort;
+			      : Sg_MakeNativeTranscoder()));
+  SgObject errorPort = Sg_MakeTranscodedPort(sg_stderr,
+			  Sg_IsUTF16Console(Sg_StandardError())
+			   ? Sg_MakeNativeConsoleTranscoder()
+			   : Sg_MakeNativeTranscoder());
+  Sg_SetCurrentErrorPort(errorPort);
+  Sg_SetCurrentLogPort(errorPort);
   /* CLOS */
 #define BINIT(cl, nam, slots) Sg_InitStaticClass(cl, UC(nam), clib, slots, 0)
   BINIT(SG_CLASS_PORT,        "<port>", NULL);
