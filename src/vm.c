@@ -3655,7 +3655,7 @@ SgObject Sg_VMCallInCont(SgContinuation *c, SgPrompt *prompt, SgObject proc, SgO
   *initial* state. This is conceptially the same as
   executing the `thunk` in a different thread.
 */
-SgObject Sg_VMCallInInitialContinuation(SgObject thunk)
+SgObject Sg_VMCallInInitialCont(SgObject thunk)
 {
   SgVM *vm = theVM;
   SgObject param_key = Sg_ParameterizationContinuationMarkKey();

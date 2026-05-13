@@ -1893,7 +1893,7 @@
 			       proc args))))
 
   (define-c-proc %call-in-initial-continuation (thunk::<procedure>) :no-export
-    Sg_VMCallInInitialContinuation)
+    Sg_VMCallInInitialCont)
   
   (define-c-proc call-with-immediate-continuation-mark 
     (key proc::<procedure> :optional (default #f))
