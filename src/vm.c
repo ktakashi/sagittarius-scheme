@@ -66,6 +66,10 @@
 #include "sagittarius/private/thread.h"
 #include "sagittarius/private/unicode.h"
 
+#ifdef HAVE_JIT
+#include "jit/jit.h"
+#endif
+
 static SgInternalMutex global_lock;
 
 static SgKernel *root = NULL;	/* main kernel */

@@ -69,6 +69,12 @@ struct SgCodeBuilderRec
   SgCodePacket packet;
   SgObject   labelDefs;		/* alist of (name . offset) */
   SgObject   labelRefs;		/* alist of (name . offset-to-fill) */
+#ifdef HAVE_JIT
+  /* JIT compilation state */
+  void      *jitCode;		/* Compiled native code, NULL if not compiled */
+  uint32_t   callCount;		/* Execution counter for hot detection */
+  uint32_t   jitFlags;		/* JIT_FLAG_COMPILED, JIT_FLAG_FAILED, etc. */
+#endif
 };
 
 #define SG_CODE_BUILDER(obj)  ((SgCodeBuilder*)(obj))
@@ -96,7 +102,21 @@ struct SgCodeBuilderRec
     EMPTY_PACKET,							\
     SG_UNDEF,								\
     SG_UNDEF								\
+    SG_STATIC_CODE_BUILDER_JIT_FIELDS					\
   }
+
+#ifdef HAVE_JIT
+#define SG_STATIC_CODE_BUILDER_JIT_FIELDS , NULL, 0, 0
+#define SG_CODE_BUILDER_JIT_INIT(b)					\
+  do {									\
+    (b)->jitCode = NULL;						\
+    (b)->callCount = 0;							\
+    (b)->jitFlags = 0;							\
+  } while (0)
+#else
+#define SG_STATIC_CODE_BUILDER_JIT_FIELDS
+#define SG_CODE_BUILDER_JIT_INIT(b) ((void)0)
+#endif
 
 #define SG_CODE_BUILDER_INIT(b, ptr, n, ac, o, fc, ms, s)		\
   do {									\
@@ -112,6 +132,7 @@ struct SgCodeBuilderRec
     (b)->src = SG_FALSE;						\
     (b)->labelDefs = SG_NIL;						\
     (b)->labelRefs = SG_NIL;						\
+    SG_CODE_BUILDER_JIT_INIT(b);					\
   } while (0)
 
 SG_CDECL_BEGIN

@@ -3,6 +3,26 @@ INCLUDE(${PROJECT_SOURCE_DIR}/cmake/CopyTarget.cmake)
 # debug
 MESSAGE(STATUS "operating system: ${CMAKE_SYSTEM_NAME}")
 
+# JIT source files (detection is done in root CMakeLists.txt)
+IF(HAVE_JIT)
+  SET(JIT_SOURCES
+    jit/jit_memory.c
+    jit/jit_compile.c)
+  IF(JIT_ARCH STREQUAL "arm64")
+    LIST(APPEND JIT_SOURCES
+      jit/arm64/asm_arm64.c
+      jit/arm64/codegen_arm64.c)
+  ELSEIF(JIT_ARCH STREQUAL "x86_64")
+    # TODO: Add x86_64 sources when implemented
+  ELSEIF(JIT_ARCH STREQUAL "x86")
+    # TODO: Add x86 sources when implemented
+  ELSEIF(JIT_ARCH STREQUAL "arm")
+    # TODO: Add ARM32 sources when implemented
+  ENDIF()
+ELSE()
+  SET(JIT_SOURCES)
+ENDIF()
+
 # we use posix files for Cygwin
 # since cmake 2.8.4, we don't have to do this trick any more.
 #IF(WIN32 AND NOT CYGWIN)
@@ -110,7 +130,8 @@ SET(SAGITTARIUS_LIB_SOURCE
 ADD_LIBRARY(sagittarius SHARED 
   ${SAGITTARIUS_LIB_SOURCE}
   ${PLATFORM_SOURCE}
-  ${PLATFORM_SOURCE_UCS4})
+  ${PLATFORM_SOURCE_UCS4}
+  ${JIT_SOURCES})
 SET_PROPERTY(TARGET sagittarius PROPERTY VERSION ${SAGITTARIUS_VERSION})
 SET_PROPERTY(TARGET sagittarius PROPERTY SOVERSION ${SAGITTARIUS_VERSION})
 COPY_TARGET(sagittarius ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} TRUE)
