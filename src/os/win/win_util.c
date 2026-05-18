@@ -57,8 +57,8 @@ static const wchar_t* utf32ToUtf16(SgString *path)
 }
 
 #ifndef NO_UTF16_TO_UTF32
-static inline int isLead(SgChar c) { return (c & 0xfffffc00) == 0xd800; }
-static inline int isTrail(SgChar c) { return (c & 0xfffffc00) == 0xdc00; }
+static SG_INLINE int isLead(SgChar c) { return (c & 0xfffffc00) == 0xd800; }
+static SG_INLINE int isTrail(SgChar c) { return (c & 0xfffffc00) == 0xdc00; }
 static SgString* utf16ToUtf32(wchar_t *s)
 {
   const SgChar offset = (0xd800 << 10UL) + 0xdc00 - 0x10000;

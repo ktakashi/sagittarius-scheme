@@ -306,7 +306,7 @@ static int read_4byte(SgPort *in)
   return ((a << 24) | (b << 16) | (c << 8) | d);
 }
 
-static inline SgWord read_word_rec(SgPort *in, int tag_type, int size,
+static SG_INLINE SgWord read_word_rec(SgPort *in, int tag_type, int size,
 				   read_ctx *ctx)
 {
   int i;
@@ -325,7 +325,7 @@ static inline SgWord read_word_rec(SgPort *in, int tag_type, int size,
   return ret;
 }
 
-static inline int read_word(SgPort *in, int tag_type, read_ctx *ctx)
+static SG_INLINE int read_word(SgPort *in, int tag_type, read_ctx *ctx)
 {
   return (int)read_word_rec(in, tag_type, EMIT_SIZE, ctx);
 }
@@ -399,7 +399,7 @@ static SgObject link_cb_rec(SgObject cb, SgHashTable *seen, read_ctx *ctx)
   return cb;  
 }
 
-static inline SgObject link_cb(SgObject cb, read_ctx *ctx)
+static SG_INLINE SgObject link_cb(SgObject cb, read_ctx *ctx)
 {
   SgHashTable seen;
   Sg_InitHashTableSimple(&seen, SG_HASH_EQ, 128);
@@ -455,7 +455,7 @@ static SgObject read_toplevel(SgPort *in, int boundary, read_ctx *ctx)
   return SG_EOF;
 }
 
-static inline SgString* read_string(SgPort *in, int length)
+static SG_INLINE SgString* read_string(SgPort *in, int length)
 {
 #ifdef USE_UTF8_STRING
   char *buf = SG_NEW_ATOMIC2(char *, length + 1);
@@ -477,7 +477,7 @@ static inline SgString* read_string(SgPort *in, int length)
 #endif
 }
 
-static inline SgObject read_symbol(SgPort *in, int internP, read_ctx *ctx)
+static SG_INLINE SgObject read_symbol(SgPort *in, int internP, read_ctx *ctx)
 {
   int length;
   SgString *name;

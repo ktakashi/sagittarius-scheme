@@ -217,7 +217,7 @@ int Sg_ConvertUcs4ToUtf16(SgChar ucs4, uint8_t utf8[4],
     goto retry;								\
   }
 
-static inline int isUtf8Tail(uint8_t b)
+static SG_INLINE int isUtf8Tail(uint8_t b)
 {
     return (0x80 <= b && b <= 0xbf);
 }
@@ -295,7 +295,7 @@ static inline int isUtf8Tail(uint8_t b)
   end:;									\
   } while(0)
 
-static inline int port_u8_reader(void *data, int getP)
+static SG_INLINE int port_u8_reader(void *data, int getP)
 {
   if (getP) {
     return Sg_GetbUnsafe(SG_PORT(data));
@@ -323,7 +323,7 @@ typedef struct
   int64_t  buf_size;
   SgPort  *port;
 } u8_reader_ctx;
-static inline int buffer_u8_reader(void *data, int getP)
+static SG_INLINE int buffer_u8_reader(void *data, int getP)
 {
   u8_reader_ctx *ctx = (u8_reader_ctx *)data;
   if (ctx->pos < ctx->buf_size) {

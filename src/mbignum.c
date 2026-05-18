@@ -207,7 +207,7 @@ static mbignum_t * mbignum_2scmpl(mbignum_t *mbn)
   return mbn;
 }
 
-static inline long mbignum_safe_size_for_add(mbignum_t *x, mbignum_t *y)
+static SG_INLINE long mbignum_safe_size_for_add(mbignum_t *x, mbignum_t *y)
 {
   return mp_safe_size_for_add(x->elements, x->size, y->elements, y->size);
 }

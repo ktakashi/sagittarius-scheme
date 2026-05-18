@@ -47,6 +47,12 @@
 #include "sagittarius/private/symbol.h"
 #include "sagittarius/private/vm.h"
 
+/* C11 compile-time assertions for bytevector assumptions */
+SG_STATIC_ASSERT(sizeof(uint8_t) == 1,
+		 "bytevector requires uint8_t to be exactly 1 byte");
+SG_STATIC_ASSERT(CHAR_BIT == 8,
+		 "bytevector requires CHAR_BIT to be 8");
+
 #define wte4(who, t, g, irr)						\
   Sg_WrongTypeOfArgumentViolation(who, SG_MAKE_STRING(t), g, irr)
 #define wte(who, t, g)	wte4(who, t, g, g)
@@ -192,7 +198,7 @@ SgObject Sg_NativeEndianness()
 #endif
 }
 
-static inline int is_valid_value(long value, size_t bitCount, int signP)
+static SG_INLINE int is_valid_value(long value, size_t bitCount, int signP)
 {
   /* TODO 64 bit... */
   /* cf) bitCount = 8, max = 256 */
@@ -212,7 +218,7 @@ static inline int is_valid_value(long value, size_t bitCount, int signP)
 }
 
 /* FIXME not so nice implemantation */
-static inline int bytevector_set(SgByteVector *bv, long index, intptr_t value,
+static SG_INLINE int bytevector_set(SgByteVector *bv, long index, intptr_t value,
 				 int bitCount, int signP)
 {
   /* im too lazy to repeat this */
@@ -282,7 +288,7 @@ SgObject Sg_ListToByteVector(SgObject lst, int bitCount, int signP)
   return SG_OBJ(bv);
 }
 
-static inline SgObject bytevector_ref(SgByteVector *bv, long index,
+static SG_INLINE SgObject bytevector_ref(SgByteVector *bv, long index,
 				      int bitCount, int signP)
 {
   /* im too lazy to repeat this */

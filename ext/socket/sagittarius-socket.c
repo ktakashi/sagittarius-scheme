@@ -1591,7 +1591,7 @@ static SgPortTable socket_table = {
   NULL,				/* writes */
 };
 
-static inline SgObject make_socket_port(SgSocket *socket,
+static SG_INLINE SgObject make_socket_port(SgSocket *socket,
 					SgPortDirection d, 
 					int closeP)
 {

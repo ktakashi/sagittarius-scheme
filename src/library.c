@@ -600,7 +600,7 @@ static int load_library(SgVM *vm, SgObject path, SgObject directive)
   return result;
 }
 
-static inline SgObject search_library_unsafe(SgObject name, SgObject olibname,
+static SG_INLINE SgObject search_library_unsafe(SgObject name, SgObject olibname,
 					     int *loadedp)
 {
   SgObject libname, lib, paths;
@@ -1018,7 +1018,7 @@ void Sg_ImportLibraryFullSpec(SgObject to, SgObject from, SgObject spec)
   Sg_UnlockMutex(&tolib->lock);
 }
 
-static inline int check_export_spec(SgObject exportSpec)
+static SG_INLINE int check_export_spec(SgObject exportSpec)
 {
   return SG_PAIRP(exportSpec) &&
     (SG_NULLP(SG_CAR(exportSpec)) || SG_PAIRP(SG_CAR(exportSpec))) &&

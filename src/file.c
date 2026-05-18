@@ -125,7 +125,7 @@ static long next_dirsep(SgObject path, long skipped)
   return skipped;
 }
 /* detect 'c:' or so */
-static inline int has_drive_letter(SgObject buf)
+static SG_INLINE int has_drive_letter(SgObject buf)
 {
   int c0 = S(buf,0), c1 = S(buf,1);
   if (c0 > 0x80) return FALSE;	/* out of ascii range */

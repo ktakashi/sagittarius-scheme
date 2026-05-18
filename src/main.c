@@ -419,7 +419,7 @@ int main(int argc, char **argv)
 #endif
 
 #define MAX_FRAMES 64
-static inline void print_stack_trace(FILE *out)
+static SG_INLINE void print_stack_trace(FILE *out)
 {
 #ifdef HAVE_BACKTRACE
   void* addrlist[MAX_FRAMES+1];

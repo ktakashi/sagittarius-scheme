@@ -1198,7 +1198,7 @@ static SgObject slot_boundp_cc(SgObject result, void **data)
   return SG_FALSEP(result) ? SG_FALSE: SG_TRUE;
 }
 
-static inline SgObject slot_ref_cc(SgObject result, void **data)
+static SG_INLINE SgObject slot_ref_cc(SgObject result, void **data)
 {
   SgObject obj = data[0];
   SgObject slot = data[1];

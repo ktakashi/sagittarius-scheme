@@ -98,7 +98,7 @@ static void box_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
 }
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_BoxClass, box_print);
 
-static inline SgObject make_box(SgObject value)
+static SG_INLINE SgObject make_box(SgObject value)
 {
   SgBox *b = SG_NEW(SgBox);
   SG_SET_CLASS(b, SG_CLASS_BOX);
@@ -366,7 +366,7 @@ int Sg_RootVMP(SgVM *vm)
 
 #define Sg_VM() theVM
 
-static inline void vm_add_cont_marks(SgVM *vm, SgObject entries);
+static SG_INLINE void vm_add_cont_marks(SgVM *vm, SgObject entries);
 
 static SgObject ceh_mark = SG_FALSE;
 static SgObject ceh_rec(SgObject *args, int argc, void *data)
@@ -657,7 +657,7 @@ static void* search_different_cont(SgVM *vm, SgObject c, SgContFrame *cont)
   return nextCont;
 }
 
-static inline void report_error(SgObject error, SgObject out)
+static SG_INLINE void report_error(SgObject error, SgObject out)
 {
   SgVM *vm = Sg_VM();
   SgObject next = SG_FALSE;
@@ -1695,7 +1695,7 @@ static SgPromptNode *insert_prompt(SgVM *vm, SgPromptNode *node,
   return n;
 }
 
-static inline SgPromptNode *search_prompt_node(SgVM *vm, SgObject tag)
+static SG_INLINE SgPromptNode *search_prompt_node(SgVM *vm, SgObject tag)
 {
   SgPromptNode *node = vm->prompts;
   
@@ -2787,7 +2787,7 @@ SgObject Sg_VMCallCB(SgObject thunk)
 
 /* this will be wrapped by the with-continuation-mark macro
    entries is a vector of pairs: #((key1 . value1) (key2 . value2) ...) */
-static inline void vm_add_cont_marks(SgVM *vm, SgObject entries)
+static SG_INLINE void vm_add_cont_marks(SgVM *vm, SgObject entries)
 {
   long i, len = SG_VECTOR_SIZE(entries);
   
@@ -3888,7 +3888,7 @@ SgObject Sg_VMExecute(SgObject toplevel)
 
   return SP = fp+m
  */
-static inline SgObject* shift_args(SgObject *fp, int m, SgObject *sp)
+static SG_INLINE SgObject* shift_args(SgObject *fp, int m, SgObject *sp)
 {
   /* TODO Use SIMD? */
 #if 1
@@ -3925,7 +3925,7 @@ static inline SgObject* shift_args(SgObject *fp, int m, SgObject *sp)
 
   return SP
  */
-static inline SgObject* shift_one_args(SgObject *sp, int m)
+static SG_INLINE SgObject* shift_one_args(SgObject *sp, int m)
 {
   int i;
   SgObject *tsp = sp+1;

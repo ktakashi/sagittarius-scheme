@@ -914,7 +914,7 @@ static int file_ready(SgObject self)
   }
 }
 
-static inline void file_forward_position(SgObject self, int64_t offset)
+static SG_INLINE void file_forward_position(SgObject self, int64_t offset)
 {
   SG_PORT(self)->position += offset;
 }

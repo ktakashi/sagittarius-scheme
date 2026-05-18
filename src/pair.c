@@ -49,7 +49,7 @@ SG_DEFINE_BUILTIN_CLASS(Sg_ListClass, NULL, NULL, NULL, NULL, list_cpl+1);
 SG_DEFINE_BUILTIN_CLASS(Sg_PairClass, NULL, NULL, NULL, NULL, list_cpl);
 SG_DEFINE_BUILTIN_CLASS(Sg_NullClass, NULL, NULL, NULL, NULL, list_cpl);
 
-static inline SgPair* make_pair()
+static SG_INLINE SgPair* make_pair()
 {
   SgPair *z = SG_NEW(SgPair);
   z->info = SG_NIL;
@@ -118,7 +118,7 @@ SgObject Sg_VaList(va_list elts)
   return start;
 }
 
-static inline SgObject array_to_list_with_tail(SgObject *array,
+static SG_INLINE SgObject array_to_list_with_tail(SgObject *array,
 					       int nelts, SgObject tail)
 {
   SgObject h = SG_NIL, t = SG_NIL;

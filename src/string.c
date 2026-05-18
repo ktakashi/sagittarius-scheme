@@ -275,7 +275,7 @@ int Sg_StringEqual(SgString *s1, SgString *s2)
   return string_equal(s1->value, s1->size, s2->value, s2->size);
 }
 
-static inline int string_compare_rec(SgString *s1, SgString *s2, long len)
+static SG_INLINE int string_compare_rec(SgString *s1, SgString *s2, long len)
 {
   long i;
   for (i = 0; i < len; i++) {
@@ -407,7 +407,7 @@ SgObject Sg_CopyString(SgString *a)
   return SG_OBJ(s);
 }
 
-static inline long boyer_moore(const SgChar *ss1, long siz1,
+static SG_INLINE long boyer_moore(const SgChar *ss1, long siz1,
                               const SgChar *ss2, long siz2)
 {
   long shift[256];

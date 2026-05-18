@@ -44,6 +44,12 @@
 #include "sagittarius/private/string.h"
 #include "sagittarius/private/vm.h"
 
+/* C11 compile-time assertions for bignum assumptions */
+SG_STATIC_ASSERT(sizeof(unsigned long) >= 4,
+		 "bignum requires unsigned long to be at least 32 bits");
+SG_STATIC_ASSERT(sizeof(double) == 8,
+		 "bignum requires IEEE 754 double precision (8 bytes)");
+
 #define USE_MUTABLE_BIGNUM
 
 #undef min
@@ -296,7 +302,7 @@ SgObject Sg_MakeBignumFromDouble(double value)
   }
 }
 
-static inline void bignum_copy(SgBignum *dst, SgBignum *src)
+static SG_INLINE void bignum_copy(SgBignum *dst, SgBignum *src)
 {
   long i;
   long size = SG_BIGNUM_GET_COUNT(src);
@@ -489,7 +495,7 @@ double Sg_BignumToDouble(SgBignum *b)
 }
 
 #ifndef NDEBUG
-static inline int bn_norm_pred(SgBignum *bn)
+static SG_INLINE int bn_norm_pred(SgBignum *bn)
 {
   long bn_count = SG_BIGNUM_GET_COUNT(bn);
   return (bn_count == 0) || (bn->elements[bn_count - 1] != 0);
@@ -680,7 +686,7 @@ uint64_t Sg_BignumToU64(SgBignum *b, int clamp, int *oor)
 #endif
 
 
-static inline SgBignum* bignum_2scmpl(SgBignum *br)
+static SG_INLINE SgBignum* bignum_2scmpl(SgBignum *br)
 {
   mp_2scmpl(br->elements, br->size);
   return br;
@@ -750,7 +756,7 @@ long Sg_BignumFirstBitSet(SgBignum *b)
   return -1;			/* dummy */
 }
 
-static inline int bignum_test_bit(SgBignum *b, long p)
+static SG_INLINE int bignum_test_bit(SgBignum *b, long p)
 {
   long pos = p >> SHIFT_MAGIC;
   ulong v;
@@ -1248,7 +1254,7 @@ typedef struct
   ulong r1hi;			/* r1 high */
 } r4;
 
-static inline SgBignum* bignum_mul_word(SgBignum *br, SgBignum *bx,
+static SG_INLINE SgBignum* bignum_mul_word(SgBignum *br, SgBignum *bx,
 					unsigned long y)
 {
   int size = SG_BIGNUM_GET_COUNT(bx);
@@ -1377,7 +1383,7 @@ static inline SgBignum* bignum_mul_word(SgBignum *br, SgBignum *bx,
   }
 }
 #else
-static inline SgBignum* bignum_mul_word(SgBignum *br, SgBignum *bx,
+static SG_INLINE SgBignum* bignum_mul_word(SgBignum *br, SgBignum *bx,
 					unsigned long y)
 {
   mp_mul_ul(br->elements, br->size, bx->elements, bx->size, y);
@@ -1949,7 +1955,7 @@ static SgObject small_bignum_to_string(SgBignum *b, int radix, int use_upper)
 }
 
 /* FIXME this is also in number.c */
-static inline double roundeven(double v)
+static SG_INLINE double roundeven(double v)
 {
   double r;
   double frac = modf(v, &r);
@@ -2141,7 +2147,7 @@ static int bignum_difference(SgBignum *a, SgBignum *b)
 }
 
 
-static inline unsigned long gcd_fixfix(unsigned long x, unsigned long y)
+static SG_INLINE unsigned long gcd_fixfix(unsigned long x, unsigned long y)
 {
   while (y > 0) {
     unsigned long r = x % y;

@@ -51,6 +51,12 @@
 #include "sagittarius/private/writer.h"
 #include "sagittarius/private/library.h"
 
+/* C11 compile-time assertions for number assumptions */
+SG_STATIC_ASSERT(sizeof(double) == 8,
+		 "number requires IEEE 754 double precision (8 bytes)");
+SG_STATIC_ASSERT(sizeof(float) == 4,
+		 "number requires IEEE 754 single precision (4 bytes)");
+
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
@@ -126,7 +132,7 @@ SG_DEFINE_BUILTIN_CLASS(Sg_RationalClass, number_print, NULL, NULL, NULL,
 SG_DEFINE_BUILTIN_CLASS(Sg_IntegerClass, number_print, NULL, NULL, NULL,
 			numeric_cpl);
 
-static inline unsigned long ipow(int r, long n)
+static SG_INLINE unsigned long ipow(int r, long n)
 {
   unsigned long k;
   for (k = 1; n > 0; n--) k *= r;
@@ -1208,7 +1214,7 @@ double Sg_FlonumValue(SgObject obj)
 }
 #endif /* USE_IMMEDIATE_FLONUM */
 
-static inline SgObject make_complex(SgObject real, SgObject imag)
+static SG_INLINE SgObject make_complex(SgObject real, SgObject imag)
 {
   SgComplex *c;
   ASSERT(!SG_COMPLEXP(real));
@@ -1333,7 +1339,7 @@ SgObject Sg_Denominator(SgObject x)
   return inexact ? Sg_MakeFlonum(1.0) : SG_MAKE_INT(1);
 }
 
-static inline SgObject rationalize_rec(SgObject bottom, SgObject top)
+static SG_INLINE SgObject rationalize_rec(SgObject bottom, SgObject top)
 {
   if (Sg_NumCmp(bottom, top) == 0) return bottom;
   else {
@@ -1687,7 +1693,7 @@ SgObject Sg_Inverse(SgObject obj)
   return SG_UNDEF;		/* dummy */
 }
 
-static inline long integer_length_rec(SgObject n)
+static SG_INLINE long integer_length_rec(SgObject n)
 {
   long n2;
   SgObject n3;
@@ -2888,7 +2894,7 @@ SgObject Sg_Atan2(SgObject x, SgObject y)
   return Sg_MakeFlonum(atan2(Sg_GetDouble(x), Sg_GetDouble(y)));
 }
 
-static inline int either_nan_p(SgObject arg0, SgObject arg1)
+static SG_INLINE int either_nan_p(SgObject arg0, SgObject arg1)
 {
   if (SG_FLONUMP(arg0) && isnan(SG_FLONUM_VALUE(arg0))) return TRUE;
   if (SG_FLONUMP(arg1) && isnan(SG_FLONUM_VALUE(arg1))) return TRUE;
@@ -3190,7 +3196,7 @@ SgObject Sg_Sqrt(SgObject obj)
   return SG_UNDEF;		/* dummy */
 }
 
-static inline SgObject exact_integer_sqrt(SgObject k)
+static SG_INLINE SgObject exact_integer_sqrt(SgObject k)
 {
   SgObject ik = Sg_Sqrt(k);
   if (Sg_FiniteP(ik)) {
@@ -3259,7 +3265,7 @@ int Sg_Sign(SgObject obj)
   return r;
 }
 
-static inline unsigned long gcd_fixfix(unsigned long x, unsigned long y)
+static SG_INLINE unsigned long gcd_fixfix(unsigned long x, unsigned long y)
 {
   while (y > 0) {
     unsigned long r = x % y;
@@ -3269,7 +3275,7 @@ static inline unsigned long gcd_fixfix(unsigned long x, unsigned long y)
   return x;
 }
 
-static inline double gcd_floflo(double x, double y)
+static SG_INLINE double gcd_floflo(double x, double y)
 {
   if (x < 0) x = -x;
   if (y < 0) y = -y;
@@ -3396,7 +3402,7 @@ SgObject Sg_Angle(SgObject obj)
   return SG_UNDEF;		/* dummy */
 }
 
-static inline SgObject log_handle_inf(SgObject n)
+static SG_INLINE SgObject log_handle_inf(SgObject n)
 {
   /* passing argument must be always bignum */
   /* Sg_BignumSqrtApprox returns approximate 
@@ -3838,7 +3844,7 @@ SgObject Sg_Round(SgObject num, int mode)
 }
 
 /* from gauche */
-static inline int numcmp3(SgObject x, SgObject d, SgObject y)
+static SG_INLINE int numcmp3(SgObject x, SgObject d, SgObject y)
 {
   if (SG_INTP(x) && SG_INTP(d) && SG_INTP(y)) {
     long xd = SG_INT_VALUE(x) + SG_INT_VALUE(d);

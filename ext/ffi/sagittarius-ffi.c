@@ -343,18 +343,18 @@ static SgLibrary *impl_lib = NULL;
 /* compute offset
    from: http://en.wikipedia.org/wiki/Data_structure_alignment
  */
-static inline size_t compute_offset(size_t offset, size_t align)
+static SG_INLINE size_t compute_offset(size_t offset, size_t align)
 {
   return (offset + align - 1) & ~(align - 1);
 }
 
-static inline size_t compute_padding(size_t offset, size_t align, int a)
+static SG_INLINE size_t compute_padding(size_t offset, size_t align, int a)
 {
   if (a > 0 && offset % a == 0) return 0;
   return ((size_t)-(ssize_t)offset) & (align - 1);
 }
 
-static inline void check_bif_field_size(SgObject fields, size_t size)
+static SG_INLINE void check_bif_field_size(SgObject fields, size_t size)
 {
   size_t sum = 0;
   SgObject field;
@@ -841,7 +841,7 @@ void Sg_CStructSet(SgPointer *p, SgCStruct *st, SgSymbol *name, SgObject value)
   }
 }
 
-static inline void put_indent(SgPort *port, int indent)
+static SG_INLINE void put_indent(SgPort *port, int indent)
 {
   int i;
   for (i = 0; i < indent; i++) {
