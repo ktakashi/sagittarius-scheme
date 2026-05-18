@@ -23,6 +23,11 @@ DartConfiguration.tcl
 *.log
 *.tmp
 *.iml
+*.bk
+*.out
+
+bench/results
+bench/spheres.pgm
 
 # generated code
 .sagittarius-r6rstestrc
@@ -262,6 +267,8 @@ sagittarius-package
 /sitelib/scheme/box.scm
 /sitelib/scheme/bitwise.scm
 /sitelib/text/xml/entities-list.scm
+
+/test/tests/text/unicode/grapheme-data.scm
 
 # Git repository during test execution
 /test/JSON-Schema-Test-Suite

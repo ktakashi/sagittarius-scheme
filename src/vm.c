@@ -108,7 +108,7 @@ static SG_INLINE SgObject make_box(SgObject value)
 
 static SgObject evaluate_safe(SgObject program, SgWord *code);
 static SgObject run_loop();
-static INLINE void ** vm_new_cont(SgCContinuationProc *after, int datasize);
+static SG_INLINE void ** vm_new_cont(SgCContinuationProc *after, int datasize);
 
 static void vm_finalize(SgObject obj, void *data)
 {
@@ -1144,7 +1144,7 @@ static void push_cont_marks(SgVM *vm, SgContFrame *cont)
   vm->marks = cm;
 }
 
-static INLINE void ** vm_new_cont(SgCContinuationProc *after, int datasize)
+static SG_INLINE void ** vm_new_cont(SgCContinuationProc *after, int datasize)
 {
   SgVM *vm = Sg_VM();
 
@@ -3384,7 +3384,7 @@ static void rebuild_prompts_from_cont(SgVM *vm)
   vm->prompts = head;
 }
 
-static SgContFrame *skip_prompt_frame(SgVM *vm)
+static SG_INLINE SgContFrame *skip_prompt_frame(SgVM *vm)
 {
   SgContFrame *cont = vm->cont;
   SgContMarks *marks = vm->marks;
@@ -3397,9 +3397,9 @@ static SgContFrame *skip_prompt_frame(SgVM *vm)
   return cont;
 }
 
-#define POP_CONT()							\
+/* Optimized version that takes already-computed cont */
+#define POP_CONT_DIRECT(cont__)						\
   do {									\
-    SgContFrame *cont__ = skip_prompt_frame(vm);			\
     if (vm->marks) vm->marks = vm->marks->prev;				\
     if (cont__->fp == C_CONT_MARK) {					\
       void *data__[SG_CCONT_DATA_SIZE];					\
@@ -3440,6 +3440,12 @@ static SgContFrame *skip_prompt_frame(SgVM *vm)
 	}								\
       }									\
     }									\
+  } while (0)
+
+#define POP_CONT()							\
+  do {									\
+    SgContFrame *cont__ = skip_prompt_frame(vm);			\
+    POP_CONT_DIRECT(cont__);						\
   } while (0)
 
 /* 
@@ -4000,12 +4006,13 @@ static void process_queued_requests(SgVM *vm)
 #define RET_INSN()						\
   do {								\
     /* skip the prompt_frame here */				\
-    CONT(vm) = skip_prompt_frame(vm);				\
-    if (CONT(vm) == NULL || BOUNDARY_FRAME_MARK_P(CONT(vm))) {	\
+    SgContFrame *cont__ = skip_prompt_frame(vm);		\
+    CONT(vm) = cont__;						\
+    if (cont__ == NULL || BOUNDARY_FRAME_MARK_P(cont__)) {	\
       /* no more continuation */				\
       return AC(vm);						\
     }								\
-    POP_CONT();							\
+    POP_CONT_DIRECT(cont__);					\
   } while (0)							\
 
 /*

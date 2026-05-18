@@ -155,14 +155,6 @@
 # define SG_INLINE /* nothing */
 #endif
 
-/*
-  Legacy INLINE macro - now an alias for SG_INLINE.
-  Use SG_INLINE in new code.
-*/
-#ifndef INLINE
-# define INLINE SG_INLINE
-#endif
-
 #include <stdint.h>
 
 /* Types */

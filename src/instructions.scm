@@ -135,7 +135,7 @@
      `(let ((,v (FETCH_OPERAND (PC ,vm)))
 	    (,s (-> vm sandbox)))
 	(cond ((SG_GLOCP ,v)
-	       (when (not (SG_FALSEP ,s))
+	       (when (MOSTLY_FALSE (not (SG_FALSEP ,s)))
 		 (let ((,id (Sg_MakeGlobalIdentifier
 			     (-> (SG_GLOC ,v) name)
 			     (-> (SG_GLOC ,v) library))))
