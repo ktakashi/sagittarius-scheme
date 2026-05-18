@@ -22,6 +22,77 @@ Language Standard
 - Use C11 features where appropriate (e.g., `_Noreturn`, anonymous unions)
 - Ensure compatibility with GCC, Clang, and MSVC
 
+Compatibility Macros
+--------------------
+
+Use these macros from `sagittarius/platform.h` for C11 features with
+fallbacks for older compilers.
+
+### SG_NORETURN
+
+Mark functions that never return (e.g., exit, panic functions):
+
+```c
+SG_EXTERN SG_NORETURN void Sg_Panic(const char* msg, ...);
+SG_EXTERN SG_NORETURN void Sg_Exit(int code);
+```
+
+| Compiler | Implementation |
+|----------|----------------|
+| C11+ | `_Noreturn` |
+| GCC/Clang | `__attribute__((noreturn))` |
+| MSVC | `__declspec(noreturn)` |
+| Fallback | Empty |
+
+### SG_STATIC_ASSERT
+
+Compile-time assertions for critical assumptions:
+
+```c
+SG_STATIC_ASSERT(sizeof(SgWord) == sizeof(void*),
+                 "SgWord must match pointer size");
+```
+
+| Compiler | Implementation |
+|----------|----------------|
+| C11+ | `_Static_assert(cond, msg)` |
+| Fallback | Typedef trick (C89 compatible) |
+
+### SG_ALIGNAS
+
+Memory alignment specifier (use sparingly):
+
+```c
+SG_ALIGNAS(16) char buffer[1024];
+```
+
+| Compiler | Implementation |
+|----------|----------------|
+| C11+ | `_Alignas(n)` |
+| GCC/Clang | `__attribute__((aligned(n)))` |
+| MSVC | `__declspec(align(n))` |
+| Fallback | Empty |
+
+### SG_INLINE
+
+Inline function hint:
+
+```c
+static SG_INLINE int fast_function(int x) { return x * 2; }
+```
+
+| Compiler | Implementation |
+|----------|----------------|
+| C99+/C11 | `inline` |
+| GCC/Clang | `__inline__` |
+| MSVC | `__inline` |
+| Fallback | Empty |
+
+### Legacy Compatibility
+
+`SG_NO_RETURN` is an alias for `SG_NORETURN` for backward compatibility.
+Use `SG_NORETURN` in new code.
+
 Naming Conventions
 ------------------
 

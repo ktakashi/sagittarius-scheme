@@ -121,16 +121,11 @@ typedef uint32_t _W64 uintptr_t;
 /* we need to include config.h here */
 #include <sagittarius/config.h>
 
-#if __STDC_VERSION__ >= 201112L
-# if defined(HAVE_STDNORETURN_H)
-#  include <stdnoreturn.h>
-#  define SG_NO_RETURN _Noreturn
-# else
-#  define SG_NO_RETURN /* nothing */
-# endif
-#else		       /* NOT C11 */
-#  define SG_NO_RETURN /* nothing */
-#endif
+/*
+  Backward compatibility: SG_NO_RETURN is now an alias for SG_NORETURN
+  defined in platform.h. Use SG_NORETURN for new code.
+*/
+#define SG_NO_RETURN SG_NORETURN
 
 /* alloca things */
 #ifndef __GNUC__
@@ -184,6 +179,17 @@ typedef struct SgHeaderRec
 {
   SgByte *tag;
 } SgHeader;
+
+/*
+  Compile-time assertions for critical assumptions.
+  These verify that the tagging scheme works correctly.
+*/
+SG_STATIC_ASSERT(sizeof(SgWord) == sizeof(void*),
+                 "SgWord must match pointer size");
+SG_STATIC_ASSERT(sizeof(intptr_t) == sizeof(void*),
+                 "intptr_t must match pointer size");
+SG_STATIC_ASSERT(sizeof(uintptr_t) == sizeof(void*),
+                 "uintptr_t must match pointer size");
 
 #include <sagittarius/uc.h>
 

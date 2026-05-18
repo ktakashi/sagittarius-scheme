@@ -67,20 +67,100 @@
 # define UNUSED(x) x
 #endif
 
-#ifndef INLINE
-# if defined(_MSC_VER)
-    /* Microsoft Visual C */
-#  define INLINE __inline
-# elif defined(__clang__) || defined(__GNUC__)
-    /* Clang or GCC */
-#  define INLINE inline __attribute__((always_inline))
-# elif defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L)
-    /* C99 / C11 */
-#  define INLINE inline
+/*
+  C Standard Version Detection
+  SG_C11: C11 or later
+  SG_C99: C99 (but not C11)
+  SG_C89: Pre-C99 (C89/C90)
+*/
+#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
+# define SG_C11 1
+#elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
+# define SG_C99 1
+#else
+# define SG_C89 1
+#endif
+
+/*
+  SG_NORETURN - Mark function as non-returning.
+
+  On C11+: Uses standard _Noreturn keyword.
+  On GCC:  Uses __attribute__((noreturn)).
+  On MSVC: Uses __declspec(noreturn).
+  Fallback: Empty (no optimization hint).
+*/
+#ifdef SG_C11
+# ifdef __STDC_NO_NORETURN__
+#  define SG_NORETURN /* C11 but no _Noreturn support */
 # else
-    /* No inline support */
-#  define INLINE
+#  define SG_NORETURN _Noreturn
 # endif
+#elif defined(__GNUC__) || defined(__clang__)
+# define SG_NORETURN __attribute__((noreturn))
+#elif defined(_MSC_VER)
+# define SG_NORETURN __declspec(noreturn)
+#else
+# define SG_NORETURN /* nothing */
+#endif
+
+/*
+  SG_STATIC_ASSERT - Compile-time assertion.
+
+  On C11+: Uses standard _Static_assert.
+  Fallback: Uses typedef trick (C89 compatible).
+*/
+#ifdef SG_C11
+# define SG_STATIC_ASSERT(cond, msg) _Static_assert(cond, msg)
+#else
+/* Fallback using typedef trick - negative array size causes error */
+# define SG_STATIC_ASSERT_JOIN_(a, b) a##b
+# define SG_STATIC_ASSERT_JOIN(a, b) SG_STATIC_ASSERT_JOIN_(a, b)
+# define SG_STATIC_ASSERT(cond, msg) \
+    typedef char SG_STATIC_ASSERT_JOIN(sg_static_assert_, __LINE__)[(cond) ? 1 : -1]
+#endif
+
+/*
+  SG_ALIGNAS - Memory alignment specifier.
+
+  On C11+: Uses standard _Alignas.
+  On GCC:  Uses __attribute__((aligned(n))).
+  On MSVC: Uses __declspec(align(n)).
+  Fallback: Empty (no alignment hint).
+*/
+#ifdef SG_C11
+# define SG_ALIGNAS(n) _Alignas(n)
+#elif defined(__GNUC__) || defined(__clang__)
+# define SG_ALIGNAS(n) __attribute__((aligned(n)))
+#elif defined(_MSC_VER)
+# define SG_ALIGNAS(n) __declspec(align(n))
+#else
+# define SG_ALIGNAS(n) /* nothing */
+#endif
+
+/*
+  SG_INLINE - Inline function hint.
+
+  On C99+/C11: Uses standard inline.
+  On GCC:  Uses __inline__.
+  On MSVC: Uses __inline.
+  Fallback: Empty (no inline hint).
+*/
+#if defined(SG_C99) || defined(SG_C11)
+# define SG_INLINE inline
+#elif defined(__GNUC__) || defined(__clang__)
+# define SG_INLINE __inline__
+#elif defined(_MSC_VER)
+# define SG_INLINE __inline
+#else
+# define SG_INLINE /* nothing */
+#endif
+
+/*
+  Legacy INLINE macro - now an alias for SG_INLINE.
+  Use SG_INLINE in new code.
+*/
+#ifndef INLINE
+# define INLINE SG_INLINE
 #endif
 
 #include <stdint.h>

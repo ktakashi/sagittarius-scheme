@@ -46,13 +46,13 @@ SG_CDECL_BEGIN
 
 SG_EXTERN void  Sg_Init();
 
-SG_EXTERN SG_NO_RETURN void Sg_Exit(int code);
-SG_EXTERN SG_NO_RETURN void Sg_EmergencyExit(int code);
+SG_EXTERN SG_NORETURN void Sg_Exit(int code);
+SG_EXTERN SG_NORETURN void Sg_EmergencyExit(int code);
 SG_EXTERN void 	Sg_Cleanup();
 SG_EXTERN void*	Sg_AddCleanupHandler(void (*proc)(void *data), void *data);
 SG_EXTERN void	Sg_DeleteCleanupHandler(void *handle);
-SG_EXTERN void 	Sg_Panic(const char* msg, ...);
-SG_EXTERN void 	Sg_Abort(const char* msg);
+SG_EXTERN SG_NORETURN void Sg_Panic(const char* msg, ...);
+SG_EXTERN SG_NORETURN void Sg_Abort(const char* msg);
 /* gc wrappers */
 SG_EXTERN void 	Sg_GC();
 SG_EXTERN int   Sg_FinalizerRegisteredP(SgObject z);
