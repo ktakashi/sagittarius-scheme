@@ -116,29 +116,21 @@ SG_EXTERN int  Sg_JitVerbose(void);
 
 
 /*
+ * JIT Disassembly
+ */
+struct SgPortRec;
+
+/* Disassemble JIT code for a closure to a port */
+SG_EXTERN void Sg_JitDisassemble(struct SgCodeBuilderRec *cb, struct SgPortRec *port);
+
+
+/*
  * JIT Flags for CodeBuilder
  */
 #define SG_JIT_FLAG_COMPILED   (1 << 0)  /* Successfully JIT compiled */
 #define SG_JIT_FLAG_FAILED     (1 << 1)  /* JIT compilation failed */
 #define SG_JIT_FLAG_NEVER      (1 << 2)  /* Never JIT (contains unsupported ops) */
 
-
-/*
- * Internal: Platform-specific compilation
- */
-#if defined(JIT_ARCH_arm64)
-SG_EXTERN SgJitCompiledCode Sg_JitCompileArm64(struct SgCodeBuilderRec *cb,
-					       SgJitCodeBuffer *buf);
-#elif defined(JIT_ARCH_x86_64)
-SG_EXTERN SgJitCompiledCode Sg_JitCompileX86_64(struct SgCodeBuilderRec *cb,
-						SgJitCodeBuffer *buf);
-#elif defined(JIT_ARCH_x86)
-SG_EXTERN SgJitCompiledCode Sg_JitCompileX86(struct SgCodeBuilderRec *cb,
-					     SgJitCodeBuffer *buf);
-#elif defined(JIT_ARCH_arm)
-SG_EXTERN SgJitCompiledCode Sg_JitCompileArm(struct SgCodeBuilderRec *cb,
-					     SgJitCodeBuffer *buf);
-#endif
 
 SG_CDECL_END
 
@@ -152,6 +144,7 @@ SG_CDECL_END
 #define Sg_GetJitThreshold()    (0)
 #define Sg_SetJitVerbose(x)     ((void)0)
 #define Sg_JitVerbose()         (0)
+#define Sg_JitDisassemble(cb, port) ((void)0)
 
 #endif /* HAVE_JIT */
 

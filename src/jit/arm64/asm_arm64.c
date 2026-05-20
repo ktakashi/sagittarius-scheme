@@ -28,8 +28,6 @@
 
 #include "asm_arm64.h"
 
-#ifdef JIT_ARCH_arm64
-
 #include <stdlib.h>
 #include <string.h>
 
@@ -826,5 +824,3 @@ void arm64_nop(Arm64Asm *a)
 {
   emit32(a, 0xD503201F);
 }
-
-#endif /* JIT_ARCH_arm64 */

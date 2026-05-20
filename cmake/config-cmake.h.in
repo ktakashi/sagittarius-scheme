@@ -77,6 +77,8 @@
 #cmakedefine HAVE_SCHED_GETAFFINITY
 #cmakedefine HAVE_CPU_COUNT
 
+#cmakedefine HAVE_JIT
+
 #cmakedefine SHLIB_SO_SUFFIX "@SHLIB_SO_SUFFIX@"
 
 #cmakedefine SIZEOF_INT @SIZEOF_INT@

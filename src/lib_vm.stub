@@ -2,11 +2,12 @@
 #!compatible
 (library (sagittarius vm)
     (export :all)
-    (import :none)
+    (import (core))
   (decl-code
    (.define "LIBSAGITTARIUS_BODY")
    (.include <sagittarius/private.h>
-	     <sagittarius/private/instruction.h>))
+	     <sagittarius/private/instruction.h>
+	     "jit/jit.h"))
 
   ;; TODO duplicated definition in Scheme
   (decl-code
@@ -516,4 +517,50 @@
 	    (wrong-type-of-argument-violation 'vm-log-port "output port" p))
 	  (set! (-> vm logPort) p)
 	  (result SG_UNDEF))))
+
+  ;; JIT compilation procedures
+  (define-c-proc jit-available? () ::<boolean> Sg_JitAvailable)
+  (define-c-proc jit-enabled? () ::<boolean> Sg_JitEnabled)
+  (define-c-proc jit-enabled-set! (enabled::<boolean>) ::<void> Sg_SetJitEnabled)
+  (define-c-proc jit-threshold () ::<fixnum> Sg_GetJitThreshold)
+  (define-c-proc jit-threshold-set! (threshold::<fixnum>) ::<void> Sg_SetJitThreshold)
+  (define-c-proc jit-verbose? () ::<boolean> Sg_JitVerbose)
+  (define-c-proc jit-verbose-set! (verbose::<boolean>) ::<void> Sg_SetJitVerbose)
+
+  (define-c-proc jit-compiled? (cl::<procedure>) ::<boolean>
+    (cond ((SG_CLOSUREP cl)
+	   (.if "defined(HAVE_JIT)"
+		(result (not (== (-> (SG_CODE_BUILDER (-> (SG_CLOSURE cl) code)) jitCode) NULL)))
+		(result FALSE)))
+	  (else (result FALSE))))
+
+  (define-c-proc jit-compile! (cl::<procedure>)
+    (cond ((SG_CLOSUREP cl)
+	   (.if "defined(HAVE_JIT)"
+		(let ((cb::SgCodeBuilder* (SG_CODE_BUILDER (-> (SG_CLOSURE cl) code))))
+		  (when (== (-> cb jitCode) NULL)
+		    (let ((compiled::SgJitCompiledCode (Sg_JitCompile cb)))
+		      (when (!= compiled NULL)
+			(set! (-> cb jitCode) compiled)
+			(set! (-> cb jitFlags)
+			      (logior (-> cb jitFlags) SG_JIT_FLAG_COMPILED)))))
+		  (result (?: (== (-> cb jitCode) NULL) SG_FALSE SG_TRUE)))
+		(result SG_FALSE)))
+	  (else (result SG_FALSE))))
+
+  (define-c-proc jit-disassemble (cl :optional (port::<port> (Sg_CurrentOutputPort)))
+    ::<void>
+    (unless (SG_OUTPUT_PORTP port)
+      (wrong-type-of-argument-violation 'jit-disassemble "output port" port))
+    (cond ((SG_CLOSUREP cl)
+	   (Sg_JitDisassemble (SG_CODE_BUILDER (-> (SG_CLOSURE cl) code)) port))
+	  ((SG_CODE_BUILDERP cl)
+	   (Sg_JitDisassemble (SG_CODE_BUILDER cl) port))
+	  (else
+	   (wrong-type-of-argument-violation 'jit-disassemble
+					     "closure or code-builder" cl))))
+
+  (define (enable-jit!) (jit-enabled-set! #t))
+  (define (disable-jit!) (jit-enabled-set! #f))
+  
 )

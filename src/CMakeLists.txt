@@ -11,7 +11,8 @@ IF(HAVE_JIT)
   IF(JIT_ARCH STREQUAL "arm64")
     LIST(APPEND JIT_SOURCES
       jit/arm64/asm_arm64.c
-      jit/arm64/codegen_arm64.c)
+      jit/arm64/emit_arm64.c
+      jit/arm64/disasm_arm64.c)
   ELSEIF(JIT_ARCH STREQUAL "x86_64")
     # TODO: Add x86_64 sources when implemented
   ELSEIF(JIT_ARCH STREQUAL "x86")

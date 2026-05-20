@@ -427,10 +427,6 @@ ENDIF()
 
 SET(SHLIB_SO_SUFFIX "${CMAKE_SHARED_LIBRARY_SUFFIX}")
 
-CONFIGURE_FILE(cmake/config-cmake.h.in 
-  ${PROJECT_BINARY_DIR}/sagittarius/config.h)
-ADD_DEFINITIONS(-DHAVE_CONFIG_H)
-
 # JIT compilation support (global - affects all modules including ext/)
 IF(${SAGITTARIUS_PROCESSOR} STREQUAL "arm64")
   SET(JIT_ARCH "arm64")
@@ -449,10 +445,12 @@ ELSE()
   SET(HAVE_JIT OFF)
 ENDIF()
 
+CONFIGURE_FILE(cmake/config-cmake.h.in 
+  ${PROJECT_BINARY_DIR}/sagittarius/config.h)
+ADD_DEFINITIONS(-DHAVE_CONFIG_H)
+
 IF(HAVE_JIT)
   MESSAGE(STATUS "JIT enabled for architecture: ${JIT_ARCH}")
-  ADD_DEFINITIONS(-DHAVE_JIT)
-  ADD_DEFINITIONS(-DJIT_ARCH_${JIT_ARCH})
 ELSE()
   MESSAGE(STATUS "JIT disabled (unsupported architecture)")
 ENDIF()

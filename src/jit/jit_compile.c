@@ -27,6 +27,8 @@
  */
 
 #include "jit.h"
+#include "jit_internal.h"
+#include "jit_emit.h"
 
 #ifdef HAVE_JIT
 
@@ -44,12 +46,7 @@ static int jit_verbose = 0;  /* Disabled by default */
 
 int Sg_JitAvailable(void)
 {
-#if defined(JIT_ARCH_arm64) || defined(JIT_ARCH_x86_64) || \
-    defined(JIT_ARCH_x86) || defined(JIT_ARCH_arm)
-  return 1;
-#else
-  return 0;
-#endif
+  return 1;  /* This file is only compiled when JIT is available */
 }
 
 void Sg_SetJitEnabled(int enabled)
@@ -86,16 +83,18 @@ int Sg_JitVerbose(void)
 
 SgJitCompiledCode Sg_JitCompile(SgCodeBuilder *cb)
 {
-  SgJitCodeBuffer *buf;
+  SgJitContext ctx;
   SgJitCompiledCode compiled;
+  int pc;
 
   if (!Sg_JitEnabled()) {
     return NULL;
   }
 
-  /* Allocate code buffer */
-  buf = Sg_AllocJitBuffer(JIT_INITIAL_BUFFER_SIZE);
-  if (buf == NULL) {
+  /* Initialize context */
+  ctx.cb = cb;
+  ctx.buf = Sg_AllocJitBuffer(JIT_INITIAL_BUFFER_SIZE);
+  if (ctx.buf == NULL) {
     if (jit_verbose) {
       Sg_Printf(Sg_StandardErrorPort(),
 		UC("JIT: Failed to allocate code buffer for %A\n"),
@@ -104,56 +103,289 @@ SgJitCompiledCode Sg_JitCompile(SgCodeBuilder *cb)
     return NULL;
   }
 
-  /* Make buffer writable for code generation */
-  Sg_JitMakeWritable(buf);
-
-  if (jit_verbose) {
-    Sg_Printf(Sg_StandardErrorPort(),
-	      UC("JIT: Compiling %A (%d instructions)\n"),
-	      SG_CODE_BUILDER_NAME(cb), cb->size);
-    /* Print bytecode */
-    for (int i = 0; i < cb->size; i++) {
-      int opcode = INSN(cb->code[i]);
-      Sg_Printf(Sg_StandardErrorPort(),
-		UC("  [%d] opcode=%d\n"), i, opcode);
-    }
+  /* Allocate label array: one label per bytecode position */
+  ctx.pcToLabel = SG_NEW_ARRAY(int, cb->size);
+  ctx.labelCount = 0;
+  for (int i = 0; i < cb->size; i++) {
+    ctx.pcToLabel[i] = ctx.labelCount++;
   }
+  /* One more label for epilogue */
+  ctx.epilogueLabel = ctx.labelCount++;
 
-  /* Dispatch to platform-specific compiler */
-#if defined(JIT_ARCH_arm64)
-  compiled = Sg_JitCompileArm64(cb, buf);
-#elif defined(JIT_ARCH_x86_64)
-  compiled = Sg_JitCompileX86_64(cb, buf);
-#elif defined(JIT_ARCH_x86)
-  compiled = Sg_JitCompileX86(cb, buf);
-#elif defined(JIT_ARCH_arm)
-  compiled = Sg_JitCompileArm(cb, buf);
-#else
-  compiled = NULL;
-#endif
-
-  if (compiled == NULL) {
-    /* Compilation failed - restore executable protection before freeing */
-    Sg_JitMakeExecutable(buf);
-    Sg_FreeJitBuffer(buf);
+  /* Initialize platform-specific context */
+  ctx.platform = Sg__JitPlatformInit(&ctx);
+  if (ctx.platform == NULL) {
+    Sg_FreeJitBuffer(ctx.buf);
     if (jit_verbose) {
       Sg_Printf(Sg_StandardErrorPort(),
-		UC("JIT: Compilation failed for %A\n"),
+		UC("JIT: Failed to initialize platform for %A\n"),
 		SG_CODE_BUILDER_NAME(cb));
     }
     return NULL;
   }
 
+  /* Make buffer writable for code generation */
+  Sg_JitMakeWritable(ctx.buf);
+
+  if (jit_verbose) {
+    Sg_Printf(Sg_StandardErrorPort(),
+	      UC("JIT: Compiling %A (%d instructions)\n"),
+	      SG_CODE_BUILDER_NAME(cb), cb->size);
+  }
+
+  /* Emit prologue */
+  if (!Sg__JitEmit_Prologue(&ctx)) goto fail;
+
+  /* Main instruction loop */
+  pc = 0;
+  while (pc < cb->size) {
+    SgWord insn = cb->code[pc];
+    int opcode = INSN(insn);
+    int val1 = INSN_VALUE1(insn);
+
+    /* Bind label for this bytecode position */
+    Sg__JitBindLabel(&ctx, ctx.pcToLabel[pc]);
+
+    switch (opcode) {
+
+    case NOP:
+      if (!Sg__JitEmit_NOP(&ctx)) goto fail;
+      pc++;
+      break;
+
+    case UNDEF:
+      if (!Sg__JitEmit_UNDEF(&ctx)) goto fail;
+      pc++;
+      break;
+
+    case CONST:
+      if (pc + 1 >= cb->size) goto fail;
+      if (!Sg__JitEmit_CONST(&ctx, SG_OBJ(cb->code[pc + 1]))) goto fail;
+      pc += 2;
+      break;
+
+    case CONSTI:
+      if (!Sg__JitEmit_CONSTI(&ctx, val1)) goto fail;
+      pc++;
+      break;
+
+    case LREF:
+      if (!Sg__JitEmit_LREF(&ctx, val1)) goto fail;
+      pc++;
+      break;
+
+    case LSET:
+      if (!Sg__JitEmit_LSET(&ctx, val1)) goto fail;
+      pc++;
+      break;
+
+    case FREF:
+      if (!Sg__JitEmit_FREF(&ctx, val1)) goto fail;
+      pc++;
+      break;
+
+    case PUSH:
+      if (!Sg__JitEmit_PUSH(&ctx)) goto fail;
+      pc++;
+      break;
+
+    case LREF_PUSH:
+      if (!Sg__JitEmit_LREF_PUSH(&ctx, val1)) goto fail;
+      pc++;
+      break;
+
+    case CONST_PUSH:
+      if (pc + 1 >= cb->size) goto fail;
+      if (!Sg__JitEmit_CONST_PUSH(&ctx, SG_OBJ(cb->code[pc + 1]))) goto fail;
+      pc += 2;
+      break;
+
+    case CONSTI_PUSH:
+      if (!Sg__JitEmit_CONSTI_PUSH(&ctx, val1)) goto fail;
+      pc++;
+      break;
+
+    case ADD:
+      if (!Sg__JitEmit_ADD(&ctx)) goto fail;
+      pc++;
+      break;
+
+    case ADDI:
+      if (!Sg__JitEmit_ADDI(&ctx, val1)) goto fail;
+      pc++;
+      break;
+
+    case SUB:
+      if (!Sg__JitEmit_SUB(&ctx)) goto fail;
+      pc++;
+      break;
+
+    case SUBI:
+      if (!Sg__JitEmit_SUBI(&ctx, val1)) goto fail;
+      pc++;
+      break;
+
+    case NUM_EQ:
+      if (!Sg__JitEmit_NUM_EQ(&ctx)) goto fail;
+      pc++;
+      break;
+
+    case NUM_LT:
+      if (!Sg__JitEmit_NUM_LT(&ctx)) goto fail;
+      pc++;
+      break;
+
+    case NUM_LE:
+      if (!Sg__JitEmit_NUM_LE(&ctx)) goto fail;
+      pc++;
+      break;
+
+    case NUM_GT:
+      if (!Sg__JitEmit_NUM_GT(&ctx)) goto fail;
+      pc++;
+      break;
+
+    case NUM_GE:
+      if (!Sg__JitEmit_NUM_GE(&ctx)) goto fail;
+      pc++;
+      break;
+
+    case TEST:
+      {
+	int targetPc = pc + val1;
+	if (!Sg__JitEmit_TEST(&ctx, targetPc)) goto fail;
+	pc++;
+      }
+      break;
+
+    case JUMP:
+      {
+	int targetPc = pc + val1;
+	if (!Sg__JitEmit_JUMP(&ctx, targetPc)) goto fail;
+	pc++;
+      }
+      break;
+
+    case BNNUME:
+      {
+	int targetPc = pc + val1;
+	if (!Sg__JitEmit_BNNUME(&ctx, targetPc)) goto fail;
+	pc++;
+      }
+      break;
+
+    case BNLT:
+      {
+	int targetPc = pc + val1;
+	if (!Sg__JitEmit_BNLT(&ctx, targetPc)) goto fail;
+	pc++;
+      }
+      break;
+
+    case BNLE:
+      {
+	int targetPc = pc + val1;
+	if (!Sg__JitEmit_BNLE(&ctx, targetPc)) goto fail;
+	pc++;
+      }
+      break;
+
+    case BNGT:
+      {
+	int targetPc = pc + val1;
+	if (!Sg__JitEmit_BNGT(&ctx, targetPc)) goto fail;
+	pc++;
+      }
+      break;
+
+    case BNGE:
+      {
+	int targetPc = pc + val1;
+	if (!Sg__JitEmit_BNGE(&ctx, targetPc)) goto fail;
+	pc++;
+      }
+      break;
+
+    case RET:
+      if (!Sg__JitEmit_RET(&ctx)) goto fail;
+      pc++;
+      break;
+
+    default:
+      /* Unsupported instruction */
+      if (jit_verbose) {
+	Sg_Printf(Sg_StandardErrorPort(),
+		  UC("JIT: Unsupported opcode %d at pc=%d\n"),
+		  opcode, pc);
+      }
+      goto fail;
+    }
+  }
+
+  /* Bind epilogue label and emit epilogue */
+  Sg__JitBindLabel(&ctx, ctx.epilogueLabel);
+  if (!Sg__JitEmit_Epilogue(&ctx)) goto fail;
+
+  /* Resolve forward references */
+  if (!Sg__JitPlatformResolve(&ctx)) goto fail;
+
+  /* Update buffer used size */
+  ctx.buf->used = Sg__JitGetCodeSize(&ctx);
+
+  /* Finalize and get compiled code */
+  compiled = Sg__JitPlatformFinalize(&ctx);
+  if (compiled == NULL) goto fail;
+
   /* Make code executable */
-  Sg_JitMakeExecutable(buf);
+  Sg_JitMakeExecutable(ctx.buf);
 
   if (jit_verbose) {
     Sg_Printf(Sg_StandardErrorPort(),
 	      UC("JIT: Successfully compiled %A (%zu bytes), code at %p\n"),
-	      SG_CODE_BUILDER_NAME(cb), buf->used, buf->code);
+	      SG_CODE_BUILDER_NAME(cb), ctx.buf->used, ctx.buf->code);
   }
 
   return compiled;
+
+fail:
+  Sg__JitPlatformCleanup(ctx.platform);
+  /* Restore executable protection before freeing */
+  Sg_JitMakeExecutable(ctx.buf);
+  Sg_FreeJitBuffer(ctx.buf);
+  if (jit_verbose) {
+    Sg_Printf(Sg_StandardErrorPort(),
+	      UC("JIT: Compilation failed for %A\n"),
+	      SG_CODE_BUILDER_NAME(cb));
+  }
+  return NULL;
+}
+
+/*
+ * Disassemble JIT code
+ */
+
+void Sg_JitDisassemble(SgCodeBuilder *cb, SgPort *port)
+{
+  if (cb == NULL || port == NULL) {
+    return;
+  }
+
+#ifdef HAVE_JIT
+  if (cb->jitCode == NULL) {
+    Sg_Printf(port, UC("Not JIT compiled\n"));
+    return;
+  }
+
+  Sg_Printf(port, UC("JIT code for %A:\n"), SG_CODE_BUILDER_NAME(cb));
+
+  /* For now, we'll disassemble a fixed amount or until we see a RET */
+  uint8_t *code = (uint8_t *)cb->jitCode;
+  size_t max_size = 1024;  /* 256 instructions * 4 bytes */
+  Sg__JitDisasmBuffer(code, max_size, port);
+
+#else
+  Sg_Printf(port, UC("JIT not available\n"));
+#endif
 }
 
 #endif /* HAVE_JIT */

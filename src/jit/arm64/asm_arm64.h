@@ -30,8 +30,6 @@
 
 #include "../jit.h"
 
-#ifdef JIT_ARCH_arm64
-
 #include <stdint.h>
 #include <stddef.h>
 
@@ -314,6 +312,4 @@ void arm64_ret(Arm64Asm *a);
 /* NOP */
 void arm64_nop(Arm64Asm *a);
 
-
-#endif /* JIT_ARCH_arm64 */
 #endif /* SAGITTARIUS_JIT_ASM_ARM64_H_ */
