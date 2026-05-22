@@ -116,6 +116,7 @@ typedef struct Arm64PatchRec {
 #define ARM64_PATCH_B      0  /* Unconditional branch */
 #define ARM64_PATCH_BCOND  1  /* Conditional branch */
 #define ARM64_PATCH_ADR    2  /* PC-relative address */
+#define ARM64_PATCH_BL     3  /* Branch with link */
 
 /*
  * Assembler Context
@@ -209,6 +210,12 @@ void arm64_ldr_r64_mem_post(Arm64Asm *a, Arm64Reg dst, Arm64Reg base, int32_t of
 /* STR Xt, [Xn], #offset (post-indexed) */
 void arm64_str_r64_mem_post(Arm64Asm *a, Arm64Reg src, Arm64Reg base, int32_t offset);
 
+/* STR Wt, [Xn, #offset] - 32-bit store */
+void arm64_str_r32_mem(Arm64Asm *a, Arm64Reg src, Arm64Reg base, int32_t offset);
+
+/* LSR Xd, Xn, #shift - logical shift right by immediate */
+void arm64_lsr_r64_r64_imm(Arm64Asm *a, Arm64Reg dst, Arm64Reg src, int32_t shift);
+
 /* LDP Xt1, Xt2, [Xn, #offset] (load pair) */
 void arm64_ldp(Arm64Asm *a, Arm64Reg r1, Arm64Reg r2, Arm64Reg base, int32_t offset);
 
@@ -294,6 +301,7 @@ void arm64_b_cond(Arm64Asm *a, Arm64Cond cond, int label);
 
 /* BL addr (branch with link - call) */
 void arm64_bl(Arm64Asm *a, void *target);
+void arm64_bl_label(Arm64Asm *a, int label);
 
 /* BLR Xn (branch to register with link) */
 void arm64_blr(Arm64Asm *a, Arm64Reg reg);

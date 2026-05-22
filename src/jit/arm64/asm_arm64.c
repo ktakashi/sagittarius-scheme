@@ -31,6 +31,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Debug helper to track where error is set */
+#define SET_ERROR(a, msg) do { \
+  fprintf(stderr, "JIT ASM: Error at %s:%d: %s\n", __FILE__, __LINE__, msg); \
+  fflush(stderr); \
+  (a)->error = 1; \
+} while (0)
+
 /*
  * ARM64 Instruction Encoding Reference
  *
@@ -59,7 +66,9 @@
 static void emit32(Arm64Asm *a, uint32_t insn)
 {
   if (a->pos + 4 > a->size) {
-    a->error = 1;
+    fprintf(stderr, "JIT ASM: Buffer overflow at pos=%zu, size=%zu\n", a->pos, a->size);
+    fflush(stderr);
+    SET_ERROR(a, "error");
     return;
   }
   /* Little-endian byte order */
@@ -74,7 +83,9 @@ static void add_patch(Arm64Asm *a, int label, int type)
 {
   Arm64Patch *patch = malloc(sizeof(Arm64Patch));
   if (patch == NULL) {
-    a->error = 1;
+    fprintf(stderr, "JIT ASM: malloc failed in add_patch\n");
+    fflush(stderr);
+    SET_ERROR(a, "error");
     return;
   }
   patch->offset = a->pos;
@@ -138,7 +149,11 @@ int arm64_asm_error(Arm64Asm *a)
 
 int arm64_asm_finalize(Arm64Asm *a)
 {
-  if (a->error) return -1;
+  if (a->error) {
+    fprintf(stderr, "JIT ASM: Error already set before finalize: %d\n", a->error);
+    fflush(stderr);
+    return -1;
+  }
 
   /* Resolve all patches */
   Arm64Patch *p = a->patches;
@@ -146,7 +161,10 @@ int arm64_asm_finalize(Arm64Asm *a)
     int labelOff = a->labelOffsets[p->label];
     if (labelOff < 0) {
       /* Unresolved label */
-      a->error = 1;
+      fprintf(stderr, "JIT ASM: Unresolved label %d at patch offset %zu\n",
+	      p->label, p->offset);
+      fflush(stderr);
+      SET_ERROR(a, "error");
       return -1;
     }
 
@@ -164,7 +182,17 @@ int arm64_asm_finalize(Arm64Asm *a)
       /* B: imm26 at bits 0-25, offset in words */
       int32_t imm26 = relOff / 4;
       if (imm26 < -(1 << 25) || imm26 >= (1 << 25)) {
-	a->error = 1;
+	SET_ERROR(a, "error");
+	return -1;
+      }
+      insn = (insn & 0xFC000000) | (imm26 & 0x03FFFFFF);
+      break;
+    }
+    case ARM64_PATCH_BL: {
+      /* BL: imm26 at bits 0-25, offset in words (same as B but opcode differs) */
+      int32_t imm26 = relOff / 4;
+      if (imm26 < -(1 << 25) || imm26 >= (1 << 25)) {
+	SET_ERROR(a, "error");
 	return -1;
       }
       insn = (insn & 0xFC000000) | (imm26 & 0x03FFFFFF);
@@ -174,14 +202,14 @@ int arm64_asm_finalize(Arm64Asm *a)
       /* B.cond: imm19 at bits 5-23, offset in words */
       int32_t imm19 = relOff / 4;
       if (imm19 < -(1 << 18) || imm19 >= (1 << 18)) {
-	a->error = 1;
+	SET_ERROR(a, "error");
 	return -1;
       }
       insn = (insn & 0xFF00001F) | ((imm19 & 0x7FFFF) << 5);
       break;
     }
     default:
-      a->error = 1;
+      SET_ERROR(a, "error");
       return -1;
     }
 
@@ -208,7 +236,7 @@ int arm64_new_label(Arm64Asm *a)
     int newCap = a->labelCapacity * 2;
     int *newOffsets = realloc(a->labelOffsets, newCap * sizeof(int));
     if (newOffsets == NULL) {
-      a->error = 1;
+      SET_ERROR(a, "error");
       return -1;
     }
     a->labelOffsets = newOffsets;
@@ -223,7 +251,9 @@ int arm64_new_label(Arm64Asm *a)
 void arm64_bind_label(Arm64Asm *a, int label)
 {
   if (label < 0 || label >= a->labelCount) {
-    a->error = 1;
+    fprintf(stderr, "JIT ASM: Invalid label %d (count=%d)\n", label, a->labelCount);
+    fflush(stderr);
+    SET_ERROR(a, "error");
     return;
   }
   a->labelOffsets[label] = (int)a->pos;
@@ -360,7 +390,7 @@ void arm64_ldr_r64_mem(Arm64Asm *a, Arm64Reg dst, Arm64Reg base, int32_t offset)
       emit32(a, insn);
       return;
     }
-    a->error = 1;
+    SET_ERROR(a, "error");
     return;
   }
 
@@ -386,7 +416,7 @@ void arm64_str_r64_mem(Arm64Asm *a, Arm64Reg src, Arm64Reg base, int32_t offset)
       emit32(a, insn);
       return;
     }
-    a->error = 1;
+    SET_ERROR(a, "error");
     return;
   }
 
@@ -403,7 +433,7 @@ void arm64_str_r64_mem(Arm64Asm *a, Arm64Reg src, Arm64Reg base, int32_t offset)
 void arm64_ldr_r64_mem_pre(Arm64Asm *a, Arm64Reg dst, Arm64Reg base, int32_t offset)
 {
   if (offset < -256 || offset > 255) {
-    a->error = 1;
+    SET_ERROR(a, "error");
     return;
   }
   /* 11111000 010 imm9 11 Rn Rt */
@@ -418,7 +448,7 @@ void arm64_ldr_r64_mem_pre(Arm64Asm *a, Arm64Reg dst, Arm64Reg base, int32_t off
 void arm64_str_r64_mem_pre(Arm64Asm *a, Arm64Reg src, Arm64Reg base, int32_t offset)
 {
   if (offset < -256 || offset > 255) {
-    a->error = 1;
+    SET_ERROR(a, "error");
     return;
   }
   /* 11111000 000 imm9 11 Rn Rt */
@@ -433,7 +463,7 @@ void arm64_str_r64_mem_pre(Arm64Asm *a, Arm64Reg src, Arm64Reg base, int32_t off
 void arm64_ldr_r64_mem_post(Arm64Asm *a, Arm64Reg dst, Arm64Reg base, int32_t offset)
 {
   if (offset < -256 || offset > 255) {
-    a->error = 1;
+    SET_ERROR(a, "error");
     return;
   }
   /* 11111000 010 imm9 01 Rn Rt */
@@ -448,7 +478,7 @@ void arm64_ldr_r64_mem_post(Arm64Asm *a, Arm64Reg dst, Arm64Reg base, int32_t of
 void arm64_str_r64_mem_post(Arm64Asm *a, Arm64Reg src, Arm64Reg base, int32_t offset)
 {
   if (offset < -256 || offset > 255) {
-    a->error = 1;
+    SET_ERROR(a, "error");
     return;
   }
   /* 11111000 000 imm9 01 Rn Rt */
@@ -459,11 +489,55 @@ void arm64_str_r64_mem_post(Arm64Asm *a, Arm64Reg src, Arm64Reg base, int32_t of
   emit32(a, insn);
 }
 
+/* STR Wt, [Xn, #offset] - unsigned offset 32-bit store */
+void arm64_str_r32_mem(Arm64Asm *a, Arm64Reg src, Arm64Reg base, int32_t offset)
+{
+  if ((offset % 4) != 0 || offset < 0 || offset > 16380) {
+    /* Use unscaled offset for non-aligned or negative offsets */
+    if (offset >= -256 && offset <= 255) {
+      /* STUR Wt, [Xn, #simm9]: 10 111000 00 0 imm9 00 Rn Rt */
+      uint32_t insn = 0xB8000000
+	| ((offset & 0x1FF) << 12)
+	| (base << 5)
+	| src;
+      emit32(a, insn);
+      return;
+    }
+    SET_ERROR(a, "error");
+    return;
+  }
+
+  /* STR (unsigned offset) Wt: 10 111001 00 imm12 Rn Rt */
+  int32_t imm12 = offset / 4;
+  uint32_t insn = 0xB9000000
+    | (imm12 << 10)
+    | (base << 5)
+    | src;
+  emit32(a, insn);
+}
+
+/* LSR Xd, Xn, #shift - logical shift right by immediate */
+void arm64_lsr_r64_r64_imm(Arm64Asm *a, Arm64Reg dst, Arm64Reg src, int32_t shift)
+{
+  if (shift < 0 || shift > 63) {
+    SET_ERROR(a, "error");
+    return;
+  }
+  /* UBFM Xd, Xn, #shift, #63 (alias: LSR Xd, Xn, #shift)
+   * Encoding: 11 010011 01 immr imms Rn Rd
+   * For LSR: immr = shift, imms = 63 */
+  uint32_t insn = 0xD340FC00
+    | (shift << 16)
+    | (src << 5)
+    | dst;
+  emit32(a, insn);
+}
+
 /* LDP Xt1, Xt2, [Xn, #offset] */
 void arm64_ldp(Arm64Asm *a, Arm64Reg r1, Arm64Reg r2, Arm64Reg base, int32_t offset)
 {
   if ((offset % 8) != 0 || offset < -512 || offset > 504) {
-    a->error = 1;
+    SET_ERROR(a, "error");
     return;
   }
   /* 10 101 0 010 1 imm7 Rt2 Rn Rt */
@@ -480,7 +554,7 @@ void arm64_ldp(Arm64Asm *a, Arm64Reg r1, Arm64Reg r2, Arm64Reg base, int32_t off
 void arm64_stp(Arm64Asm *a, Arm64Reg r1, Arm64Reg r2, Arm64Reg base, int32_t offset)
 {
   if ((offset % 8) != 0 || offset < -512 || offset > 504) {
-    a->error = 1;
+    SET_ERROR(a, "error");
     return;
   }
   /* 10 101 0 010 0 imm7 Rt2 Rn Rt */
@@ -497,7 +571,7 @@ void arm64_stp(Arm64Asm *a, Arm64Reg r1, Arm64Reg r2, Arm64Reg base, int32_t off
 void arm64_ldp_pre(Arm64Asm *a, Arm64Reg r1, Arm64Reg r2, Arm64Reg base, int32_t offset)
 {
   if ((offset % 8) != 0 || offset < -512 || offset > 504) {
-    a->error = 1;
+    SET_ERROR(a, "error");
     return;
   }
   /* 10 101 0 011 1 imm7 Rt2 Rn Rt */
@@ -514,7 +588,7 @@ void arm64_ldp_pre(Arm64Asm *a, Arm64Reg r1, Arm64Reg r2, Arm64Reg base, int32_t
 void arm64_stp_pre(Arm64Asm *a, Arm64Reg r1, Arm64Reg r2, Arm64Reg base, int32_t offset)
 {
   if ((offset % 8) != 0 || offset < -512 || offset > 504) {
-    a->error = 1;
+    SET_ERROR(a, "error");
     return;
   }
   /* 10 101 0 011 0 imm7 Rt2 Rn Rt */
@@ -547,7 +621,7 @@ void arm64_add_r64_r64_r64(Arm64Asm *a, Arm64Reg dst, Arm64Reg n, Arm64Reg m)
 void arm64_add_r64_r64_imm(Arm64Asm *a, Arm64Reg dst, Arm64Reg n, int32_t imm)
 {
   if (imm < 0 || imm > 4095) {
-    a->error = 1;
+    SET_ERROR(a, "error");
     return;
   }
   /* 10010001 00 imm12 Rn Rd */
@@ -584,7 +658,7 @@ void arm64_sub_r64_r64_r64(Arm64Asm *a, Arm64Reg dst, Arm64Reg n, Arm64Reg m)
 void arm64_sub_r64_r64_imm(Arm64Asm *a, Arm64Reg dst, Arm64Reg n, int32_t imm)
 {
   if (imm < 0 || imm > 4095) {
-    a->error = 1;
+    SET_ERROR(a, "error");
     return;
   }
   /* 11010001 00 imm12 Rn Rd */
@@ -680,7 +754,7 @@ void arm64_tst_r64_imm(Arm64Asm *a, Arm64Reg n, uint64_t imm)
     arm64_tst_r64_r64(a, n, ARM64_X16);
   } else {
     /* TODO: Implement full bitmask immediate encoding */
-    a->error = 1;
+    SET_ERROR(a, "error");
   }
 }
 
@@ -713,7 +787,7 @@ void arm64_cmp_r64_r64(Arm64Asm *a, Arm64Reg n, Arm64Reg m)
 void arm64_cmp_r64_imm(Arm64Asm *a, Arm64Reg n, int32_t imm)
 {
   if (imm < 0 || imm > 4095) {
-    a->error = 1;
+    SET_ERROR(a, "error");
     return;
   }
   /* 11110001 00 imm12 Rn 11111 */
@@ -736,7 +810,7 @@ void arm64_b(Arm64Asm *a, int label)
     int32_t offset = a->labelOffsets[label] - (int32_t)a->pos;
     int32_t imm26 = offset / 4;
     if (imm26 < -(1 << 25) || imm26 >= (1 << 25)) {
-      a->error = 1;
+      SET_ERROR(a, "error");
       return;
     }
     /* 000101 imm26 */
@@ -757,7 +831,7 @@ void arm64_b_cond(Arm64Asm *a, Arm64Cond cond, int label)
     int32_t offset = a->labelOffsets[label] - (int32_t)a->pos;
     int32_t imm19 = offset / 4;
     if (imm19 < -(1 << 18) || imm19 >= (1 << 18)) {
-      a->error = 1;
+      SET_ERROR(a, "error");
       return;
     }
     /* 01010100 imm19 0 cond */
@@ -767,6 +841,28 @@ void arm64_b_cond(Arm64Asm *a, Arm64Cond cond, int label)
     /* Forward reference */
     add_patch(a, label, ARM64_PATCH_BCOND);
     emit32(a, 0x54000000 | cond);
+  }
+}
+
+/* BL label (branch with link to label) */
+void arm64_bl_label(Arm64Asm *a, int label)
+{
+  if (label >= 0 && label < a->labelCount && a->labelOffsets[label] >= 0) {
+    /* Label is bound - calculate offset */
+    int32_t offset = a->labelOffsets[label] - (int32_t)a->pos;
+    int32_t imm26 = offset / 4;
+    if (imm26 < -(1 << 25) || imm26 >= (1 << 25)) {
+      SET_ERROR(a, "BL label out of range");
+      return;
+    }
+    /* 100101 imm26 */
+    uint32_t insn = 0x94000000 | (imm26 & 0x03FFFFFF);
+    emit32(a, insn);
+  } else {
+    /* Forward reference - emit placeholder and patch later */
+    /* Note: BL uses same encoding as B but with different opcode */
+    add_patch(a, label, ARM64_PATCH_BL);
+    emit32(a, 0x94000000);  /* BL with 0 offset */
   }
 }
 

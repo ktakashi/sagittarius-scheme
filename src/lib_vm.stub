@@ -548,17 +548,30 @@
 		(result SG_FALSE)))
 	  (else (result SG_FALSE))))
 
-  (define-c-proc jit-disassemble (cl :optional (port::<port> (Sg_CurrentOutputPort)))
+  (define-c-proc jit-disassemble (cl::<procedure> :optional (port::<port> (Sg_CurrentOutputPort)))
     ::<void>
     (unless (SG_OUTPUT_PORTP port)
       (wrong-type-of-argument-violation 'jit-disassemble "output port" port))
     (cond ((SG_CLOSUREP cl)
-	   (Sg_JitDisassemble (SG_CODE_BUILDER (-> (SG_CLOSURE cl) code)) port))
-	  ((SG_CODE_BUILDERP cl)
-	   (Sg_JitDisassemble (SG_CODE_BUILDER cl) port))
-	  (else
-	   (wrong-type-of-argument-violation 'jit-disassemble
-					     "closure or code-builder" cl))))
+	   (.if "defined(HAVE_JIT)"
+		(Sg_JitDisassemble (SG_CODE_BUILDER (-> (SG_CLOSURE cl) code)) port)
+		(Sg_Printf port (UC "JIT not available\n"))))
+	  (else (Sg_Printf port (UC "Not a closure\n")))))
+
+  (define-c-proc jit-profile-reset! () ::<void>
+    (.if "defined(HAVE_JIT)"
+	 (Sg_JitProfileReset)))
+
+  (define-c-proc jit-profile-enable! (enable::<boolean>) ::<void>
+    (.if "defined(HAVE_JIT)"
+	 (Sg_JitProfileEnable enable)))
+
+  (define-c-proc jit-profile-print (:optional (port::<port> (Sg_CurrentOutputPort))) ::<void>
+    (unless (SG_OUTPUT_PORTP port)
+      (wrong-type-of-argument-violation 'jit-profile-print "output port" port))
+    (.if "defined(HAVE_JIT)"
+	 (Sg_JitProfilePrint port)
+	 (Sg_Printf port (UC "Jit not available\n"))))
 
   (define (enable-jit!) (jit-enabled-set! #t))
   (define (disable-jit!) (jit-enabled-set! #f))

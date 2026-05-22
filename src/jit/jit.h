@@ -114,6 +114,11 @@ SG_EXTERN int  Sg_GetJitThreshold(void);
 SG_EXTERN void Sg_SetJitVerbose(int verbose);
 SG_EXTERN int  Sg_JitVerbose(void);
 
+/* Profiling */
+SG_EXTERN void Sg_JitProfileReset(void);
+SG_EXTERN void Sg_JitProfileEnable(int enable);
+SG_EXTERN void Sg_JitProfilePrint(struct SgPortRec *port);
+
 
 /*
  * JIT Disassembly
@@ -132,6 +137,21 @@ SG_EXTERN void Sg_JitDisassemble(struct SgCodeBuilderRec *cb, struct SgPortRec *
 #define SG_JIT_FLAG_NEVER      (1 << 2)  /* Never JIT (contains unsupported ops) */
 
 
+/*
+ * JIT Helper Functions
+ * Called from JIT-compiled code for operations that need C support.
+ */
+
+/* Push a continuation frame before a non-tail call */
+SG_EXTERN void Sg__JitPushFrame(struct SgVMRec *vm, SgWord *returnPc);
+
+/* Call a global procedure (GREF_CALL) */
+SG_EXTERN SgObject Sg__JitGrefCall(struct SgVMRec *vm, int argc, SgObject id);
+
+/* Tail-call a global procedure (GREF_TAIL_CALL) */
+SG_EXTERN SgObject Sg__JitGrefTailCall(struct SgVMRec *vm, int argc, SgObject id);
+
+
 SG_CDECL_END
 
 #else /* !HAVE_JIT */
@@ -144,6 +164,9 @@ SG_CDECL_END
 #define Sg_GetJitThreshold()    (0)
 #define Sg_SetJitVerbose(x)     ((void)0)
 #define Sg_JitVerbose()         (0)
+#define Sg_JitProfileReset()    ((void)0)
+#define Sg_JitProfileEnable(x)  ((void)0)
+#define Sg_JitProfilePrint(p)   ((void)0)
 #define Sg_JitDisassemble(cb, port) ((void)0)
 
 #endif /* HAVE_JIT */

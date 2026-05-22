@@ -184,6 +184,27 @@ SG_EXTERN int Sg__JitEmit_BNGT(SgJitContext *ctx, int targetPc);
 /* BNGE - Branch if not greater or equal */
 SG_EXTERN int Sg__JitEmit_BNGE(SgJitContext *ctx, int targetPc);
 
+
+/*
+ * Call Instructions
+ */
+
+/* FRAME - Push a continuation frame for non-tail call */
+SG_EXTERN int Sg__JitEmit_FRAME(SgJitContext *ctx, int returnPc);
+
+/* GREF_CALL - Call a global procedure */
+SG_EXTERN int Sg__JitEmit_GREF_CALL(SgJitContext *ctx, int argc, SgObject id);
+
+/* GREF_TAIL_CALL - Tail-call a global procedure */
+SG_EXTERN int Sg__JitEmit_GREF_TAIL_CALL(SgJitContext *ctx, int argc, SgObject id);
+
+/* SELF_CALL - Optimized self-recursive call (direct branch) */
+SG_EXTERN int Sg__JitEmit_SELF_CALL(SgJitContext *ctx, int argc);
+
+/* SELF_TAIL_CALL - Optimized self-recursive tail call (direct branch) */
+SG_EXTERN int Sg__JitEmit_SELF_TAIL_CALL(SgJitContext *ctx, int argc, SgObject id);
+
+
 /* Disassembly interface - platform-specific disassembler */
 SG_EXTERN void Sg__JitDisasmBuffer(uint8_t *code, size_t size, SgPort *port);
 
