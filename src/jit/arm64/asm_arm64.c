@@ -533,6 +533,105 @@ void arm64_lsr_r64_r64_imm(Arm64Asm *a, Arm64Reg dst, Arm64Reg src, int32_t shif
   emit32(a, insn);
 }
 
+/* ASR Xd, Xn, #shift - arithmetic shift right by immediate */
+void arm64_asr_r64_r64_imm(Arm64Asm *a, Arm64Reg dst, Arm64Reg src, int32_t shift)
+{
+  if (shift < 0 || shift > 63) {
+    SET_ERROR(a, "error");
+    return;
+  }
+  /* SBFM Xd, Xn, #shift, #63 (alias: ASR Xd, Xn, #shift)
+   * Encoding: 10 010011 01 immr imms Rn Rd
+   * For ASR: immr = shift, imms = 63 */
+  uint32_t insn = 0x9340FC00
+    | (shift << 16)
+    | (src << 5)
+    | dst;
+  emit32(a, insn);
+}
+
+/* LSL Xd, Xn, #shift - logical shift left by immediate */
+void arm64_lsl_r64_r64_imm(Arm64Asm *a, Arm64Reg dst, Arm64Reg src, int32_t shift)
+{
+  if (shift < 0 || shift > 63) {
+    SET_ERROR(a, "error");
+    return;
+  }
+  /* UBFM Xd, Xn, #(-shift mod 64), #(63-shift) (alias: LSL Xd, Xn, #shift)
+   * Encoding: 11 010011 01 immr imms Rn Rd
+   * For LSL: immr = -shift mod 64 = 64-shift, imms = 63-shift */
+  int32_t immr = (64 - shift) & 0x3F;
+  int32_t imms = 63 - shift;
+  uint32_t insn = 0xD3400000
+    | (immr << 16)
+    | (imms << 10)
+    | (src << 5)
+    | dst;
+  emit32(a, insn);
+}
+
+/* AND Xd, Xn, #imm - AND with bitmask immediate (limited patterns) */
+void arm64_and_r64_r64_imm(Arm64Asm *a, Arm64Reg dst, Arm64Reg src, uint64_t imm)
+{
+  /* ARM64 logical immediates use a special encoding. For simple
+   * patterns like 0x07 (3 bits), we can encode directly.
+   * For 0x07: N=1, immr=0, imms=2 (element size 64, 3 ones at LSB)
+   *
+   * Encoding format: sf=1 opc=00 100100 N immr imms Rn Rd
+   * Base = 0x92400000, need to set immr and imms
+   * For N=1, 64-bit element: imms encodes (number of ones - 1)
+   */
+  if (imm == 0xFF) {
+    /* AND Xd, Xn, #0xFF: N=1, immr=0, imms=7 (8 ones at LSB) */
+    uint32_t insn = 0x92401C00
+      | (src << 5)
+      | dst;
+    emit32(a, insn);
+  } else if (imm == 0x07) {
+    /* AND Xd, Xn, #0x7: N=1, immr=0, imms=2 (3 ones at LSB) */
+    uint32_t insn = 0x92400800
+      | (src << 5)
+      | dst;
+    emit32(a, insn);
+  } else if (imm == 0x03) {
+    /* AND Xd, Xn, #0x3: N=1, immr=0, imms=1 (2 ones at LSB) */
+    uint32_t insn = 0x92400400
+      | (src << 5)
+      | dst;
+    emit32(a, insn);
+  } else if (imm == 0x01) {
+    /* AND Xd, Xn, #0x1: N=1, immr=0, imms=0 (1 one at LSB) */
+    uint32_t insn = 0x92400000
+      | (src << 5)
+      | dst;
+    emit32(a, insn);
+  } else {
+    /* For other patterns, fall back to loading immediate and using AND */
+    SET_ERROR(a, "unsupported AND immediate");
+  }
+}
+
+/* ORR Xd, Xn, #imm - OR with bitmask immediate (limited patterns) */
+void arm64_orr_r64_r64_imm(Arm64Asm *a, Arm64Reg dst, Arm64Reg src, uint64_t imm)
+{
+  /* For simple patterns we can encode directly.
+   * ARM64 ORR immediate encoding: sf opc 100100 N immr imms Rn Rd
+   * For 64-bit: sf=1, opc=01, N=1
+   * Base encoding: 0xB2400000, need to set N bit (bit 22) */
+  if (imm == 0x01) {
+    /* ORR Xd, Xn, #0x1: N=1, immr=0, imms=0
+     * Element size 64 (N=1), one bit set at position 0 */
+    uint32_t insn = 0xB2400000
+      | (1 << 22)        /* N=1 for 64-bit element */
+      | (src << 5)
+      | dst;
+    emit32(a, insn);
+  } else {
+    /* For other patterns, fall back */
+    SET_ERROR(a, "unsupported ORR immediate");
+  }
+}
+
 /* LDP Xt1, Xt2, [Xn, #offset] */
 void arm64_ldp(Arm64Asm *a, Arm64Reg r1, Arm64Reg r2, Arm64Reg base, int32_t offset)
 {
@@ -691,6 +790,17 @@ void arm64_mul_r64_r64_r64(Arm64Asm *a, Arm64Reg dst, Arm64Reg n, Arm64Reg m)
 {
   /* MADD Xd, Xn, Xm, XZR: 10011011 000 Rm 0 11111 Rn Rd */
   uint32_t insn = 0x9B007C00
+    | (m << 16)
+    | (n << 5)
+    | dst;
+  emit32(a, insn);
+}
+
+/* SMULH Xd, Xn, Xm - Signed Multiply High (upper 64 bits of 128-bit result) */
+void arm64_smulh_r64_r64_r64(Arm64Asm *a, Arm64Reg dst, Arm64Reg n, Arm64Reg m)
+{
+  /* SMULH Xd, Xn, Xm: 10011011 010 Rm 0 11111 Rn Rd */
+  uint32_t insn = 0x9B407C00
     | (m << 16)
     | (n << 5)
     | dst;

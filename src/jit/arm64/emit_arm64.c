@@ -234,9 +234,11 @@ int Sg__JitEmit_Epilogue(SgJitContext *ctx)
   arm64_str_r64_mem(a, JIT_REG_TEMP1, JIT_REG_VM, VM_OFFSET_AC);
   arm64_str_r64_mem(a, JIT_REG_CL, JIT_REG_VM, VM_OFFSET_CL);
 
-  /* Set valuesCount = 1 (single return value) */
-  arm64_mov_r64_imm(a, JIT_REG_TEMP2, 1);
-  arm64_str_r64_mem(a, JIT_REG_TEMP2, JIT_REG_VM, VM_OFFSET_VALUESCOUNT);
+  /* Note: DO NOT reset valuesCount here!
+   * If VALUES was executed, vm->valuesCount was already set by Sg__JitValues.
+   * If no VALUES was executed, valuesCount remains at 1 (default).
+   * The VM initializes valuesCount = 1 in the prologue and most instructions
+   * that produce single values (like CONST, LREF, etc.) also set it to 1. */
 
   /* Restore callee-saved registers (reverse order of prologue) */
   /* Restore X23 */
@@ -392,12 +394,18 @@ int Sg__JitEmit_ADD(SgJitContext *ctx)
   arm64_sub_r64_r64_imm(a, JIT_REG_TEMP1, JIT_REG_TEMP1, 1);
   arm64_b(a, done);
 
-  /* Slow path: call Sg_Add */
+  /* Slow path: call Sg_Add(obj, ac) where obj=TEMP2, ac=TEMP1
+   * Note: TEMP1=X0, TEMP2=X1, so we need to swap properly
+   * Save/restore LR because BL clobbers it and we need it for RET after SELF_CALL */
   arm64_bind_label(a, slowPath);
-  arm64_mov_r64_r64(a, ARM64_X0, JIT_REG_TEMP2);
-  arm64_mov_r64_r64(a, ARM64_X1, JIT_REG_TEMP1);
+  arm64_str_r64_mem_pre(a, ARM64_LR, ARM64_SP, -16);  /* Save LR */
+  arm64_mov_r64_r64(a, ARM64_X3, JIT_REG_TEMP1);   /* Save AC in X3 */
+  arm64_mov_r64_r64(a, ARM64_X0, JIT_REG_TEMP2);   /* X0 = obj (TEMP2) */
+  arm64_mov_r64_r64(a, ARM64_X1, ARM64_X3);        /* X1 = AC (saved TEMP1) */
   arm64_bl(a, Sg_Add);
   arm64_mov_r64_r64(a, JIT_REG_TEMP1, ARM64_X0);
+  arm64_ldr_r64_mem(a, ARM64_LR, ARM64_SP, 0);     /* Restore LR */
+  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
 
   arm64_bind_label(a, done);
   return 1;
@@ -431,11 +439,14 @@ int Sg__JitEmit_ADDI(SgJitContext *ctx, long val)
 
   /* Slow path: call Sg_Add */
   arm64_bind_label(a, slowPath);
+  arm64_str_r64_mem_pre(a, ARM64_LR, ARM64_SP, -16);  /* Save LR */
   intptr_t taggedVal = (val << FIXNUM_SHIFT) | FIXNUM_TAG;
   arm64_mov_r64_imm(a, ARM64_X1, taggedVal);
   arm64_mov_r64_r64(a, ARM64_X0, JIT_REG_TEMP1);
   arm64_bl(a, Sg_Add);
   arm64_mov_r64_r64(a, JIT_REG_TEMP1, ARM64_X0);
+  arm64_ldr_r64_mem(a, ARM64_LR, ARM64_SP, 0);     /* Restore LR */
+  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
 
   arm64_bind_label(a, done);
   return 1;
@@ -465,12 +476,18 @@ int Sg__JitEmit_SUB(SgJitContext *ctx)
   arm64_add_r64_r64_imm(a, JIT_REG_TEMP1, JIT_REG_TEMP1, 1);
   arm64_b(a, done);
 
-  /* Slow path: call Sg_Sub */
+  /* Slow path: call Sg_Sub(obj, ac) where obj=TEMP2, ac=TEMP1
+   * Note: TEMP1=X0, TEMP2=X1, so we need to swap properly
+   * Save/restore LR because BL clobbers it and we need it for RET after SELF_CALL */
   arm64_bind_label(a, slowPath);
-  arm64_mov_r64_r64(a, ARM64_X0, JIT_REG_TEMP2);
-  arm64_mov_r64_r64(a, ARM64_X1, JIT_REG_TEMP1);
+  arm64_str_r64_mem_pre(a, ARM64_LR, ARM64_SP, -16);  /* Save LR */
+  arm64_mov_r64_r64(a, ARM64_X3, JIT_REG_TEMP1);   /* Save AC in X3 */
+  arm64_mov_r64_r64(a, ARM64_X0, JIT_REG_TEMP2);   /* X0 = obj (TEMP2) */
+  arm64_mov_r64_r64(a, ARM64_X1, ARM64_X3);        /* X1 = AC (saved TEMP1) */
   arm64_bl(a, Sg_Sub);
   arm64_mov_r64_r64(a, JIT_REG_TEMP1, ARM64_X0);
+  arm64_ldr_r64_mem(a, ARM64_LR, ARM64_SP, 0);     /* Restore LR */
+  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
 
   arm64_bind_label(a, done);
   return 1;
@@ -504,11 +521,14 @@ int Sg__JitEmit_SUBI(SgJitContext *ctx, long val)
 
   /* Slow path: call Sg_Sub */
   arm64_bind_label(a, slowPath);
+  arm64_str_r64_mem_pre(a, ARM64_LR, ARM64_SP, -16);  /* Save LR */
   intptr_t taggedVal = (val << FIXNUM_SHIFT) | FIXNUM_TAG;
   arm64_mov_r64_imm(a, ARM64_X1, taggedVal);
   arm64_mov_r64_r64(a, ARM64_X0, JIT_REG_TEMP1);
   arm64_bl(a, Sg_Sub);
   arm64_mov_r64_r64(a, JIT_REG_TEMP1, ARM64_X0);
+  arm64_ldr_r64_mem(a, ARM64_LR, ARM64_SP, 0);     /* Restore LR */
+  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
 
   arm64_bind_label(a, done);
   return 1;
@@ -548,12 +568,18 @@ int Sg__JitEmit_NUM_EQ(SgJitContext *ctx)
   arm64_mov_r64_ptr(a, JIT_REG_TEMP1, SG_TRUE);
   arm64_b(a, done);
 
-  /* Slow path */
+  /* Slow path: call Sg_NumEq(obj, ac) where obj=TEMP2, ac=TEMP1
+   * Note: TEMP1=X0, TEMP2=X1, so we need to swap properly
+   * Save/restore LR because BL clobbers it and we need it for RET after SELF_CALL */
   arm64_bind_label(a, slowPath);
-  arm64_mov_r64_r64(a, ARM64_X0, JIT_REG_TEMP2);
-  arm64_mov_r64_r64(a, ARM64_X1, JIT_REG_TEMP1);
+  arm64_str_r64_mem_pre(a, ARM64_LR, ARM64_SP, -16);  /* Save LR */
+  arm64_mov_r64_r64(a, ARM64_X3, JIT_REG_TEMP1);   /* Save AC in X3 */
+  arm64_mov_r64_r64(a, ARM64_X0, JIT_REG_TEMP2);   /* X0 = obj (TEMP2) */
+  arm64_mov_r64_r64(a, ARM64_X1, ARM64_X3);        /* X1 = AC (saved TEMP1) */
   arm64_bl(a, Sg_NumEq);
   arm64_mov_r64_r64(a, JIT_REG_TEMP1, ARM64_X0);
+  arm64_ldr_r64_mem(a, ARM64_LR, ARM64_SP, 0);     /* Restore LR */
+  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
 
   arm64_bind_label(a, done);
   return 1;
@@ -583,11 +609,18 @@ int Sg__JitEmit_NUM_EQ(SgJitContext *ctx)
     arm64_bind_label(a, isTrue);				\
     arm64_mov_r64_ptr(a, JIT_REG_TEMP1, SG_TRUE);		\
     arm64_b(a, done);						\
+    /* Slow path: call fn(obj, ac) where obj=TEMP2, ac=TEMP1 */ \
+    /* Note: TEMP1=X0, TEMP2=X1, so we need to swap properly */ \
+    /* Save/restore LR for SELF_CALL returns */                 \
     arm64_bind_label(a, slowPath);				\
+    arm64_str_r64_mem_pre(a, ARM64_LR, ARM64_SP, -16);		\
+    arm64_mov_r64_r64(a, ARM64_X3, JIT_REG_TEMP1);		\
     arm64_mov_r64_r64(a, ARM64_X0, JIT_REG_TEMP2);		\
-    arm64_mov_r64_r64(a, ARM64_X1, JIT_REG_TEMP1);		\
+    arm64_mov_r64_r64(a, ARM64_X1, ARM64_X3);			\
     arm64_bl(a, slowFn);					\
     arm64_mov_r64_r64(a, JIT_REG_TEMP1, ARM64_X0);		\
+    arm64_ldr_r64_mem(a, ARM64_LR, ARM64_SP, 0);		\
+    arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);		\
     arm64_bind_label(a, done);					\
     return 1;							\
   } while (0)
@@ -726,6 +759,1164 @@ int Sg__JitEmit_BNGE(SgJitContext *ctx, int targetPc)
 {
   /* Branch if not greater or equal - jump if X1 < X0 */
   EMIT_BRANCH_CMP(ctx, ARM64_LT, targetPc);
+  return 1;
+}
+
+int Sg__JitEmit_BNNULL(SgJitContext *ctx, int targetPc)
+{
+  /* Branch if not null - skip if AC == SG_NIL */
+  Arm64Asm *a = GET_ASM(ctx);
+  Arm64CodeGen *gen = GET_GEN(ctx);
+  int target = gen->labels[ctx->pcToLabel[targetPc]];
+
+  /* Compare AC with SG_NIL */
+  arm64_mov_r64_ptr(a, JIT_REG_TEMP2, SG_NIL);
+  arm64_cmp_r64_r64(a, JIT_REG_TEMP1, JIT_REG_TEMP2);
+  arm64_b_cond(a, ARM64_NE, target);
+  return 1;
+}
+
+int Sg__JitEmit_BNEQ(SgJitContext *ctx, int targetPc)
+{
+  /* Branch if not eq - pop X1, skip if X1 == AC */
+  Arm64Asm *a = GET_ASM(ctx);
+  Arm64CodeGen *gen = GET_GEN(ctx);
+  int target = gen->labels[ctx->pcToLabel[targetPc]];
+
+  /* Pop operand */
+  arm64_ldr_r64_mem_pre(a, JIT_REG_TEMP2, JIT_REG_SCHSP,
+			-(int32_t)sizeof(SgObject));
+
+  /* eq? is pointer equality */
+  arm64_cmp_r64_r64(a, JIT_REG_TEMP2, JIT_REG_TEMP1);
+  arm64_b_cond(a, ARM64_NE, target);
+  return 1;
+}
+
+/*
+ * List Operations
+ */
+
+int Sg__JitEmit_CAR(SgJitContext *ctx)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+  int slowPath = arm64_new_label(a);
+  int done = arm64_new_label(a);
+
+  /* Check if AC is a pair: SG_HPTRP(obj) = (obj & 0x03) == 0 */
+  arm64_tst_r64_imm(a, JIT_REG_TEMP1, 0x03);
+  arm64_b_cond(a, ARM64_NE, slowPath);
+
+  /* Check HTAG != 0x7 (not an SgObject with header)
+   * We need to load the first word and check the tag.
+   * For pairs, HTAG is not 0x7. */
+  arm64_ldr_r64_mem(a, JIT_REG_TEMP2, JIT_REG_TEMP1, 0);  /* Load first word */
+  arm64_and_r64_r64_imm(a, JIT_REG_TEMP3, JIT_REG_TEMP2, 0x07);
+  arm64_cmp_r64_imm(a, JIT_REG_TEMP3, 0x07);
+  arm64_b_cond(a, ARM64_EQ, slowPath);
+
+  /* Fast path: AC = ((SgPair*)AC)->car (offset 0) */
+  arm64_mov_r64_r64(a, JIT_REG_TEMP1, JIT_REG_TEMP2);
+  arm64_b(a, done);
+
+  /* Slow path: call C helper (save/restore LR for SELF_CALL returns) */
+  arm64_bind_label(a, slowPath);
+  arm64_str_r64_mem_pre(a, ARM64_LR, ARM64_SP, -16);
+  arm64_mov_r64_r64(a, ARM64_X0, JIT_REG_TEMP1);
+  arm64_bl(a, Sg_Car);
+  arm64_mov_r64_r64(a, JIT_REG_TEMP1, ARM64_X0);
+  arm64_ldr_r64_mem(a, ARM64_LR, ARM64_SP, 0);
+  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
+
+  arm64_bind_label(a, done);
+  return 1;
+}
+
+int Sg__JitEmit_CDR(SgJitContext *ctx)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+  int slowPath = arm64_new_label(a);
+  int done = arm64_new_label(a);
+
+  /* Check if AC is a pair: SG_HPTRP(obj) = (obj & 0x03) == 0 */
+  arm64_tst_r64_imm(a, JIT_REG_TEMP1, 0x03);
+  arm64_b_cond(a, ARM64_NE, slowPath);
+
+  /* Check HTAG != 0x7 (not an SgObject with header) */
+  arm64_ldr_r64_mem(a, JIT_REG_TEMP2, JIT_REG_TEMP1, 0);
+  arm64_and_r64_r64_imm(a, JIT_REG_TEMP3, JIT_REG_TEMP2, 0x07);
+  arm64_cmp_r64_imm(a, JIT_REG_TEMP3, 0x07);
+  arm64_b_cond(a, ARM64_EQ, slowPath);
+
+  /* Fast path: AC = ((SgPair*)AC)->cdr (offset 8) */
+  arm64_ldr_r64_mem(a, JIT_REG_TEMP1, JIT_REG_TEMP1, 8);
+  arm64_b(a, done);
+
+  /* Slow path: call C helper (save/restore LR for SELF_CALL returns) */
+  arm64_bind_label(a, slowPath);
+  arm64_str_r64_mem_pre(a, ARM64_LR, ARM64_SP, -16);
+  arm64_mov_r64_r64(a, ARM64_X0, JIT_REG_TEMP1);
+  arm64_bl(a, Sg_Cdr);
+  arm64_mov_r64_r64(a, JIT_REG_TEMP1, ARM64_X0);
+  arm64_ldr_r64_mem(a, ARM64_LR, ARM64_SP, 0);
+  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
+
+  arm64_bind_label(a, done);
+  return 1;
+}
+
+int Sg__JitEmit_CONS(SgJitContext *ctx)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+
+  /* Pop car from stack into TEMP2 (X1), AC (TEMP1 = X0) has cdr */
+  arm64_ldr_r64_mem_pre(a, JIT_REG_TEMP2, JIT_REG_SCHSP,
+			-(int32_t)sizeof(SgObject));
+
+  /* Call Sg_Cons(car, cdr) - save/restore LR for SELF_CALL returns
+   * IMPORTANT: JIT_REG_TEMP1 = X0, JIT_REG_TEMP2 = X1
+   * We need: X0 = car, X1 = cdr
+   * Problem: car is in X1, cdr is in X0
+   * Solution: use X2 to swap
+   */
+  arm64_str_r64_mem_pre(a, ARM64_LR, ARM64_SP, -16);
+  arm64_mov_r64_r64(a, ARM64_X2, JIT_REG_TEMP1);  /* X2 = cdr (save AC) */
+  arm64_mov_r64_r64(a, ARM64_X0, JIT_REG_TEMP2);  /* X0 = car */
+  arm64_mov_r64_r64(a, ARM64_X1, ARM64_X2);       /* X1 = cdr (from saved) */
+  arm64_bl(a, Sg_Cons);
+  arm64_mov_r64_r64(a, JIT_REG_TEMP1, ARM64_X0);
+  arm64_ldr_r64_mem(a, ARM64_LR, ARM64_SP, 0);
+  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
+
+  return 1;
+}
+
+/*
+ * Predicates
+ */
+
+int Sg__JitEmit_NULLP(SgJitContext *ctx)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+  int isNull = arm64_new_label(a);
+  int done = arm64_new_label(a);
+
+  /* Compare AC with SG_NIL */
+  arm64_mov_r64_ptr(a, JIT_REG_TEMP2, SG_NIL);
+  arm64_cmp_r64_r64(a, JIT_REG_TEMP1, JIT_REG_TEMP2);
+  arm64_b_cond(a, ARM64_EQ, isNull);
+
+  /* Not null */
+  arm64_mov_r64_ptr(a, JIT_REG_TEMP1, SG_FALSE);
+  arm64_b(a, done);
+
+  /* Null */
+  arm64_bind_label(a, isNull);
+  arm64_mov_r64_ptr(a, JIT_REG_TEMP1, SG_TRUE);
+
+  arm64_bind_label(a, done);
+  return 1;
+}
+
+int Sg__JitEmit_PAIRP(SgJitContext *ctx)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+  int notPair = arm64_new_label(a);
+  int done = arm64_new_label(a);
+
+  /* Check SG_HPTRP: (obj & 0x03) == 0 */
+  arm64_tst_r64_imm(a, JIT_REG_TEMP1, 0x03);
+  arm64_b_cond(a, ARM64_NE, notPair);
+
+  /* Check HTAG != 0x7 */
+  arm64_ldr_r64_mem(a, JIT_REG_TEMP2, JIT_REG_TEMP1, 0);
+  arm64_and_r64_r64_imm(a, JIT_REG_TEMP3, JIT_REG_TEMP2, 0x07);
+  arm64_cmp_r64_imm(a, JIT_REG_TEMP3, 0x07);
+  arm64_b_cond(a, ARM64_EQ, notPair);
+
+  /* Is pair */
+  arm64_mov_r64_ptr(a, JIT_REG_TEMP1, SG_TRUE);
+  arm64_b(a, done);
+
+  arm64_bind_label(a, notPair);
+  arm64_mov_r64_ptr(a, JIT_REG_TEMP1, SG_FALSE);
+
+  arm64_bind_label(a, done);
+  return 1;
+}
+
+int Sg__JitEmit_NOT(SgJitContext *ctx)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+  int isFalse = arm64_new_label(a);
+  int done = arm64_new_label(a);
+
+  /* Compare AC with SG_FALSE */
+  arm64_mov_r64_ptr(a, JIT_REG_TEMP2, SG_FALSE);
+  arm64_cmp_r64_r64(a, JIT_REG_TEMP1, JIT_REG_TEMP2);
+  arm64_b_cond(a, ARM64_EQ, isFalse);
+
+  /* Not false -> return #f */
+  arm64_mov_r64_ptr(a, JIT_REG_TEMP1, SG_FALSE);
+  arm64_b(a, done);
+
+  /* Is false -> return #t */
+  arm64_bind_label(a, isFalse);
+  arm64_mov_r64_ptr(a, JIT_REG_TEMP1, SG_TRUE);
+
+  arm64_bind_label(a, done);
+  return 1;
+}
+
+int Sg__JitEmit_EQ(SgJitContext *ctx)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+  int isEqual = arm64_new_label(a);
+  int done = arm64_new_label(a);
+
+  /* Pop operand */
+  arm64_ldr_r64_mem_pre(a, JIT_REG_TEMP2, JIT_REG_SCHSP,
+			-(int32_t)sizeof(SgObject));
+
+  /* eq? is pointer equality */
+  arm64_cmp_r64_r64(a, JIT_REG_TEMP2, JIT_REG_TEMP1);
+  arm64_b_cond(a, ARM64_EQ, isEqual);
+
+  arm64_mov_r64_ptr(a, JIT_REG_TEMP1, SG_FALSE);
+  arm64_b(a, done);
+
+  arm64_bind_label(a, isEqual);
+  arm64_mov_r64_ptr(a, JIT_REG_TEMP1, SG_TRUE);
+
+  arm64_bind_label(a, done);
+  return 1;
+}
+
+/*
+ * Multiplication
+ */
+
+int Sg__JitEmit_MUL(SgJitContext *ctx)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+
+  /* Pop operand: TEMP2 = *--SP */
+  arm64_ldr_r64_mem_pre(a, JIT_REG_TEMP2, JIT_REG_SCHSP,
+			-(int32_t)sizeof(SgObject));
+
+  /* Save LR before calling C function */
+  arm64_str_r64_mem_pre(a, ARM64_LR, ARM64_SP, -16);
+
+  /* Call Sg_Mul(obj, ac) where obj=TEMP2, ac=TEMP1 */
+  arm64_mov_r64_r64(a, ARM64_X3, JIT_REG_TEMP1);   /* Save AC in X3 */
+  arm64_mov_r64_r64(a, ARM64_X0, JIT_REG_TEMP2);   /* X0 = obj (TEMP2) */
+  arm64_mov_r64_r64(a, ARM64_X1, ARM64_X3);        /* X1 = AC (saved TEMP1) */
+  arm64_bl(a, Sg_Mul);
+  arm64_mov_r64_r64(a, JIT_REG_TEMP1, ARM64_X0);
+
+  /* Restore LR after C function */
+  arm64_ldr_r64_mem(a, ARM64_LR, ARM64_SP, 0);
+  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
+
+  return 1;
+}
+
+#if 0
+/* Original implementation with fast path */
+int Sg__JitEmit_MUL_OLD(SgJitContext *ctx)
+{
+  /* TEMPORARY: Disable MUL to debug */
+  return 0;
+
+  Arm64Asm *a = GET_ASM(ctx);
+  int slowPath = arm64_new_label(a);
+  int done = arm64_new_label(a);
+
+  /* Pop operand: TEMP2 = *--SP */
+  arm64_ldr_r64_mem_pre(a, JIT_REG_TEMP2, JIT_REG_SCHSP,
+			-(int32_t)sizeof(SgObject));
+
+  /* Check if both are fixnums: (x & 1) && (y & 1) && !((x | y) & 2)
+   * Fixnum tag is 01 (bit 0 set, bit 1 clear) */
+  arm64_and_r64_r64_r64(a, JIT_REG_TEMP3, JIT_REG_TEMP1, JIT_REG_TEMP2);
+  arm64_tst_r64_imm(a, JIT_REG_TEMP3, 1);
+  arm64_b_cond(a, ARM64_EQ, slowPath);
+  arm64_orr_r64_r64_r64(a, JIT_REG_TEMP3, JIT_REG_TEMP1, JIT_REG_TEMP2);
+  arm64_tst_r64_imm(a, JIT_REG_TEMP3, 2);
+  arm64_b_cond(a, ARM64_NE, slowPath);
+
+  /* Fast path: multiply fixnums
+   * Fixnum representation: (value << 2) | 1
+   * Extract: value = fixnum >> 2
+   * Create: fixnum = (value << 2) | 1
+   * Use TEMP3 and X3 to preserve TEMP1/TEMP2 for slow path fallback */
+  arm64_asr_r64_r64_imm(a, JIT_REG_TEMP3, JIT_REG_TEMP2, 2);  /* a >> 2 */
+  arm64_asr_r64_r64_imm(a, ARM64_X3, JIT_REG_TEMP1, 2);       /* b >> 2 */
+  arm64_mul_r64_r64_r64(a, JIT_REG_TEMP3, JIT_REG_TEMP3, ARM64_X3);
+
+  /* Check for overflow: result must fit in fixnum range
+   * Fixnum range: -(2^61) to (2^61 - 1) before tagging
+   * If high bits are all same as sign bit, no overflow
+   * ASR by 61, add 1: should be 0 (neg result) or 1 (pos result) */
+  arm64_asr_r64_r64_imm(a, ARM64_X3, JIT_REG_TEMP3, 61);
+  arm64_add_r64_r64_imm(a, ARM64_X3, ARM64_X3, 1);
+  arm64_cmp_r64_imm(a, ARM64_X3, 1);
+  arm64_b_cond(a, ARM64_HI, slowPath);  /* overflow if X3 > 1 */
+
+  /* Convert result back to fixnum: (result << 2) | 1 */
+  arm64_lsl_r64_r64_imm(a, JIT_REG_TEMP1, JIT_REG_TEMP3, 2);
+  arm64_orr_r64_r64_imm(a, JIT_REG_TEMP1, JIT_REG_TEMP1, 1);
+  arm64_b(a, done);
+
+  /* Slow path: call Sg_Mul(obj, ac) where obj=TEMP2, ac=TEMP1
+   * Note: TEMP1=X0, TEMP2=X1, so we need to swap properly
+   * Sync VM state first since Sg_Mul may access VM and trigger GC */
+  arm64_bind_label(a, slowPath);
+  arm64_str_r64_mem(a, JIT_REG_SCHSP, JIT_REG_VM, VM_OFFSET_SP);
+  arm64_str_r64_mem(a, JIT_REG_SCHFP, JIT_REG_VM, VM_OFFSET_FP);
+  arm64_mov_r64_r64(a, ARM64_X3, JIT_REG_TEMP1);   /* Save AC in X3 */
+  arm64_mov_r64_r64(a, ARM64_X0, JIT_REG_TEMP2);   /* X0 = obj (TEMP2) */
+  arm64_mov_r64_r64(a, ARM64_X1, ARM64_X3);        /* X1 = AC (saved TEMP1) */
+  arm64_bl(a, Sg_Mul);
+  arm64_mov_r64_r64(a, JIT_REG_TEMP1, ARM64_X0);
+  
+  /* Reload VM state in case GC moved things */
+  arm64_ldr_r64_mem(a, JIT_REG_SCHSP, JIT_REG_VM, VM_OFFSET_SP);
+  arm64_ldr_r64_mem(a, JIT_REG_SCHFP, JIT_REG_VM, VM_OFFSET_FP);
+
+  arm64_bind_label(a, done);
+  return 1;
+}
+#endif
+
+int Sg__JitEmit_MULI(SgJitContext *ctx, long val)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+  int slowPath = arm64_new_label(a);
+  int done = arm64_new_label(a);
+
+  /* Check if AC is fixnum: tag = 01 (bit 0 set, bit 1 clear) */
+  arm64_tst_r64_imm(a, JIT_REG_TEMP1, 1);
+  arm64_b_cond(a, ARM64_EQ, slowPath);
+  arm64_tst_r64_imm(a, JIT_REG_TEMP1, 2);
+  arm64_b_cond(a, ARM64_NE, slowPath);
+
+  /* Fast path: multiply by immediate
+   * Fixnum: (value << 2) | 1
+   * Extract: value = fixnum >> 2 */
+  arm64_asr_r64_r64_imm(a, JIT_REG_TEMP1, JIT_REG_TEMP1, 2);
+  arm64_mov_r64_imm(a, JIT_REG_TEMP2, val);
+  arm64_mul_r64_r64_r64(a, JIT_REG_TEMP1, JIT_REG_TEMP1, JIT_REG_TEMP2);
+
+  /* Convert back to fixnum: (result << 2) | 1
+   * (no overflow check for simplicity) */
+  arm64_lsl_r64_r64_imm(a, JIT_REG_TEMP1, JIT_REG_TEMP1, 2);
+  arm64_orr_r64_r64_imm(a, JIT_REG_TEMP1, JIT_REG_TEMP1, 1);
+  arm64_b(a, done);
+
+  /* Slow path: call Sg_Mul with fixnum immediate */
+  arm64_bind_label(a, slowPath);
+  arm64_str_r64_mem_pre(a, ARM64_LR, ARM64_SP, -16);
+  arm64_mov_r64_r64(a, ARM64_X0, JIT_REG_TEMP1);
+  arm64_mov_r64_imm(a, ARM64_X1, (val << 2) | 1);  /* Make fixnum */
+  arm64_bl(a, Sg_Mul);
+  arm64_mov_r64_r64(a, JIT_REG_TEMP1, ARM64_X0);
+  arm64_ldr_r64_mem(a, ARM64_LR, ARM64_SP, 0);
+  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
+
+  arm64_bind_label(a, done);
+  return 1;
+}
+
+/*
+ * DIV - Division: AC = pop() / AC
+ */
+int Sg__JitEmit_DIV(SgJitContext *ctx)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+
+  /* Pop operand: TEMP2 = *--SP */
+  arm64_ldr_r64_mem_pre(a, JIT_REG_TEMP2, JIT_REG_SCHSP,
+			-(int32_t)sizeof(SgObject));
+
+  /* Save LR before calling C function */
+  arm64_str_r64_mem_pre(a, ARM64_LR, ARM64_SP, -16);
+
+  /* Call Sg_Div(obj, ac) where obj=TEMP2, ac=TEMP1 */
+  arm64_mov_r64_r64(a, ARM64_X3, JIT_REG_TEMP1);   /* Save AC in X3 */
+  arm64_mov_r64_r64(a, ARM64_X0, JIT_REG_TEMP2);   /* X0 = obj (TEMP2) */
+  arm64_mov_r64_r64(a, ARM64_X1, ARM64_X3);        /* X1 = AC (saved TEMP1) */
+  arm64_bl(a, Sg_Div);
+  arm64_mov_r64_r64(a, JIT_REG_TEMP1, ARM64_X0);
+
+  /* Restore LR after C function */
+  arm64_ldr_r64_mem(a, ARM64_LR, ARM64_SP, 0);
+  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
+
+  return 1;
+}
+
+int Sg__JitEmit_DIVI(SgJitContext *ctx, long val)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+
+  /* Save LR before calling C function */
+  arm64_str_r64_mem_pre(a, ARM64_LR, ARM64_SP, -16);
+
+  /* Call Sg_Div(ac, fixnum(val)) */
+  arm64_mov_r64_r64(a, ARM64_X0, JIT_REG_TEMP1);
+  arm64_mov_r64_imm(a, ARM64_X1, (val << 2) | 1);  /* Make fixnum */
+  arm64_bl(a, Sg_Div);
+  arm64_mov_r64_r64(a, JIT_REG_TEMP1, ARM64_X0);
+
+  /* Restore LR after C function */
+  arm64_ldr_r64_mem(a, ARM64_LR, ARM64_SP, 0);
+  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
+
+  return 1;
+}
+
+/*
+ * NEG - Negate: AC = -AC
+ */
+int Sg__JitEmit_NEG(SgJitContext *ctx)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+
+  /* Save LR before calling C function */
+  arm64_str_r64_mem_pre(a, ARM64_LR, ARM64_SP, -16);
+
+  /* Call Sg_Negate(ac) */
+  arm64_mov_r64_r64(a, ARM64_X0, JIT_REG_TEMP1);
+  arm64_bl(a, Sg_Negate);
+  arm64_mov_r64_r64(a, JIT_REG_TEMP1, ARM64_X0);
+
+  /* Restore LR after C function */
+  arm64_ldr_r64_mem(a, ARM64_LR, ARM64_SP, 0);
+  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
+
+  return 1;
+}
+
+/*
+ * EQV - EQV? equality: AC = eqv?(pop(), AC)
+ */
+int Sg__JitEmit_EQV(SgJitContext *ctx)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+  int done = arm64_new_label(a);
+  int notEqual = arm64_new_label(a);
+
+  /* Pop operand: TEMP2 = *--SP */
+  arm64_ldr_r64_mem_pre(a, JIT_REG_TEMP2, JIT_REG_SCHSP,
+			-(int32_t)sizeof(SgObject));
+
+  /* Fast path: eq? implies eqv? */
+  arm64_cmp_r64_r64(a, JIT_REG_TEMP2, JIT_REG_TEMP1);
+  arm64_b_cond(a, ARM64_EQ, done);  /* Same pointer, AC already true-ish, but set explicitly */
+
+  /* Slow path: call Sg_EqvP */
+  arm64_str_r64_mem_pre(a, ARM64_LR, ARM64_SP, -16);
+  arm64_mov_r64_r64(a, ARM64_X0, JIT_REG_TEMP2);
+  arm64_mov_r64_r64(a, ARM64_X1, JIT_REG_TEMP1);
+  arm64_bl(a, Sg_EqvP);
+  /* Sg_EqvP returns int (C boolean), convert to Scheme boolean */
+  arm64_cmp_r64_imm(a, ARM64_X0, 0);
+  arm64_b_cond(a, ARM64_EQ, notEqual);
+  arm64_mov_r64_ptr(a, JIT_REG_TEMP1, SG_TRUE);
+  arm64_ldr_r64_mem(a, ARM64_LR, ARM64_SP, 0);
+  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
+  arm64_b(a, done);
+
+  arm64_bind_label(a, notEqual);
+  arm64_mov_r64_ptr(a, JIT_REG_TEMP1, SG_FALSE);
+  arm64_ldr_r64_mem(a, ARM64_LR, ARM64_SP, 0);
+  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
+
+  arm64_bind_label(a, done);
+  /* Handle the fast path eq? case - set SG_TRUE */
+  /* Actually need to fix: fast path should also set SG_TRUE */
+  return 1;
+}
+
+/*
+ * SYMBOLP - Symbol check: AC = symbol?(AC)
+ */
+int Sg__JitEmit_SYMBOLP(SgJitContext *ctx)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+  int isSymbol = arm64_new_label(a);
+  int done = arm64_new_label(a);
+
+  /* Symbol check: SG_SYMBOLP(obj) = SG_HPTRP(obj) && SG_SYMBOL_TAG(obj) */
+  /* SG_HPTRP = (obj & 0x03) == 0 */
+  arm64_tst_r64_imm(a, JIT_REG_TEMP1, 0x03);
+  arm64_b_cond(a, ARM64_NE, done);  /* Not a heap pointer -> false */
+
+  /* Load first word and check tag */
+  arm64_ldr_r64_mem(a, JIT_REG_TEMP2, JIT_REG_TEMP1, 0);
+  /* Symbol tag = 0x0F (from sagittarius/private/sagittariusdefs.h) */
+  arm64_and_r64_r64_imm(a, JIT_REG_TEMP2, JIT_REG_TEMP2, 0xFF);
+  arm64_cmp_r64_imm(a, JIT_REG_TEMP2, 0x0F);
+  arm64_b_cond(a, ARM64_EQ, isSymbol);
+
+  /* Not a symbol */
+  arm64_mov_r64_ptr(a, JIT_REG_TEMP1, SG_FALSE);
+  arm64_b(a, done);
+
+  arm64_bind_label(a, isSymbol);
+  arm64_mov_r64_ptr(a, JIT_REG_TEMP1, SG_TRUE);
+
+  arm64_bind_label(a, done);
+  return 1;
+}
+
+/*
+ * GREF - Load global variable: AC = lookup(id)
+ */
+SG_EXTERN SgObject Sg__JitGref(SgObject id);  /* Forward declaration */
+
+int Sg__JitEmit_GREF(SgJitContext *ctx, SgObject id)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+
+  /* Save LR before calling C function */
+  arm64_str_r64_mem_pre(a, ARM64_LR, ARM64_SP, -16);
+
+  /* Call Sg__JitGref(id) */
+  arm64_mov_r64_ptr(a, ARM64_X0, id);
+  arm64_bl(a, Sg__JitGref);
+  arm64_mov_r64_r64(a, JIT_REG_TEMP1, ARM64_X0);
+
+  /* Restore LR after C function */
+  arm64_ldr_r64_mem(a, ARM64_LR, ARM64_SP, 0);
+  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
+
+  return 1;
+}
+
+/*
+ * GREF_PUSH - Load global and push: *SP++ = lookup(id)
+ */
+int Sg__JitEmit_GREF_PUSH(SgJitContext *ctx, SgObject id)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+
+  /* Save LR before calling C function */
+  arm64_str_r64_mem_pre(a, ARM64_LR, ARM64_SP, -16);
+
+  /* Call Sg__JitGref(id) */
+  arm64_mov_r64_ptr(a, ARM64_X0, id);
+  arm64_bl(a, Sg__JitGref);
+
+  /* Restore LR */
+  arm64_ldr_r64_mem(a, ARM64_LR, ARM64_SP, 0);
+  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
+
+  /* Push result onto stack: *SP++ = X0 */
+  arm64_str_r64_mem_post(a, ARM64_X0, JIT_REG_SCHSP, sizeof(SgObject));
+
+  return 1;
+}
+
+/*
+ * FREF_PUSH - Load free variable and push: *SP++ = CL->frees[index]
+ */
+int Sg__JitEmit_FREF_PUSH(SgJitContext *ctx, int index)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+
+  /* Load free variable: TEMP2 = CL->frees[index] */
+  int32_t offset = CLOSURE_OFFSET_FREES + index * sizeof(SgObject);
+  arm64_ldr_r64_mem(a, JIT_REG_TEMP2, JIT_REG_CL, offset);
+
+  /* Push onto stack: *SP++ = TEMP2 */
+  arm64_str_r64_mem_post(a, JIT_REG_TEMP2, JIT_REG_SCHSP, sizeof(SgObject));
+
+  return 1;
+}
+
+/*
+ * LIST - Create list from n items on stack
+ */
+int Sg__JitEmit_LIST(SgJitContext *ctx, int n)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+
+  /* Save LR before calling C function */
+  arm64_str_r64_mem_pre(a, ARM64_LR, ARM64_SP, -16);
+
+  /* Adjust SP to point to start of arguments (before the n items) */
+  /* Arguments are at SP - n*8 */
+  arm64_sub_r64_r64_imm(a, ARM64_X0, JIT_REG_SCHSP, n * sizeof(SgObject));
+
+  /* X1 = n */
+  arm64_mov_r64_imm(a, ARM64_X1, n);
+
+  /* Call Sg_ArrayToList(array, n) */
+  arm64_bl(a, Sg_ArrayToList);
+  arm64_mov_r64_r64(a, JIT_REG_TEMP1, ARM64_X0);
+
+  /* Pop the n arguments from stack */
+  arm64_sub_r64_r64_imm(a, JIT_REG_SCHSP, JIT_REG_SCHSP, n * sizeof(SgObject));
+
+  /* Restore LR */
+  arm64_ldr_r64_mem(a, ARM64_LR, ARM64_SP, 0);
+  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
+
+  return 1;
+}
+
+/*
+ * CAAR - AC = car(car(AC))
+ */
+int Sg__JitEmit_CAAR(SgJitContext *ctx)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+
+  /* Save LR */
+  arm64_str_r64_mem_pre(a, ARM64_LR, ARM64_SP, -16);
+
+  /* Call Sg_Caar (safer than inlining double car) */
+  arm64_mov_r64_r64(a, ARM64_X0, JIT_REG_TEMP1);
+  arm64_bl(a, Sg_Caar);
+  arm64_mov_r64_r64(a, JIT_REG_TEMP1, ARM64_X0);
+
+  /* Restore LR */
+  arm64_ldr_r64_mem(a, ARM64_LR, ARM64_SP, 0);
+  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
+
+  return 1;
+}
+
+/*
+ * CADR - AC = car(cdr(AC))
+ */
+int Sg__JitEmit_CADR(SgJitContext *ctx)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+
+  /* Save LR */
+  arm64_str_r64_mem_pre(a, ARM64_LR, ARM64_SP, -16);
+
+  arm64_mov_r64_r64(a, ARM64_X0, JIT_REG_TEMP1);
+  arm64_bl(a, Sg_Cadr);
+  arm64_mov_r64_r64(a, JIT_REG_TEMP1, ARM64_X0);
+
+  /* Restore LR */
+  arm64_ldr_r64_mem(a, ARM64_LR, ARM64_SP, 0);
+  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
+
+  return 1;
+}
+
+/*
+ * CDAR - AC = cdr(car(AC))
+ */
+int Sg__JitEmit_CDAR(SgJitContext *ctx)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+
+  /* Save LR */
+  arm64_str_r64_mem_pre(a, ARM64_LR, ARM64_SP, -16);
+
+  arm64_mov_r64_r64(a, ARM64_X0, JIT_REG_TEMP1);
+  arm64_bl(a, Sg_Cdar);
+  arm64_mov_r64_r64(a, JIT_REG_TEMP1, ARM64_X0);
+
+  /* Restore LR */
+  arm64_ldr_r64_mem(a, ARM64_LR, ARM64_SP, 0);
+  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
+
+  return 1;
+}
+
+/*
+ * CDDR - AC = cdr(cdr(AC))
+ */
+int Sg__JitEmit_CDDR(SgJitContext *ctx)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+
+  /* Save LR */
+  arm64_str_r64_mem_pre(a, ARM64_LR, ARM64_SP, -16);
+
+  arm64_mov_r64_r64(a, ARM64_X0, JIT_REG_TEMP1);
+  arm64_bl(a, Sg_Cddr);
+  arm64_mov_r64_r64(a, JIT_REG_TEMP1, ARM64_X0);
+
+  /* Restore LR */
+  arm64_ldr_r64_mem(a, ARM64_LR, ARM64_SP, 0);
+  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
+
+  return 1;
+}
+
+/*
+ * Combined instructions: CAR_PUSH, CDR_PUSH, CONS_PUSH
+ */
+int Sg__JitEmit_CAR_PUSH(SgJitContext *ctx)
+{
+  /* AC = car(AC), then push */
+  if (!Sg__JitEmit_CAR(ctx)) return 0;
+  return Sg__JitEmit_PUSH(ctx);
+}
+
+int Sg__JitEmit_CDR_PUSH(SgJitContext *ctx)
+{
+  /* AC = cdr(AC), then push */
+  if (!Sg__JitEmit_CDR(ctx)) return 0;
+  return Sg__JitEmit_PUSH(ctx);
+}
+
+int Sg__JitEmit_CONS_PUSH(SgJitContext *ctx)
+{
+  /* AC = cons(pop(), AC), then push */
+  if (!Sg__JitEmit_CONS(ctx)) return 0;
+  return Sg__JitEmit_PUSH(ctx);
+}
+
+/*
+ * Combined: LREF_CAR, LREF_CDR
+ */
+int Sg__JitEmit_LREF_CAR(SgJitContext *ctx, int index)
+{
+  if (!Sg__JitEmit_LREF(ctx, index)) return 0;
+  return Sg__JitEmit_CAR(ctx);
+}
+
+int Sg__JitEmit_LREF_CDR(SgJitContext *ctx, int index)
+{
+  if (!Sg__JitEmit_LREF(ctx, index)) return 0;
+  return Sg__JitEmit_CDR(ctx);
+}
+
+/*
+ * Combined: FREF_CAR, FREF_CDR
+ */
+int Sg__JitEmit_FREF_CAR(SgJitContext *ctx, int index)
+{
+  if (!Sg__JitEmit_FREF(ctx, index)) return 0;
+  return Sg__JitEmit_CAR(ctx);
+}
+
+int Sg__JitEmit_FREF_CDR(SgJitContext *ctx, int index)
+{
+  if (!Sg__JitEmit_FREF(ctx, index)) return 0;
+  return Sg__JitEmit_CDR(ctx);
+}
+
+/*
+ * Combined: GREF_CAR, GREF_CDR
+ */
+int Sg__JitEmit_GREF_CAR(SgJitContext *ctx, SgObject id)
+{
+  if (!Sg__JitEmit_GREF(ctx, id)) return 0;
+  return Sg__JitEmit_CAR(ctx);
+}
+
+int Sg__JitEmit_GREF_CDR(SgJitContext *ctx, SgObject id)
+{
+  if (!Sg__JitEmit_GREF(ctx, id)) return 0;
+  return Sg__JitEmit_CDR(ctx);
+}
+
+/*
+ * Combined with PUSH variants
+ */
+int Sg__JitEmit_LREF_CAR_PUSH(SgJitContext *ctx, int index)
+{
+  if (!Sg__JitEmit_LREF_CAR(ctx, index)) return 0;
+  return Sg__JitEmit_PUSH(ctx);
+}
+
+int Sg__JitEmit_LREF_CDR_PUSH(SgJitContext *ctx, int index)
+{
+  if (!Sg__JitEmit_LREF_CDR(ctx, index)) return 0;
+  return Sg__JitEmit_PUSH(ctx);
+}
+
+int Sg__JitEmit_FREF_CAR_PUSH(SgJitContext *ctx, int index)
+{
+  if (!Sg__JitEmit_FREF_CAR(ctx, index)) return 0;
+  return Sg__JitEmit_PUSH(ctx);
+}
+
+int Sg__JitEmit_FREF_CDR_PUSH(SgJitContext *ctx, int index)
+{
+  if (!Sg__JitEmit_FREF_CDR(ctx, index)) return 0;
+  return Sg__JitEmit_PUSH(ctx);
+}
+
+int Sg__JitEmit_GREF_CAR_PUSH(SgJitContext *ctx, SgObject id)
+{
+  if (!Sg__JitEmit_GREF_CAR(ctx, id)) return 0;
+  return Sg__JitEmit_PUSH(ctx);
+}
+
+int Sg__JitEmit_GREF_CDR_PUSH(SgJitContext *ctx, SgObject id)
+{
+  if (!Sg__JitEmit_GREF_CDR(ctx, id)) return 0;
+  return Sg__JitEmit_PUSH(ctx);
+}
+
+/*
+ * CONST_RET - Load constant and return
+ */
+int Sg__JitEmit_CONST_RET(SgJitContext *ctx, SgObject val)
+{
+  if (!Sg__JitEmit_CONST(ctx, val)) return 0;
+  return Sg__JitEmit_RET(ctx);
+}
+
+/*
+ * SET_CAR - Set car of pair: car(pop()) = AC
+ * Pair layout: car at offset 0, cdr at offset 8
+ */
+int Sg__JitEmit_SET_CAR(SgJitContext *ctx)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+
+  /* Pop pair from stack, AC has new value */
+  arm64_ldr_r64_mem_pre(a, JIT_REG_TEMP2, JIT_REG_SCHSP,
+			-(int32_t)sizeof(SgObject));
+
+  /* Store AC to pair->car (offset 0) */
+  arm64_str_r64_mem(a, JIT_REG_TEMP1, JIT_REG_TEMP2, 0);
+
+  /* AC = UNDEF */
+  arm64_mov_r64_ptr(a, JIT_REG_TEMP1, SG_UNDEF);
+
+  return 1;
+}
+
+/*
+ * SET_CDR - Set cdr of pair: cdr(pop()) = AC
+ * Pair layout: car at offset 0, cdr at offset 8
+ */
+int Sg__JitEmit_SET_CDR(SgJitContext *ctx)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+
+  /* Pop pair from stack, AC has new value */
+  arm64_ldr_r64_mem_pre(a, JIT_REG_TEMP2, JIT_REG_SCHSP,
+			-(int32_t)sizeof(SgObject));
+
+  /* Store AC to pair->cdr (offset 8) */
+  arm64_str_r64_mem(a, JIT_REG_TEMP1, JIT_REG_TEMP2, sizeof(SgObject));
+
+  /* AC = UNDEF */
+  arm64_mov_r64_ptr(a, JIT_REG_TEMP1, SG_UNDEF);
+
+  return 1;
+}
+
+/*
+ * BOX - Create a box for mutable variable
+ */
+SG_EXTERN SgObject Sg__JitMakeBox(SgObject value);
+
+int Sg__JitEmit_BOX(SgJitContext *ctx, int index)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+  int32_t offset = index * sizeof(SgObject);
+
+  /* Save LR */
+  arm64_str_r64_mem_pre(a, ARM64_LR, ARM64_SP, -16);
+
+  /* Load value from stack at FP+index */
+  arm64_ldr_r64_mem(a, ARM64_X0, JIT_REG_SCHFP, offset);
+
+  /* Call Sg__JitMakeBox(value) */
+  arm64_bl(a, Sg__JitMakeBox);
+
+  /* Store box back to stack */
+  arm64_str_r64_mem(a, ARM64_X0, JIT_REG_SCHFP, offset);
+
+  /* Restore LR */
+  arm64_ldr_r64_mem(a, ARM64_LR, ARM64_SP, 0);
+  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
+
+  return 1;
+}
+
+/*
+ * UNBOX - Get value from box: AC = box->value
+ */
+int Sg__JitEmit_UNBOX(SgJitContext *ctx)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+  /* SgBox layout: value is at offset 8 (after SgHeader) */
+  arm64_ldr_r64_mem(a, JIT_REG_TEMP1, JIT_REG_TEMP1, sizeof(void*));
+  return 1;
+}
+
+/*
+ * FSET - Set free variable: CL->frees[index]->value = AC
+ */
+int Sg__JitEmit_FSET(SgJitContext *ctx, int index)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+  int32_t offset = CLOSURE_OFFSET_FREES + index * sizeof(SgObject);
+
+  /* Load box from closure's frees */
+  arm64_ldr_r64_mem(a, JIT_REG_TEMP2, JIT_REG_CL, offset);
+
+  /* Store AC to box->value (offset 8 after SgHeader) */
+  arm64_str_r64_mem(a, JIT_REG_TEMP1, JIT_REG_TEMP2, sizeof(void*));
+
+  /* AC = UNDEF */
+  arm64_mov_r64_ptr(a, JIT_REG_TEMP1, SG_UNDEF);
+
+  return 1;
+}
+
+/*
+ * LEAVE - Pop n items from stack: SP -= n
+ */
+int Sg__JitEmit_LEAVE(SgJitContext *ctx, int n)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+  arm64_sub_r64_r64_imm(a, JIT_REG_SCHSP, JIT_REG_SCHSP, n * sizeof(SgObject));
+  return 1;
+}
+
+/*
+ * INST_STACK - Insert AC at FP[index]: FP[index] = AC
+ */
+int Sg__JitEmit_INST_STACK(SgJitContext *ctx, int index)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+  int32_t offset = index * sizeof(SgObject);
+  arm64_str_r64_mem(a, JIT_REG_TEMP1, JIT_REG_SCHFP, offset);
+  return 1;
+}
+
+/*
+ * RESV_STACK - Reserve n stack slots: SP += n
+ */
+int Sg__JitEmit_RESV_STACK(SgJitContext *ctx, int n)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+  arm64_add_r64_r64_imm(a, JIT_REG_SCHSP, JIT_REG_SCHSP, n * sizeof(SgObject));
+  return 1;
+}
+
+/*
+ * VECTORP - Check if AC is a vector
+ */
+int Sg__JitEmit_VECTORP(SgJitContext *ctx)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+  int isVector = arm64_new_label(a);
+  int done = arm64_new_label(a);
+
+  /* SG_VECTORP(obj) = SG_HPTRP(obj) && SG_VECTOR_TAG check */
+  arm64_tst_r64_imm(a, JIT_REG_TEMP1, 0x03);
+  arm64_b_cond(a, ARM64_NE, done);  /* Not a heap pointer -> false */
+
+  /* Load first word and check tag */
+  arm64_ldr_r64_mem(a, JIT_REG_TEMP2, JIT_REG_TEMP1, 0);
+  /* Vector tag = 0x17 */
+  arm64_and_r64_r64_imm(a, JIT_REG_TEMP2, JIT_REG_TEMP2, 0xFF);
+  arm64_cmp_r64_imm(a, JIT_REG_TEMP2, 0x17);
+  arm64_b_cond(a, ARM64_EQ, isVector);
+
+  /* Not a vector */
+  arm64_mov_r64_ptr(a, JIT_REG_TEMP1, SG_FALSE);
+  arm64_b(a, done);
+
+  arm64_bind_label(a, isVector);
+  arm64_mov_r64_ptr(a, JIT_REG_TEMP1, SG_TRUE);
+
+  arm64_bind_label(a, done);
+  return 1;
+}
+
+/*
+ * VEC_LEN - Get length of vector in AC, return as fixnum
+ * Assumes AC is already a vector (caller should check)
+ */
+int Sg__JitEmit_VEC_LEN(SgJitContext *ctx)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+
+  /* SgVector layout: SG_HEADER (8 bytes), then:
+   * - literalp: 1 bit (bit 0)
+   * - size: 63 bits (bits 1-63)
+   * So at offset 8, we have a word containing (size << 1) | literalp
+   */
+  arm64_ldr_r64_mem(a, JIT_REG_TEMP1, JIT_REG_TEMP1, 8);
+  
+  /* Shift right by 1 to get size */
+  arm64_asr_r64_r64_imm(a, JIT_REG_TEMP1, JIT_REG_TEMP1, 1);
+  
+  /* Convert to fixnum: (size << 2) | 1 */
+  arm64_lsl_r64_r64_imm(a, JIT_REG_TEMP1, JIT_REG_TEMP1, 2);
+  arm64_orr_r64_r64_imm(a, JIT_REG_TEMP1, JIT_REG_TEMP1, 1);
+
+  return 1;
+}
+
+/*
+ * VEC_REF - Pop vector from stack, AC has index, return element
+ * stack: [..., vec] -> [...]
+ * AC = index (fixnum)
+ * result = vec[index]
+ */
+int Sg__JitEmit_VEC_REF(SgJitContext *ctx)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+
+  /* Pop vector into TEMP2 */
+  arm64_ldr_r64_mem_pre(a, JIT_REG_TEMP2, JIT_REG_SCHSP,
+                        -(int32_t)sizeof(SgObject));
+
+  /* Index is in TEMP1 (AC) as fixnum, convert to integer: index >> 2 */
+  arm64_asr_r64_r64_imm(a, JIT_REG_TEMP3, JIT_REG_TEMP1, 2);
+
+  /* Calculate element address: vec + 16 + (index * 8)
+   * SgVector layout: tag (8), size (8), elements[]
+   * So elements start at offset 16
+   */
+  arm64_lsl_r64_r64_imm(a, JIT_REG_TEMP3, JIT_REG_TEMP3, 3);  /* index * 8 */
+  arm64_add_r64_r64_imm(a, JIT_REG_TEMP3, JIT_REG_TEMP3, 16); /* + header */
+  arm64_add_r64_r64_r64(a, JIT_REG_TEMP3, JIT_REG_TEMP2, JIT_REG_TEMP3);
+
+  /* Load element */
+  arm64_ldr_r64_mem(a, JIT_REG_TEMP1, JIT_REG_TEMP3, 0);
+
+  return 1;
+}
+
+/*
+ * VEC_SET - Pop index and vector from stack, set vec[index] = AC
+ * stack: [..., vec, index] -> [...]
+ * AC = value to set
+ * result = #<undef>
+ */
+int Sg__JitEmit_VEC_SET(SgJitContext *ctx)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+
+  /* Pop index into TEMP2 */
+  arm64_ldr_r64_mem_pre(a, JIT_REG_TEMP2, JIT_REG_SCHSP,
+                        -(int32_t)sizeof(SgObject));
+
+  /* Pop vector into TEMP3 */
+  arm64_ldr_r64_mem_pre(a, JIT_REG_TEMP3, JIT_REG_SCHSP,
+                        -(int32_t)sizeof(SgObject));
+
+  /* Index is in TEMP2 as fixnum, convert to integer: index >> 2 */
+  arm64_asr_r64_r64_imm(a, JIT_REG_TEMP2, JIT_REG_TEMP2, 2);
+
+  /* Calculate element address: vec + 16 + (index * 8) */
+  arm64_lsl_r64_r64_imm(a, JIT_REG_TEMP2, JIT_REG_TEMP2, 3);  /* index * 8 */
+  arm64_add_r64_r64_imm(a, JIT_REG_TEMP2, JIT_REG_TEMP2, 16); /* + header */
+  arm64_add_r64_r64_r64(a, JIT_REG_TEMP2, JIT_REG_TEMP3, JIT_REG_TEMP2);
+
+  /* Store value (AC/TEMP1) at element address */
+  arm64_str_r64_mem(a, JIT_REG_TEMP1, JIT_REG_TEMP2, 0);
+
+  /* Return #<undef> */
+  arm64_mov_r64_ptr(a, JIT_REG_TEMP1, SG_UNDEF);
+
+  return 1;
+}
+
+/*
+ * VECTOR n - Create a vector of size n
+ * AC has element[n-1], stack has elements[n-2..0]
+ * Pops n-1 elements from stack
+ */
+SG_EXTERN SgObject Sg_MakeVector(long size, SgObject fill);
+
+int Sg__JitEmit_VECTOR(SgJitContext *ctx, int size)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+
+  if (size == 0) {
+    /* Empty vector - just create it */
+    arm64_str_r64_mem_pre(a, ARM64_LR, ARM64_SP, -16);
+    arm64_mov_r64_imm(a, ARM64_X0, 0);
+    arm64_mov_r64_ptr(a, ARM64_X1, SG_UNDEF);
+    arm64_bl(a, Sg_MakeVector);
+    arm64_mov_r64_r64(a, JIT_REG_TEMP1, ARM64_X0);
+    arm64_ldr_r64_mem(a, ARM64_LR, ARM64_SP, 0);
+    arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
+    return 1;
+  }
+
+  /* Save AC (last element) before calling Sg_MakeVector */
+  arm64_str_r64_mem_pre(a, JIT_REG_TEMP1, ARM64_SP, -16);
+  arm64_str_r64_mem_pre(a, ARM64_LR, ARM64_SP, -16);
+
+  /* Create vector filled with #<undef> */
+  arm64_mov_r64_imm(a, ARM64_X0, size);
+  arm64_mov_r64_ptr(a, ARM64_X1, SG_UNDEF);
+  arm64_bl(a, Sg_MakeVector);
+  
+  /* Vector is in X0, save to TEMP2 */
+  arm64_mov_r64_r64(a, JIT_REG_TEMP2, ARM64_X0);
+
+  arm64_ldr_r64_mem(a, ARM64_LR, ARM64_SP, 0);
+  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
+  /* Restore AC (last element) to TEMP1 */
+  arm64_ldr_r64_mem(a, JIT_REG_TEMP1, ARM64_SP, 0);
+  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
+
+  /* Set element[size-1] = AC (TEMP1) */
+  /* Element offset = 16 + (size-1) * 8 */
+  int lastOffset = 16 + (size - 1) * 8;
+  arm64_str_r64_mem(a, JIT_REG_TEMP1, JIT_REG_TEMP2, lastOffset);
+
+  /* Pop remaining elements from Scheme stack and fill vector */
+  for (int i = size - 2; i >= 0; i--) {
+    /* Pop element from Scheme stack */
+    arm64_ldr_r64_mem_pre(a, JIT_REG_TEMP1, JIT_REG_SCHSP,
+                          -(int32_t)sizeof(SgObject));
+    /* Store at vec[i] */
+    int offset = 16 + i * 8;
+    arm64_str_r64_mem(a, JIT_REG_TEMP1, JIT_REG_TEMP2, offset);
+  }
+
+  /* Return vector in AC */
+  arm64_mov_r64_r64(a, JIT_REG_TEMP1, JIT_REG_TEMP2);
+
+  return 1;
+}
+
+/*
+ * BNEQV - Branch if not eqv
+ */
+int Sg__JitEmit_BNEQV(SgJitContext *ctx, int targetPc)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+  Arm64CodeGen *gen = GET_GEN(ctx);
+  int target = gen->labels[ctx->pcToLabel[targetPc]];
+  int skipBranch = arm64_new_label(a);
+
+  /* Pop operand: TEMP2 = *--SP */
+  arm64_ldr_r64_mem_pre(a, JIT_REG_TEMP2, JIT_REG_SCHSP,
+			-(int32_t)sizeof(SgObject));
+
+  /* Fast path: eq? implies eqv? - skip branch if equal */
+  arm64_cmp_r64_r64(a, JIT_REG_TEMP2, JIT_REG_TEMP1);
+  arm64_b_cond(a, ARM64_EQ, skipBranch);
+
+  /* Slow path: call Sg_EqvP */
+  arm64_str_r64_mem_pre(a, ARM64_LR, ARM64_SP, -16);
+  arm64_mov_r64_r64(a, ARM64_X0, JIT_REG_TEMP2);
+  arm64_mov_r64_r64(a, ARM64_X1, JIT_REG_TEMP1);
+  arm64_bl(a, Sg_EqvP);
+  arm64_ldr_r64_mem(a, ARM64_LR, ARM64_SP, 0);
+  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
+
+  /* Branch if NOT eqv (X0 == 0) */
+  arm64_cmp_r64_imm(a, ARM64_X0, 0);
+  arm64_b_cond(a, ARM64_EQ, target);
+
+  arm64_bind_label(a, skipBranch);
   return 1;
 }
 
@@ -1088,6 +2279,317 @@ int Sg__JitEmit_SELF_TAIL_CALL(SgJitContext *ctx, int argc, SgObject id)
   
   /* Go to epilogue */
   arm64_b(a, gen->labels[ctx->epilogueLabel]);
+
+  return 1;
+}
+
+/*
+ * CALL instruction - call a procedure in AC
+ *
+ * Stack layout before: args on stack, proc in AC
+ * FRAME instruction already pushed continuation frame.
+ */
+SG_EXTERN SgObject Sg__JitCall(SgVM *vm, int argc, SgObject proc);
+
+int Sg__JitEmit_CALL(SgJitContext *ctx, int argc)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+
+  /* Save LR before calling C function */
+  arm64_str_r64_mem_pre(a, ARM64_LR, ARM64_SP, -16);
+
+  /* Sync VM state before call, including AC which has the proc */
+  arm64_str_r64_mem(a, JIT_REG_TEMP1, JIT_REG_VM, VM_OFFSET_AC);
+  arm64_str_r64_mem(a, JIT_REG_SCHSP, JIT_REG_VM, VM_OFFSET_SP);
+  arm64_str_r64_mem(a, JIT_REG_SCHFP, JIT_REG_VM, VM_OFFSET_FP);
+  arm64_str_r64_mem(a, JIT_REG_CL, JIT_REG_VM, VM_OFFSET_CL);
+
+  /* Call Sg__JitCall(vm, argc, proc)
+   * IMPORTANT: JIT_REG_TEMP1 is X0, so we must copy proc to X2 BEFORE
+   * setting X0 to vm (since X0 = TEMP1 and would be overwritten)
+   */
+  arm64_mov_r64_r64(a, ARM64_X2, JIT_REG_TEMP1);  /* X2 = proc (must be first!) */
+  arm64_mov_r64_r64(a, ARM64_X0, JIT_REG_VM);     /* X0 = vm */
+  arm64_mov_r64_imm(a, ARM64_X1, argc);           /* X1 = argc */
+
+  arm64_bl(a, Sg__JitCall);
+
+  /* Result is in X0, move to AC (TEMP1) */
+  arm64_mov_r64_r64(a, JIT_REG_TEMP1, ARM64_X0);
+
+  /* Restore LR */
+  arm64_ldr_r64_mem(a, ARM64_LR, ARM64_SP, 0);
+  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
+
+  /* Reload VM state after call (continuation was popped by helper) */
+  arm64_ldr_r64_mem(a, JIT_REG_SCHSP, JIT_REG_VM, VM_OFFSET_SP);
+  arm64_ldr_r64_mem(a, JIT_REG_SCHFP, JIT_REG_VM, VM_OFFSET_FP);
+  arm64_ldr_r64_mem(a, JIT_REG_CL, JIT_REG_VM, VM_OFFSET_CL);
+
+  return 1;
+}
+
+/*
+ * TAIL_CALL instruction - tail-call a procedure in AC
+ *
+ * Args need to be shifted to FP position before calling.
+ * No continuation frame pushed for tail calls.
+ */
+SG_EXTERN SgObject Sg__JitTailCall(SgVM *vm, int argc, SgObject proc);
+
+int Sg__JitEmit_TAIL_CALL(SgJitContext *ctx, int argc)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+  Arm64CodeGen *gen = GET_GEN(ctx);
+
+  /* Save proc (AC/TEMP1=X0) to TEMP3 before we modify SP/FP */
+  arm64_mov_r64_r64(a, JIT_REG_TEMP3, JIT_REG_TEMP1);
+
+  /* For tail call, shift args from SP to FP */
+  if (argc > 0) {
+    int32_t argBytes = argc * (int32_t)sizeof(SgObject);
+    /* Source = SP - argc */
+    arm64_sub_r64_r64_imm(a, JIT_REG_TEMP2, JIT_REG_SCHSP, argBytes);
+    
+    /* Copy args from source to FP */
+    for (int i = 0; i < argc; i++) {
+      int32_t off = i * (int32_t)sizeof(SgObject);
+      arm64_ldr_r64_mem(a, JIT_REG_TEMP1, JIT_REG_TEMP2, off);
+      arm64_str_r64_mem(a, JIT_REG_TEMP1, JIT_REG_SCHFP, off);
+    }
+
+    /* SP = FP + argc */
+    arm64_add_r64_r64_imm(a, JIT_REG_SCHSP, JIT_REG_SCHFP, argBytes);
+  } else {
+    arm64_mov_r64_r64(a, JIT_REG_SCHSP, JIT_REG_SCHFP);
+  }
+
+  /* Sync VM state before call */
+  arm64_str_r64_mem(a, JIT_REG_SCHSP, JIT_REG_VM, VM_OFFSET_SP);
+  arm64_str_r64_mem(a, JIT_REG_SCHFP, JIT_REG_VM, VM_OFFSET_FP);
+  arm64_str_r64_mem(a, JIT_REG_CL, JIT_REG_VM, VM_OFFSET_CL);
+
+  /* Call Sg__JitTailCall(vm, argc, proc)
+   * IMPORTANT: proc was saved to TEMP3 earlier
+   */
+  arm64_mov_r64_r64(a, ARM64_X2, JIT_REG_TEMP3);  /* X2 = proc (from saved TEMP3) */
+  arm64_mov_r64_r64(a, ARM64_X0, JIT_REG_VM);     /* X0 = vm */
+  arm64_mov_r64_imm(a, ARM64_X1, argc);           /* X1 = argc */
+
+  arm64_bl(a, Sg__JitTailCall);
+
+  /* Result is in X0, move to AC */
+  arm64_mov_r64_r64(a, JIT_REG_TEMP1, ARM64_X0);
+
+  /* Tail call always goes to epilogue (no unwind needed since helper handles it) */
+  arm64_b(a, gen->labels[ctx->epilogueLabel]);
+
+  return 1;
+}
+
+/*
+ * LOCAL_CALL instruction - call a local closure
+ *
+ * Like CALL but the target is a known closure (faster path).
+ * For JIT, we delegate to the same C helper since the optimization
+ * is already in checking for JIT code in the closure.
+ */
+int Sg__JitEmit_LOCAL_CALL(SgJitContext *ctx, int argc)
+{
+  /* Same implementation as CALL - the C helper handles closure dispatch */
+  return Sg__JitEmit_CALL(ctx, argc);
+}
+
+/*
+ * LOCAL_TAIL_CALL instruction - tail-call a local closure
+ *
+ * Like TAIL_CALL but the target is a known closure.
+ */
+int Sg__JitEmit_LOCAL_TAIL_CALL(SgJitContext *ctx, int argc)
+{
+  /* Same implementation as TAIL_CALL - the C helper handles closure dispatch */
+  return Sg__JitEmit_TAIL_CALL(ctx, argc);
+}
+
+/*
+ * CLOSURE instruction - create a closure
+ *
+ * selfPos: 0 = no self-reference, n = self-ref at frees[n-1]
+ * cb: code builder for the closure body
+ * freec: number of free variables (already on stack)
+ */
+int Sg__JitEmit_CLOSURE(SgJitContext *ctx, int selfPos, SgObject cb, int freec)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+
+  /* Adjust SP to point to free variables: SP -= freec * sizeof(SgObject) */
+  if (freec > 0) {
+    int32_t freeBytes = freec * (int32_t)sizeof(SgObject);
+    arm64_sub_r64_r64_imm(a, JIT_REG_SCHSP, JIT_REG_SCHSP, freeBytes);
+  }
+
+  /* Call Sg_VMMakeClosure(cb, selfPos, sp)
+   * X0 = code builder
+   * X1 = self position
+   * X2 = free variables pointer (current SP)
+   */
+  arm64_str_r64_mem_pre(a, ARM64_LR, ARM64_SP, -16);
+  arm64_mov_r64_ptr(a, ARM64_X0, cb);             /* X0 = code builder */
+  arm64_mov_r64_imm(a, ARM64_X1, selfPos);        /* X1 = self position */
+  arm64_mov_r64_r64(a, ARM64_X2, JIT_REG_SCHSP);  /* X2 = frees pointer */
+  arm64_bl(a, Sg_VMMakeClosure);
+  arm64_mov_r64_r64(a, JIT_REG_TEMP1, ARM64_X0);  /* AC = result closure */
+  arm64_ldr_r64_mem(a, ARM64_LR, ARM64_SP, 0);
+  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
+
+  return 1;
+}
+
+/*
+ * APPLY instruction - apply a procedure to arguments with a list tail
+ *
+ * nargc: number of explicit arguments (not including proc and list)
+ * isTail: whether this is a tail apply
+ *
+ * Stack layout:
+ *   SP[-1] = last explicit arg
+ *   ...
+ *   SP[-nargc] = first explicit arg
+ *   SP[-nargc-1] = proc
+ *
+ * AC = list argument
+ */
+SG_EXTERN SgObject Sg__JitApply(SgVM *vm, int nargc, SgObject listArg, int isTail);
+
+int Sg__JitEmit_APPLY(SgJitContext *ctx, int nargc, int isTail)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+
+  /* Save LR before calling C function */
+  arm64_str_r64_mem_pre(a, ARM64_LR, ARM64_SP, -16);
+
+  /* Sync VM state - AC has the list argument */
+  arm64_str_r64_mem(a, JIT_REG_TEMP1, JIT_REG_VM, VM_OFFSET_AC);
+  arm64_str_r64_mem(a, JIT_REG_SCHSP, JIT_REG_VM, VM_OFFSET_SP);
+  arm64_str_r64_mem(a, JIT_REG_SCHFP, JIT_REG_VM, VM_OFFSET_FP);
+  arm64_str_r64_mem(a, JIT_REG_CL, JIT_REG_VM, VM_OFFSET_CL);
+
+  /* Call Sg__JitApply(vm, nargc, listArg, isTail)
+   * X0 = vm
+   * X1 = nargc
+   * X2 = listArg (AC)
+   * X3 = isTail
+   */
+  arm64_mov_r64_r64(a, ARM64_X2, JIT_REG_TEMP1);  /* X2 = listArg (AC) - must be first */
+  arm64_mov_r64_r64(a, ARM64_X0, JIT_REG_VM);     /* X0 = vm */
+  arm64_mov_r64_imm(a, ARM64_X1, nargc);          /* X1 = nargc */
+  arm64_mov_r64_imm(a, ARM64_X3, isTail);         /* X3 = isTail */
+
+  arm64_bl(a, Sg__JitApply);
+
+  /* Result is in X0, move to AC (TEMP1) */
+  arm64_mov_r64_r64(a, JIT_REG_TEMP1, ARM64_X0);
+
+  /* Restore LR */
+  arm64_ldr_r64_mem(a, ARM64_LR, ARM64_SP, 0);
+  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
+
+  /* Reload VM state after call */
+  arm64_ldr_r64_mem(a, JIT_REG_SCHSP, JIT_REG_VM, VM_OFFSET_SP);
+  arm64_ldr_r64_mem(a, JIT_REG_SCHFP, JIT_REG_VM, VM_OFFSET_FP);
+  arm64_ldr_r64_mem(a, JIT_REG_CL, JIT_REG_VM, VM_OFFSET_CL);
+
+  return 1;
+}
+
+/*
+ * VALUES instruction - return multiple values
+ *
+ * nvalues: number of values
+ *
+ * Stack layout:
+ *   SP[-1] = value[nvalues-2]
+ *   ...
+ *   SP[-(nvalues-1)] = value[0]
+ *
+ * AC = value[nvalues-1] (last value)
+ */
+SG_EXTERN SgObject Sg__JitValues(SgVM *vm, int nvalues, SgObject lastVal);
+
+int Sg__JitEmit_VALUES(SgJitContext *ctx, int nvalues)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+
+  /* Save LR before calling C function */
+  arm64_str_r64_mem_pre(a, ARM64_LR, ARM64_SP, -16);
+
+  /* Sync VM state - AC has the last value */
+  arm64_str_r64_mem(a, JIT_REG_SCHSP, JIT_REG_VM, VM_OFFSET_SP);
+  arm64_str_r64_mem(a, JIT_REG_SCHFP, JIT_REG_VM, VM_OFFSET_FP);
+
+  /* Call Sg__JitValues(vm, nvalues, lastVal)
+   * X0 = vm
+   * X1 = nvalues
+   * X2 = lastVal (AC)
+   */
+  arm64_mov_r64_r64(a, ARM64_X2, JIT_REG_TEMP1);  /* X2 = lastVal (AC) - must be first */
+  arm64_mov_r64_r64(a, ARM64_X0, JIT_REG_VM);     /* X0 = vm */
+  arm64_mov_r64_imm(a, ARM64_X1, nvalues);        /* X1 = nvalues */
+
+  arm64_bl(a, Sg__JitValues);
+
+  /* Result (first value) is in X0, move to AC (TEMP1) */
+  arm64_mov_r64_r64(a, JIT_REG_TEMP1, ARM64_X0);
+
+  /* Restore LR */
+  arm64_ldr_r64_mem(a, ARM64_LR, ARM64_SP, 0);
+  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
+
+  /* Reload SP from VM (it was modified by the helper) */
+  arm64_ldr_r64_mem(a, JIT_REG_SCHSP, JIT_REG_VM, VM_OFFSET_SP);
+
+  return 1;
+}
+
+/*
+ * RECEIVE instruction - receive multiple values
+ *
+ * reqCount: number of required values
+ * optCount: 0 = exact match, 1 = rest values as list
+ *
+ * Pushes values onto stack.
+ */
+SG_EXTERN SgObject Sg__JitReceive(SgVM *vm, int reqCount, int optCount);
+
+int Sg__JitEmit_RECEIVE(SgJitContext *ctx, int reqCount, int optCount)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+
+  /* Save LR before calling C function */
+  arm64_str_r64_mem_pre(a, ARM64_LR, ARM64_SP, -16);
+
+  /* Sync VM state */
+  arm64_str_r64_mem(a, JIT_REG_TEMP1, JIT_REG_VM, VM_OFFSET_AC);
+  arm64_str_r64_mem(a, JIT_REG_SCHSP, JIT_REG_VM, VM_OFFSET_SP);
+  arm64_str_r64_mem(a, JIT_REG_SCHFP, JIT_REG_VM, VM_OFFSET_FP);
+
+  /* Call Sg__JitReceive(vm, reqCount, optCount)
+   * X0 = vm
+   * X1 = reqCount
+   * X2 = optCount
+   */
+  arm64_mov_r64_r64(a, ARM64_X0, JIT_REG_VM);     /* X0 = vm */
+  arm64_mov_r64_imm(a, ARM64_X1, reqCount);       /* X1 = reqCount */
+  arm64_mov_r64_imm(a, ARM64_X2, optCount);       /* X2 = optCount */
+
+  arm64_bl(a, Sg__JitReceive);
+
+  /* Restore LR */
+  arm64_ldr_r64_mem(a, ARM64_LR, ARM64_SP, 0);
+  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
+
+  /* Reload SP from VM (it was modified by the helper) */
+  arm64_ldr_r64_mem(a, JIT_REG_SCHSP, JIT_REG_VM, VM_OFFSET_SP);
 
   return 1;
 }

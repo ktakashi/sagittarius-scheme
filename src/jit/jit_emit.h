@@ -184,6 +184,141 @@ SG_EXTERN int Sg__JitEmit_BNGT(SgJitContext *ctx, int targetPc);
 /* BNGE - Branch if not greater or equal */
 SG_EXTERN int Sg__JitEmit_BNGE(SgJitContext *ctx, int targetPc);
 
+/* BNNULL - Branch if not null */
+SG_EXTERN int Sg__JitEmit_BNNULL(SgJitContext *ctx, int targetPc);
+
+/* BNEQ - Branch if not eq */
+SG_EXTERN int Sg__JitEmit_BNEQ(SgJitContext *ctx, int targetPc);
+
+
+/*
+ * List Operations
+ */
+
+/* CAR - Get car of pair: AC = car(AC) */
+SG_EXTERN int Sg__JitEmit_CAR(SgJitContext *ctx);
+
+/* CDR - Get cdr of pair: AC = cdr(AC) */
+SG_EXTERN int Sg__JitEmit_CDR(SgJitContext *ctx);
+
+/* CONS - Create pair: AC = cons(pop(), AC) */
+SG_EXTERN int Sg__JitEmit_CONS(SgJitContext *ctx);
+
+
+/*
+ * Predicates
+ */
+
+/* NULLP - Null check: AC = (AC == '()) */
+SG_EXTERN int Sg__JitEmit_NULLP(SgJitContext *ctx);
+
+/* PAIRP - Pair check: AC = pair?(AC) */
+SG_EXTERN int Sg__JitEmit_PAIRP(SgJitContext *ctx);
+
+/* NOT - Boolean negation: AC = not(AC) */
+SG_EXTERN int Sg__JitEmit_NOT(SgJitContext *ctx);
+
+/* EQ - Pointer equality: AC = eq?(pop(), AC) */
+SG_EXTERN int Sg__JitEmit_EQ(SgJitContext *ctx);
+
+
+/*
+ * More Arithmetic
+ */
+
+/* MUL - Multiply: AC = pop() * AC */
+SG_EXTERN int Sg__JitEmit_MUL(SgJitContext *ctx);
+
+/* MULI - Multiply by immediate: AC = AC * val */
+SG_EXTERN int Sg__JitEmit_MULI(SgJitContext *ctx, long val);
+
+/* DIV - Divide: AC = pop() / AC */
+SG_EXTERN int Sg__JitEmit_DIV(SgJitContext *ctx);
+
+/* DIVI - Divide by immediate: AC = AC / val */
+SG_EXTERN int Sg__JitEmit_DIVI(SgJitContext *ctx, long val);
+
+/* NEG - Negate: AC = -AC */
+SG_EXTERN int Sg__JitEmit_NEG(SgJitContext *ctx);
+
+/* EQV - EQV? equality: AC = eqv?(pop(), AC) */
+SG_EXTERN int Sg__JitEmit_EQV(SgJitContext *ctx);
+
+/* SYMBOLP - Symbol check: AC = symbol?(AC) */
+SG_EXTERN int Sg__JitEmit_SYMBOLP(SgJitContext *ctx);
+
+/* GREF - Load global variable: AC = lookup(id) */
+SG_EXTERN int Sg__JitEmit_GREF(SgJitContext *ctx, SgObject id);
+
+/* GREF_PUSH - Load global and push: *SP++ = lookup(id) */
+SG_EXTERN int Sg__JitEmit_GREF_PUSH(SgJitContext *ctx, SgObject id);
+
+/* FREF_PUSH - Load free variable and push: *SP++ = CL->frees[index] */
+SG_EXTERN int Sg__JitEmit_FREF_PUSH(SgJitContext *ctx, int index);
+
+/* LIST - Create list from n items on stack */
+SG_EXTERN int Sg__JitEmit_LIST(SgJitContext *ctx, int n);
+
+/* CAAR - AC = car(car(AC)) */
+SG_EXTERN int Sg__JitEmit_CAAR(SgJitContext *ctx);
+
+/* CADR - AC = car(cdr(AC)) */
+SG_EXTERN int Sg__JitEmit_CADR(SgJitContext *ctx);
+
+/* CDAR - AC = cdr(car(AC)) */
+SG_EXTERN int Sg__JitEmit_CDAR(SgJitContext *ctx);
+
+/* CDDR - AC = cdr(cdr(AC)) */
+SG_EXTERN int Sg__JitEmit_CDDR(SgJitContext *ctx);
+
+/* BNEQV - Branch if not eqv */
+SG_EXTERN int Sg__JitEmit_BNEQV(SgJitContext *ctx, int targetPc);
+
+/*
+ * Combined Instructions
+ */
+SG_EXTERN int Sg__JitEmit_CAR_PUSH(SgJitContext *ctx);
+SG_EXTERN int Sg__JitEmit_CDR_PUSH(SgJitContext *ctx);
+SG_EXTERN int Sg__JitEmit_CONS_PUSH(SgJitContext *ctx);
+SG_EXTERN int Sg__JitEmit_LREF_CAR(SgJitContext *ctx, int index);
+SG_EXTERN int Sg__JitEmit_LREF_CDR(SgJitContext *ctx, int index);
+SG_EXTERN int Sg__JitEmit_FREF_CAR(SgJitContext *ctx, int index);
+SG_EXTERN int Sg__JitEmit_FREF_CDR(SgJitContext *ctx, int index);
+SG_EXTERN int Sg__JitEmit_GREF_CAR(SgJitContext *ctx, SgObject id);
+SG_EXTERN int Sg__JitEmit_GREF_CDR(SgJitContext *ctx, SgObject id);
+SG_EXTERN int Sg__JitEmit_LREF_CAR_PUSH(SgJitContext *ctx, int index);
+SG_EXTERN int Sg__JitEmit_LREF_CDR_PUSH(SgJitContext *ctx, int index);
+SG_EXTERN int Sg__JitEmit_FREF_CAR_PUSH(SgJitContext *ctx, int index);
+SG_EXTERN int Sg__JitEmit_FREF_CDR_PUSH(SgJitContext *ctx, int index);
+SG_EXTERN int Sg__JitEmit_GREF_CAR_PUSH(SgJitContext *ctx, SgObject id);
+SG_EXTERN int Sg__JitEmit_GREF_CDR_PUSH(SgJitContext *ctx, SgObject id);
+SG_EXTERN int Sg__JitEmit_CONST_RET(SgJitContext *ctx, SgObject val);
+
+/*
+ * Mutation Operations
+ */
+SG_EXTERN int Sg__JitEmit_SET_CAR(SgJitContext *ctx);
+SG_EXTERN int Sg__JitEmit_SET_CDR(SgJitContext *ctx);
+SG_EXTERN int Sg__JitEmit_BOX(SgJitContext *ctx, int index);
+SG_EXTERN int Sg__JitEmit_UNBOX(SgJitContext *ctx);
+SG_EXTERN int Sg__JitEmit_FSET(SgJitContext *ctx, int index);
+
+/*
+ * Stack Management
+ */
+SG_EXTERN int Sg__JitEmit_LEAVE(SgJitContext *ctx, int n);
+SG_EXTERN int Sg__JitEmit_INST_STACK(SgJitContext *ctx, int index);
+SG_EXTERN int Sg__JitEmit_RESV_STACK(SgJitContext *ctx, int n);
+
+/*
+ * Vector Operations
+ */
+SG_EXTERN int Sg__JitEmit_VECTORP(SgJitContext *ctx);
+SG_EXTERN int Sg__JitEmit_VEC_LEN(SgJitContext *ctx);
+SG_EXTERN int Sg__JitEmit_VEC_REF(SgJitContext *ctx);
+SG_EXTERN int Sg__JitEmit_VEC_SET(SgJitContext *ctx);
+SG_EXTERN int Sg__JitEmit_VECTOR(SgJitContext *ctx, int size);
+
 
 /*
  * Call Instructions
@@ -198,11 +333,35 @@ SG_EXTERN int Sg__JitEmit_GREF_CALL(SgJitContext *ctx, int argc, SgObject id);
 /* GREF_TAIL_CALL - Tail-call a global procedure */
 SG_EXTERN int Sg__JitEmit_GREF_TAIL_CALL(SgJitContext *ctx, int argc, SgObject id);
 
+/* CALL - Call a procedure in AC */
+SG_EXTERN int Sg__JitEmit_CALL(SgJitContext *ctx, int argc);
+
+/* TAIL_CALL - Tail-call a procedure in AC */
+SG_EXTERN int Sg__JitEmit_TAIL_CALL(SgJitContext *ctx, int argc);
+
+/* LOCAL_CALL - Call a local closure */
+SG_EXTERN int Sg__JitEmit_LOCAL_CALL(SgJitContext *ctx, int argc);
+
+/* LOCAL_TAIL_CALL - Tail-call a local closure */
+SG_EXTERN int Sg__JitEmit_LOCAL_TAIL_CALL(SgJitContext *ctx, int argc);
+
+/* CLOSURE - Create a closure from code builder */
+SG_EXTERN int Sg__JitEmit_CLOSURE(SgJitContext *ctx, int selfPos, SgObject cb, int freec);
+
 /* SELF_CALL - Optimized self-recursive call (direct branch) */
 SG_EXTERN int Sg__JitEmit_SELF_CALL(SgJitContext *ctx, int argc);
 
 /* SELF_TAIL_CALL - Optimized self-recursive tail call (direct branch) */
 SG_EXTERN int Sg__JitEmit_SELF_TAIL_CALL(SgJitContext *ctx, int argc, SgObject id);
+
+/* APPLY - Apply a procedure to a list of arguments */
+SG_EXTERN int Sg__JitEmit_APPLY(SgJitContext *ctx, int nargc, int isTail);
+
+/* VALUES - Return multiple values */
+SG_EXTERN int Sg__JitEmit_VALUES(SgJitContext *ctx, int nvalues);
+
+/* RECEIVE - Receive multiple values */
+SG_EXTERN int Sg__JitEmit_RECEIVE(SgJitContext *ctx, int reqCount, int optCount);
 
 
 /* Disassembly interface - platform-specific disassembler */

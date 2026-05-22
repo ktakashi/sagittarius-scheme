@@ -145,11 +145,32 @@ SG_EXTERN void Sg_JitDisassemble(struct SgCodeBuilderRec *cb, struct SgPortRec *
 /* Push a continuation frame before a non-tail call */
 SG_EXTERN void Sg__JitPushFrame(struct SgVMRec *vm, SgWord *returnPc);
 
+/* Look up a global variable (GREF) */
+SG_EXTERN SgObject Sg__JitGref(SgObject id);
+
+/* Create a box for mutable variable (BOX) */
+SG_EXTERN SgObject Sg__JitMakeBox(SgObject value);
+
 /* Call a global procedure (GREF_CALL) */
 SG_EXTERN SgObject Sg__JitGrefCall(struct SgVMRec *vm, int argc, SgObject id);
 
 /* Tail-call a global procedure (GREF_TAIL_CALL) */
 SG_EXTERN SgObject Sg__JitGrefTailCall(struct SgVMRec *vm, int argc, SgObject id);
+
+/* Call a procedure (CALL) - proc already in AC */
+SG_EXTERN SgObject Sg__JitCall(struct SgVMRec *vm, int argc, SgObject proc);
+
+/* Tail-call a procedure (TAIL_CALL) - proc already in AC */
+SG_EXTERN SgObject Sg__JitTailCall(struct SgVMRec *vm, int argc, SgObject proc);
+
+/* Apply a procedure to a list of arguments (APPLY) */
+SG_EXTERN SgObject Sg__JitApply(struct SgVMRec *vm, int nargc, SgObject listArg, int isTail);
+
+/* Return multiple values (VALUES) */
+SG_EXTERN SgObject Sg__JitValues(struct SgVMRec *vm, int nvalues, SgObject lastVal);
+
+/* Receive multiple values (RECEIVE) */
+SG_EXTERN SgObject Sg__JitReceive(struct SgVMRec *vm, int reqCount, int optCount);
 
 
 SG_CDECL_END

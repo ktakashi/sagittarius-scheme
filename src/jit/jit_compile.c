@@ -160,6 +160,22 @@ void Sg__JitPushFrame(SgVM *vm, SgWord *returnPc)
   vm->sp += CONT_FRAME_SIZE;
 }
 
+/* Look up a global variable - called from JIT code for GREF */
+SgObject Sg__JitGref(SgObject id)
+{
+  SgVM *vm = Sg_VM();
+  return resolve_gref(vm, id);
+}
+
+/* Create a box - called from JIT code for BOX */
+SgObject Sg__JitMakeBox(SgObject value)
+{
+  SgBox *b = SG_NEW(SgBox);
+  SG_SET_CLASS(b, SG_CLASS_BOX);
+  b->value = value;
+  return SG_OBJ(b);
+}
+
 /* Call a global procedure - called from JIT code for GREF_CALL */
 SgObject Sg__JitGrefCall(SgVM *vm, int argc, SgObject id)
 {
@@ -296,6 +312,301 @@ SgObject Sg__JitGrefTailCall(SgVM *vm, int argc, SgObject id)
 
   /* Apply the procedure (tail call) */
   return Sg_Apply(proc, args);
+}
+
+/* Call a procedure (already in AC) - called from JIT code for CALL */
+SgObject Sg__JitCall(SgVM *vm, int argc, SgObject proc)
+{
+  if (jit_verbose) {
+    Sg_Printf(Sg_StandardErrorPort(),
+	      UC("JIT: CALL proc=%A argc=%d sp=%p fp=%p cont=%p\n"),
+	      proc, argc, vm->sp, vm->fp, vm->cont);
+  }
+
+  if (!SG_PROCEDUREP(proc)) {
+    Sg_Error(UC("procedure required, but got: %A"), proc);
+    return SG_UNDEF;
+  }
+
+  /* Check if it's a closure with JIT code */
+  if (SG_CLOSUREP(proc)) {
+    SgClosure *cl = SG_CLOSURE(proc);
+    SgCodeBuilder *cb = SG_CODE_BUILDER(cl->code);
+    if (cb->jitCode != NULL) {
+      /* Call JIT code directly */
+      SgJitCompiledCode jitCode = cb->jitCode;
+
+      /* Set up frame pointer for the call */
+      vm->fp = vm->sp - argc;
+      vm->cl = proc;
+
+      /* Call the JIT code */
+      SgObject result = jitCode(vm, proc);
+
+      /* Restore VM state from continuation frame */
+      SgContFrame *cont = vm->cont;
+      vm->sp = (SgObject *)cont;  /* Pop the continuation frame */
+      vm->cl = cont->cl;
+      vm->fp = cont->fp;
+      vm->cont = cont->prev;
+
+      /* Return value is in result.
+       * Note: DO NOT reset valuesCount here - if the JIT code used VALUES,
+       * vm->valuesCount was already set appropriately. */
+      return result;
+    }
+  }
+
+  /* Fall back to VM interpretation */
+  vm->fp = vm->sp - argc;
+
+  /* Collect arguments from the stack */
+  SgObject args = SG_NIL;
+  for (int i = argc - 1; i >= 0; i--) {
+    args = Sg_Cons(vm->fp[i], args);
+  }
+
+  /* Pop the continuation frame since we're handling the call here */
+  SgContFrame *cont = vm->cont;
+  if (jit_verbose) {
+    Sg_Printf(Sg_StandardErrorPort(),
+	      UC("JIT: CALL fallback: cont=%p cont->prev=%p, setting sp=%p\n"),
+	      cont, cont->prev, cont);
+  }
+  vm->sp = (SgObject *)cont;
+  vm->cl = cont->cl;
+  vm->fp = cont->fp;
+  vm->cont = cont->prev;
+
+  /* Apply the procedure */
+  return Sg_Apply(proc, args);
+}
+
+/* Tail-call a procedure (already in AC) - called from JIT code for TAIL_CALL */
+SgObject Sg__JitTailCall(SgVM *vm, int argc, SgObject proc)
+{
+  if (jit_verbose) {
+    Sg_Printf(Sg_StandardErrorPort(),
+	      UC("JIT: TAIL_CALL proc=%A argc=%d\n"), proc, argc);
+  }
+
+  if (!SG_PROCEDUREP(proc)) {
+    Sg_Error(UC("procedure required, but got: %A"), proc);
+    return SG_UNDEF;
+  }
+
+  /* Check if it's a closure with JIT code */
+  if (SG_CLOSUREP(proc)) {
+    SgClosure *cl = SG_CLOSURE(proc);
+    SgCodeBuilder *cb = SG_CODE_BUILDER(cl->code);
+    if (cb->jitCode != NULL) {
+      /* Tail call JIT code directly */
+      SgJitCompiledCode jitCode = cb->jitCode;
+
+      /* Set up frame pointer for the call - overwrite current frame */
+      vm->fp = vm->sp - argc;
+      vm->cl = proc;
+
+      /* Jump to JIT code (tail call - no continuation pushed) */
+      return jitCode(vm, proc);
+    }
+  }
+
+  /* Fall back to VM interpretation */
+  vm->fp = vm->sp - argc;
+
+  /* Collect arguments from the stack */
+  SgObject args = SG_NIL;
+  for (int i = argc - 1; i >= 0; i--) {
+    args = Sg_Cons(vm->fp[i], args);
+  }
+
+  /* Apply the procedure (tail call) */
+  return Sg_Apply(proc, args);
+}
+
+/*
+ * APPLY helper - called from JIT code for APPLY instruction
+ *
+ * nargc: number of explicit arguments (not including proc and tail list)
+ * listArg: the list argument (last arg to apply)
+ * isTail: whether this is a tail apply
+ *
+ * Stack layout before call:
+ *   SP[0] = arg[nargc-1]
+ *   SP[1] = arg[nargc-2]
+ *   ...
+ *   SP[nargc-1] = arg[0]
+ *   SP[nargc] = proc
+ *
+ * Returns: result of apply
+ */
+SgObject Sg__JitApply(SgVM *vm, int nargc, SgObject listArg, int isTail)
+{
+  long listLen = Sg_Length(listArg);
+  SgObject proc;
+  SgObject args = SG_NIL;
+
+  if (jit_verbose) {
+    Sg_Printf(Sg_StandardErrorPort(),
+	      UC("JIT: APPLY nargc=%d listArg=%A isTail=%d\n"),
+	      nargc, listArg, isTail);
+  }
+
+  if (listLen < 0) {
+    Sg_AssertionViolation(SG_INTERN("apply"),
+			  SG_MAKE_STRING("improper list not allowed"),
+			  listArg);
+    return SG_UNDEF;
+  }
+
+  /* Get procedure from stack (it's at SP[-nargc-1] position) */
+  proc = vm->sp[-(nargc + 1)];
+
+  if (jit_verbose) {
+    Sg_Printf(Sg_StandardErrorPort(),
+	      UC("JIT: APPLY proc=%A\n"), proc);
+  }
+
+  /* Build args list: explicit args + list args */
+  /* Start with the list argument */
+  args = Sg_CopyList(listArg);
+
+  /* Add explicit args in reverse order (they're on stack in reverse) */
+  for (int i = 0; i < nargc; i++) {
+    SgObject arg = vm->sp[-(i + 1)];
+    args = Sg_Cons(arg, args);
+  }
+
+  /* Adjust stack pointer - pop proc and explicit args */
+  vm->sp -= (nargc + 1);
+
+  if (!isTail) {
+    /* Non-tail apply: pop continuation frame after call */
+    SgContFrame *cont = vm->cont;
+    vm->sp = (SgObject *)cont;
+    vm->cl = cont->cl;
+    vm->fp = cont->fp;
+    vm->cont = cont->prev;
+  }
+
+  /* Apply the procedure */
+  return Sg_Apply(proc, args);
+}
+
+/*
+ * VALUES helper - called from JIT code for VALUES instruction
+ *
+ * nvalues: number of values
+ * lastVal: the last value (AC)
+ *
+ * Stack has nvalues-1 values to pop.
+ * Sets vm->valuesCount and stores values in vm->values[] array.
+ * Returns the first value (which goes into AC).
+ */
+SgObject Sg__JitValues(SgVM *vm, int nvalues, SgObject lastVal)
+{
+  int n = nvalues - 1;  /* Number of values to pop from stack */
+  SgObject v = lastVal;
+
+  if (jit_verbose) {
+    Sg_Printf(Sg_StandardErrorPort(),
+	      UC("JIT: VALUES nvalues=%d lastVal=%A\n"),
+	      nvalues, lastVal);
+  }
+
+  vm->valuesCount = nvalues;
+
+  /* Allocate extra buffer if needed */
+  if (n > DEFAULT_VALUES_SIZE) {
+    SG_ALLOC_VALUES_BUFFER(vm, n - DEFAULT_VALUES_SIZE);
+  }
+
+  /* Store values from stack to values array (in reverse order) */
+  for (; n > 0; n--) {
+    SG_VALUES_SET(vm, n - 1, v);
+    v = *(--vm->sp);  /* POP */
+  }
+
+  if (jit_verbose) {
+    Sg_Printf(Sg_StandardErrorPort(),
+	      UC("JIT: VALUES returning first=%A, valuesCount=%d, values[0]=%A\n"),
+	      v, vm->valuesCount, (nvalues > 1) ? vm->values[0] : SG_UNDEF);
+  }
+
+  /* Return the first value (to be stored in AC) */
+  return v;
+}
+
+/*
+ * RECEIVE helper - called from JIT code for RECEIVE instruction
+ *
+ * reqCount: number of required values
+ * optCount: 0 = exact match required, 1 = rest values collected as list
+ *
+ * Returns the first value (or SG_UNDEF if error).
+ */
+SgObject Sg__JitReceive(SgVM *vm, int reqCount, int optCount)
+{
+  int numValues = vm->valuesCount;
+
+  if (jit_verbose) {
+    Sg_Printf(Sg_StandardErrorPort(),
+	      UC("JIT: RECEIVE reqCount=%d optCount=%d numValues=%d ac=%A\n"),
+	      reqCount, optCount, numValues, vm->ac);
+  }
+
+  if (numValues < reqCount) {
+    Sg_AssertionViolation(SG_INTERN("receive"),
+			  SG_MAKE_STRING("received fewer values than expected"),
+			  vm->ac);
+    return SG_UNDEF;
+  }
+
+  if (optCount == 0 && numValues > reqCount) {
+    Sg_AssertionViolation(SG_INTERN("receive"),
+			  SG_MAKE_STRING("received more values than expected"),
+			  vm->ac);
+    return SG_UNDEF;
+  }
+
+  if (optCount == 0) {
+    /* Exact match - push required values to stack */
+    if (reqCount > 0) {
+      *(vm->sp++) = vm->ac;  /* PUSH */
+    }
+    for (int i = 0; i < reqCount - 1; i++) {
+      *(vm->sp++) = SG_VALUES_REF(vm, i);  /* PUSH */
+    }
+  } else if (reqCount == 0) {
+    /* All values as list */
+    SgObject h = SG_NIL, t = SG_NIL;
+    if (numValues > 0) {
+      SG_APPEND1(h, t, vm->ac);
+    }
+    if (numValues > 1) {
+      for (int i = 0; i < numValues - 1; i++) {
+	SG_APPEND1(h, t, SG_VALUES_REF(vm, i));
+      }
+    }
+    *(vm->sp++) = h;  /* PUSH the list */
+  } else {
+    /* reqCount required values + rest as list */
+    SgObject h = SG_NIL, t = SG_NIL;
+    int i = 0;
+    *(vm->sp++) = vm->ac;  /* PUSH first value */
+    for (; i < numValues - 1; i++) {
+      if (i < reqCount - 1) {
+	*(vm->sp++) = SG_VALUES_REF(vm, i);  /* PUSH */
+      } else {
+	SG_APPEND1(h, t, SG_VALUES_REF(vm, i));
+      }
+    }
+    *(vm->sp++) = h;  /* PUSH the rest list */
+  }
+
+  vm->valuesCount = 1;
+  return SG_UNDEF;  /* AC is not used after RECEIVE */
 }
 
 SgJitCompiledCode Sg_JitCompile(SgCodeBuilder *cb)
@@ -546,6 +857,322 @@ SgJitCompiledCode Sg_JitCompile(SgCodeBuilder *cb)
       }
       break;
 
+    case BNNULL:
+      {
+	if (pc + 1 >= cb->size) goto fail;
+	intptr_t offset = (intptr_t)cb->code[pc + 1];
+	int targetPc = (pc + 1) + offset;
+	if (!Sg__JitEmit_BNNULL(&ctx, targetPc)) goto fail;
+	pc += 2;
+      }
+      break;
+
+    case BNEQ:
+      {
+	if (pc + 1 >= cb->size) goto fail;
+	intptr_t offset = (intptr_t)cb->code[pc + 1];
+	int targetPc = (pc + 1) + offset;
+	if (!Sg__JitEmit_BNEQ(&ctx, targetPc)) goto fail;
+	pc += 2;
+      }
+      break;
+
+    case CAR:
+      if (!Sg__JitEmit_CAR(&ctx)) goto fail;
+      pc++;
+      break;
+
+    case CDR:
+      if (!Sg__JitEmit_CDR(&ctx)) goto fail;
+      pc++;
+      break;
+
+    case CONS:
+      if (!Sg__JitEmit_CONS(&ctx)) goto fail;
+      pc++;
+      break;
+
+    case NULLP:
+      if (!Sg__JitEmit_NULLP(&ctx)) goto fail;
+      pc++;
+      break;
+
+    case PAIRP:
+      if (!Sg__JitEmit_PAIRP(&ctx)) goto fail;
+      pc++;
+      break;
+
+    case NOT:
+      if (!Sg__JitEmit_NOT(&ctx)) goto fail;
+      pc++;
+      break;
+
+    case EQ:
+      if (!Sg__JitEmit_EQ(&ctx)) goto fail;
+      pc++;
+      break;
+
+    case MUL:
+      if (!Sg__JitEmit_MUL(&ctx)) goto fail;
+      pc++;
+      break;
+
+    case MULI:
+      if (!Sg__JitEmit_MULI(&ctx, val1)) goto fail;
+      pc++;
+      break;
+
+    case DIV:
+      if (!Sg__JitEmit_DIV(&ctx)) goto fail;
+      pc++;
+      break;
+
+    case DIVI:
+      if (!Sg__JitEmit_DIVI(&ctx, val1)) goto fail;
+      pc++;
+      break;
+
+    case NEG:
+      if (!Sg__JitEmit_NEG(&ctx)) goto fail;
+      pc++;
+      break;
+
+    case EQV:
+      if (!Sg__JitEmit_EQV(&ctx)) goto fail;
+      pc++;
+      break;
+
+    case SYMBOLP:
+      if (!Sg__JitEmit_SYMBOLP(&ctx)) goto fail;
+      pc++;
+      break;
+
+    case GREF:
+      {
+	if (pc + 1 >= cb->size) goto fail;
+	SgObject id = SG_OBJ(cb->code[pc + 1]);
+	if (!Sg__JitEmit_GREF(&ctx, id)) goto fail;
+	pc += 2;
+      }
+      break;
+
+    case GREF_PUSH:
+      {
+	if (pc + 1 >= cb->size) goto fail;
+	SgObject id = SG_OBJ(cb->code[pc + 1]);
+	if (!Sg__JitEmit_GREF_PUSH(&ctx, id)) goto fail;
+	pc += 2;
+      }
+      break;
+
+    case FREF_PUSH:
+      if (!Sg__JitEmit_FREF_PUSH(&ctx, val1)) goto fail;
+      pc++;
+      break;
+
+    case LIST:
+      if (!Sg__JitEmit_LIST(&ctx, val1)) goto fail;
+      pc++;
+      break;
+
+    case CAAR:
+      if (!Sg__JitEmit_CAAR(&ctx)) goto fail;
+      pc++;
+      break;
+
+    case CADR:
+      if (!Sg__JitEmit_CADR(&ctx)) goto fail;
+      pc++;
+      break;
+
+    case CDAR:
+      if (!Sg__JitEmit_CDAR(&ctx)) goto fail;
+      pc++;
+      break;
+
+    case CDDR:
+      if (!Sg__JitEmit_CDDR(&ctx)) goto fail;
+      pc++;
+      break;
+
+    case BNEQV:
+      {
+	if (pc + 1 >= cb->size) goto fail;
+	intptr_t offset = (intptr_t)cb->code[pc + 1];
+	int targetPc = (pc + 1) + offset;
+	if (!Sg__JitEmit_BNEQV(&ctx, targetPc)) goto fail;
+	pc += 2;
+      }
+      break;
+
+    /* Combined car/cdr instructions */
+    case CAR_PUSH:
+      if (!Sg__JitEmit_CAR_PUSH(&ctx)) goto fail;
+      pc++;
+      break;
+
+    case CDR_PUSH:
+      if (!Sg__JitEmit_CDR_PUSH(&ctx)) goto fail;
+      pc++;
+      break;
+
+    case CONS_PUSH:
+      if (!Sg__JitEmit_CONS_PUSH(&ctx)) goto fail;
+      pc++;
+      break;
+
+    case LREF_CAR:
+      if (!Sg__JitEmit_LREF_CAR(&ctx, val1)) goto fail;
+      pc++;
+      break;
+
+    case LREF_CDR:
+      if (!Sg__JitEmit_LREF_CDR(&ctx, val1)) goto fail;
+      pc++;
+      break;
+
+    case FREF_CAR:
+      if (!Sg__JitEmit_FREF_CAR(&ctx, val1)) goto fail;
+      pc++;
+      break;
+
+    case FREF_CDR:
+      if (!Sg__JitEmit_FREF_CDR(&ctx, val1)) goto fail;
+      pc++;
+      break;
+
+    case GREF_CAR:
+      {
+	if (pc + 1 >= cb->size) goto fail;
+	SgObject id = SG_OBJ(cb->code[pc + 1]);
+	if (!Sg__JitEmit_GREF_CAR(&ctx, id)) goto fail;
+	pc += 2;
+      }
+      break;
+
+    case GREF_CDR:
+      {
+	if (pc + 1 >= cb->size) goto fail;
+	SgObject id = SG_OBJ(cb->code[pc + 1]);
+	if (!Sg__JitEmit_GREF_CDR(&ctx, id)) goto fail;
+	pc += 2;
+      }
+      break;
+
+    case LREF_CAR_PUSH:
+      if (!Sg__JitEmit_LREF_CAR_PUSH(&ctx, val1)) goto fail;
+      pc++;
+      break;
+
+    case LREF_CDR_PUSH:
+      if (!Sg__JitEmit_LREF_CDR_PUSH(&ctx, val1)) goto fail;
+      pc++;
+      break;
+
+    case FREF_CAR_PUSH:
+      if (!Sg__JitEmit_FREF_CAR_PUSH(&ctx, val1)) goto fail;
+      pc++;
+      break;
+
+    case FREF_CDR_PUSH:
+      if (!Sg__JitEmit_FREF_CDR_PUSH(&ctx, val1)) goto fail;
+      pc++;
+      break;
+
+    case GREF_CAR_PUSH:
+      {
+	if (pc + 1 >= cb->size) goto fail;
+	SgObject id = SG_OBJ(cb->code[pc + 1]);
+	if (!Sg__JitEmit_GREF_CAR_PUSH(&ctx, id)) goto fail;
+	pc += 2;
+      }
+      break;
+
+    case GREF_CDR_PUSH:
+      {
+	if (pc + 1 >= cb->size) goto fail;
+	SgObject id = SG_OBJ(cb->code[pc + 1]);
+	if (!Sg__JitEmit_GREF_CDR_PUSH(&ctx, id)) goto fail;
+	pc += 2;
+      }
+      break;
+
+    case CONST_RET:
+      {
+	if (pc + 1 >= cb->size) goto fail;
+	if (!Sg__JitEmit_CONST_RET(&ctx, SG_OBJ(cb->code[pc + 1]))) goto fail;
+	pc += 2;
+      }
+      break;
+
+    /* Mutation operations */
+    case SET_CAR:
+      if (!Sg__JitEmit_SET_CAR(&ctx)) goto fail;
+      pc++;
+      break;
+
+    case SET_CDR:
+      if (!Sg__JitEmit_SET_CDR(&ctx)) goto fail;
+      pc++;
+      break;
+
+    case BOX:
+      if (!Sg__JitEmit_BOX(&ctx, val1)) goto fail;
+      pc++;
+      break;
+
+    case UNBOX:
+      if (!Sg__JitEmit_UNBOX(&ctx)) goto fail;
+      pc++;
+      break;
+
+    case FSET:
+      if (!Sg__JitEmit_FSET(&ctx, val1)) goto fail;
+      pc++;
+      break;
+
+    /* Stack management */
+    case LEAVE:
+      if (!Sg__JitEmit_LEAVE(&ctx, val1)) goto fail;
+      pc++;
+      break;
+
+    case INST_STACK:
+      if (!Sg__JitEmit_INST_STACK(&ctx, val1)) goto fail;
+      pc++;
+      break;
+
+    case RESV_STACK:
+      if (!Sg__JitEmit_RESV_STACK(&ctx, val1)) goto fail;
+      pc++;
+      break;
+
+    /* Vector operations */
+    case VECTORP:
+      if (!Sg__JitEmit_VECTORP(&ctx)) goto fail;
+      pc++;
+      break;
+
+    case VEC_LEN:
+      if (!Sg__JitEmit_VEC_LEN(&ctx)) goto fail;
+      pc++;
+      break;
+
+    case VEC_REF:
+      if (!Sg__JitEmit_VEC_REF(&ctx)) goto fail;
+      pc++;
+      break;
+
+    case VEC_SET:
+      if (!Sg__JitEmit_VEC_SET(&ctx)) goto fail;
+      pc++;
+      break;
+
+    case VECTOR:
+      if (!Sg__JitEmit_VECTOR(&ctx, val1)) goto fail;
+      pc++;
+      break;
+
     case FRAME:
       {
 	/* FRAME instruction: push continuation frame
@@ -557,6 +1184,41 @@ SgJitCompiledCode Sg_JitCompile(SgCodeBuilder *cb)
 	int returnPc = (pc + 1) + n;
 	if (!Sg__JitEmit_FRAME(&ctx, returnPc)) goto fail;
 	pc += 2;
+      }
+      break;
+
+    case CALL:
+      /* CALL: val1 = argc, proc is in AC */
+      if (!Sg__JitEmit_CALL(&ctx, val1)) goto fail;
+      pc++;
+      break;
+
+    case TAIL_CALL:
+      /* TAIL_CALL: val1 = argc, proc is in AC */
+      if (!Sg__JitEmit_TAIL_CALL(&ctx, val1)) goto fail;
+      pc++;
+      break;
+
+    case LOCAL_CALL:
+      /* LOCAL_CALL: val1 = argc, proc (closure) is in AC */
+      if (!Sg__JitEmit_LOCAL_CALL(&ctx, val1)) goto fail;
+      pc++;
+      break;
+
+    case LOCAL_TAIL_CALL:
+      /* LOCAL_TAIL_CALL: val1 = argc, proc (closure) is in AC */
+      if (!Sg__JitEmit_LOCAL_TAIL_CALL(&ctx, val1)) goto fail;
+      pc++;
+      break;
+
+    case CLOSURE:
+      {
+        /* CLOSURE: val1 = self_pos, next word = code builder */
+        if (pc + 1 >= cb->size) goto fail;
+        SgObject innerCb = SG_OBJ(cb->code[pc + 1]);
+        int freec = SG_CODE_BUILDER_FREEC(innerCb);
+        if (!Sg__JitEmit_CLOSURE(&ctx, val1, innerCb, freec)) goto fail;
+        pc += 2;
       }
       break;
 
@@ -608,6 +1270,34 @@ SgJitCompiledCode Sg_JitCompile(SgCodeBuilder *cb)
     case RET:
       if (!Sg__JitEmit_RET(&ctx)) goto fail;
       pc++;
+      break;
+
+    case APPLY:
+      {
+	/* APPLY: val1 = total argc (including proc and list), val2 = tail flag
+	 * For 2-value instructions, we need to mask val1 properly */
+	int totalArgc = INSN_VALUE1(insn) & INSN_VALUE1_MASK;
+	int isTail = INSN_VALUE2(insn);
+	int nargc = totalArgc - 2;  /* explicit args (not including proc and list) */
+	if (!Sg__JitEmit_APPLY(&ctx, nargc, isTail)) goto fail;
+	pc++;
+      }
+      break;
+
+    case VALUES:
+      /* VALUES: val1 = number of values */
+      if (!Sg__JitEmit_VALUES(&ctx, val1)) goto fail;
+      pc++;
+      break;
+
+    case RECEIVE:
+      {
+	/* RECEIVE: val1 = required count, val2 = optional flag (0 or 1) */
+	int reqCount = INSN_VALUE1(insn) & INSN_VALUE1_MASK;
+	int optCount = INSN_VALUE2(insn);
+	if (!Sg__JitEmit_RECEIVE(&ctx, reqCount, optCount)) goto fail;
+	pc++;
+      }
       break;
 
     default:

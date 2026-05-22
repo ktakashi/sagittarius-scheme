@@ -216,6 +216,18 @@ void arm64_str_r32_mem(Arm64Asm *a, Arm64Reg src, Arm64Reg base, int32_t offset)
 /* LSR Xd, Xn, #shift - logical shift right by immediate */
 void arm64_lsr_r64_r64_imm(Arm64Asm *a, Arm64Reg dst, Arm64Reg src, int32_t shift);
 
+/* ASR Xd, Xn, #shift - arithmetic shift right by immediate */
+void arm64_asr_r64_r64_imm(Arm64Asm *a, Arm64Reg dst, Arm64Reg src, int32_t shift);
+
+/* LSL Xd, Xn, #shift - logical shift left by immediate */
+void arm64_lsl_r64_r64_imm(Arm64Asm *a, Arm64Reg dst, Arm64Reg src, int32_t shift);
+
+/* AND Xd, Xn, #imm - AND with bitmask immediate (limited patterns) */
+void arm64_and_r64_r64_imm(Arm64Asm *a, Arm64Reg dst, Arm64Reg src, uint64_t imm);
+
+/* ORR Xd, Xn, #imm - OR with bitmask immediate (limited patterns) */
+void arm64_orr_r64_r64_imm(Arm64Asm *a, Arm64Reg dst, Arm64Reg src, uint64_t imm);
+
 /* LDP Xt1, Xt2, [Xn, #offset] (load pair) */
 void arm64_ldp(Arm64Asm *a, Arm64Reg r1, Arm64Reg r2, Arm64Reg base, int32_t offset);
 
@@ -256,6 +268,9 @@ void arm64_neg_r64(Arm64Asm *a, Arm64Reg dst, Arm64Reg src);
 
 /* MUL Xd, Xn, Xm */
 void arm64_mul_r64_r64_r64(Arm64Asm *a, Arm64Reg dst, Arm64Reg n, Arm64Reg m);
+
+/* SMULH Xd, Xn, Xm - Signed Multiply High */
+void arm64_smulh_r64_r64_r64(Arm64Asm *a, Arm64Reg dst, Arm64Reg n, Arm64Reg m);
 
 
 /*
