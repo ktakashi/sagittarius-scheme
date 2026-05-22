@@ -36,6 +36,7 @@
 #include "../sagittarius/private/code.h"
 #include "../sagittarius/private/instruction.h"
 #include <time.h>
+#include <string.h>
 
 /* Global JIT configuration */
 static int jit_enabled = 1;
@@ -83,8 +84,8 @@ void Sg_JitProfilePrint(SgPort *port)
   Sg_Printf(port, UC("  frame_restore time:  %ld ms\n"), jit_frame_restore_time_ns / 1000000);
 }
 
-/* Initial buffer size for JIT code (4KB) */
-#define JIT_INITIAL_BUFFER_SIZE 4096
+/* Initial buffer size for JIT code (16KB for larger functions) */
+#define JIT_INITIAL_BUFFER_SIZE 16384
 
 int Sg_JitAvailable(void)
 {
@@ -194,7 +195,8 @@ SgObject Sg__JitGrefCall(SgVM *vm, int argc, SgObject id)
 
   if (jit_verbose) {
     Sg_Printf(Sg_StandardErrorPort(),
-	      UC("JIT: GREF_CALL proc=%A argc=%d\n"), proc, argc);
+	      UC("JIT: GREF_CALL proc=%A argc=%d sp=%p fp=%p cont=%p\n"),
+	      proc, argc, vm->sp, vm->fp, vm->cont);
   }
 
   if (!SG_PROCEDUREP(proc)) {
@@ -231,11 +233,11 @@ SgObject Sg__JitGrefCall(SgVM *vm, int argc, SgObject id)
         /* Don't add to jit_call_time here - it's counted by nested calls */
       }
 
-      /* Restore VM state from continuation frame */
+      /* Restore VM state from continuation frame (like POP_CONT_DIRECT) */
       SgContFrame *cont = vm->cont;
-      vm->sp = (SgObject *)cont;  /* Pop the continuation frame */
-      vm->cl = cont->cl;
       vm->fp = cont->fp;
+      vm->sp = cont->fp + cont->size;  /* Pop the continuation frame */
+      vm->cl = cont->cl;
       vm->cont = cont->prev;
 
       if (jit_profile_enabled) {
@@ -248,8 +250,13 @@ SgObject Sg__JitGrefCall(SgVM *vm, int argc, SgObject id)
     }
   }
 
-  /* Fall back to VM interpretation for non-JIT procedures */
-  /* This is complex - for now, just call the procedure using Sg_VMApply */
+  /* Fall back to VM interpretation for non-JIT procedures.
+   * 
+   * We need to pop our continuation first (since Sg_Apply creates its own
+   * boundary frame), then call Sg_Apply to execute the procedure.
+   * After Sg_Apply returns, we set the VM state to what it should be
+   * after our continuation was popped.
+   */
   vm->fp = vm->sp - argc;
 
   /* Collect arguments from the stack */
@@ -258,15 +265,36 @@ SgObject Sg__JitGrefCall(SgVM *vm, int argc, SgObject id)
     args = Sg_Cons(vm->fp[i], args);
   }
 
-  /* Pop the continuation frame since we're handling the call here */
+  /* Save continuation info before popping */
   SgContFrame *cont = vm->cont;
-  vm->sp = (SgObject *)cont;
-  vm->cl = cont->cl;
-  vm->fp = cont->fp;
-  vm->cont = cont->prev;
+  SgObject *saved_fp = cont->fp;
+  int saved_size = cont->size;
+  SgObject saved_cl = cont->cl;
+  SgContFrame *saved_prev = cont->prev;
+  
+  /* Pop the continuation frame (set SP to where it was before FRAME) */
+  vm->sp = saved_fp + saved_size;
+  vm->cl = saved_cl;
+  vm->fp = saved_fp;
+  vm->cont = saved_prev;
 
   /* Apply the procedure */
-  return Sg_Apply(proc, args);
+  SgObject result = Sg_Apply(proc, args);
+
+  /* After Sg_Apply returns, the VM state may have been modified.
+   * We need to restore the state to what it should be after our
+   * continuation was popped:
+   * - FP = the saved FP from our continuation
+   * - SP = FP + size (the original SP before FRAME was pushed)
+   * - CL = the saved CL
+   * - cont = prev (already set above, but Sg_Apply may have changed it)
+   */
+  vm->fp = saved_fp;
+  vm->sp = saved_fp + saved_size;
+  vm->cl = saved_cl;
+  vm->cont = saved_prev;
+
+  return result;
 }
 
 /* Tail-call a global procedure - called from JIT code for GREF_TAIL_CALL */
@@ -343,11 +371,11 @@ SgObject Sg__JitCall(SgVM *vm, int argc, SgObject proc)
       /* Call the JIT code */
       SgObject result = jitCode(vm, proc);
 
-      /* Restore VM state from continuation frame */
+      /* Restore VM state from continuation frame (like POP_CONT_DIRECT) */
       SgContFrame *cont = vm->cont;
-      vm->sp = (SgObject *)cont;  /* Pop the continuation frame */
-      vm->cl = cont->cl;
       vm->fp = cont->fp;
+      vm->sp = cont->fp + cont->size;  /* Pop the continuation frame */
+      vm->cl = cont->cl;
       vm->cont = cont->prev;
 
       /* Return value is in result.
@@ -357,7 +385,7 @@ SgObject Sg__JitCall(SgVM *vm, int argc, SgObject proc)
     }
   }
 
-  /* Fall back to VM interpretation */
+  /* Fall back to VM interpretation for non-JIT procedures. */
   vm->fp = vm->sp - argc;
 
   /* Collect arguments from the stack */
@@ -366,20 +394,29 @@ SgObject Sg__JitCall(SgVM *vm, int argc, SgObject proc)
     args = Sg_Cons(vm->fp[i], args);
   }
 
-  /* Pop the continuation frame since we're handling the call here */
+  /* Save continuation info before popping */
   SgContFrame *cont = vm->cont;
-  if (jit_verbose) {
-    Sg_Printf(Sg_StandardErrorPort(),
-	      UC("JIT: CALL fallback: cont=%p cont->prev=%p, setting sp=%p\n"),
-	      cont, cont->prev, cont);
-  }
-  vm->sp = (SgObject *)cont;
-  vm->cl = cont->cl;
-  vm->fp = cont->fp;
-  vm->cont = cont->prev;
+  SgObject *saved_fp = cont->fp;
+  int saved_size = cont->size;
+  SgObject saved_cl = cont->cl;
+  SgContFrame *saved_prev = cont->prev;
+  
+  /* Pop the continuation frame (set SP to where it was before FRAME) */
+  vm->sp = saved_fp + saved_size;
+  vm->cl = saved_cl;
+  vm->fp = saved_fp;
+  vm->cont = saved_prev;
 
   /* Apply the procedure */
-  return Sg_Apply(proc, args);
+  SgObject result = Sg_Apply(proc, args);
+
+  /* Restore VM state after Sg_Apply returns */
+  vm->fp = saved_fp;
+  vm->sp = saved_fp + saved_size;
+  vm->cl = saved_cl;
+  vm->cont = saved_prev;
+
+  return result;
 }
 
 /* Tail-call a procedure (already in AC) - called from JIT code for TAIL_CALL */

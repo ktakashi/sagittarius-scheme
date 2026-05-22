@@ -125,7 +125,7 @@ void* Sg__JitPlatformInit(SgJitContext *ctx)
 {
   Arm64CodeGen *gen = SG_NEW(Arm64CodeGen);
   gen->ctx = ctx;
-  gen->a = arm64_asm_new(ctx->buf->code, ctx->buf->size);
+  gen->a = arm64_asm_new(ctx->buf);
   if (gen->a == NULL) {
     return NULL;
   }
@@ -1246,12 +1246,13 @@ int Sg__JitEmit_SYMBOLP(SgJitContext *ctx)
 {
   Arm64Asm *a = GET_ASM(ctx);
   int isSymbol = arm64_new_label(a);
+  int notSymbol = arm64_new_label(a);
   int done = arm64_new_label(a);
 
   /* Symbol check: SG_SYMBOLP(obj) = SG_HPTRP(obj) && SG_SYMBOL_TAG(obj) */
   /* SG_HPTRP = (obj & 0x03) == 0 */
   arm64_tst_r64_imm(a, JIT_REG_TEMP1, 0x03);
-  arm64_b_cond(a, ARM64_NE, done);  /* Not a heap pointer -> false */
+  arm64_b_cond(a, ARM64_NE, notSymbol);  /* Not a heap pointer -> false */
 
   /* Load first word and check tag */
   arm64_ldr_r64_mem(a, JIT_REG_TEMP2, JIT_REG_TEMP1, 0);
@@ -1261,6 +1262,7 @@ int Sg__JitEmit_SYMBOLP(SgJitContext *ctx)
   arm64_b_cond(a, ARM64_EQ, isSymbol);
 
   /* Not a symbol */
+  arm64_bind_label(a, notSymbol);
   arm64_mov_r64_ptr(a, JIT_REG_TEMP1, SG_FALSE);
   arm64_b(a, done);
 
@@ -1709,11 +1711,12 @@ int Sg__JitEmit_VECTORP(SgJitContext *ctx)
 {
   Arm64Asm *a = GET_ASM(ctx);
   int isVector = arm64_new_label(a);
+  int notVector = arm64_new_label(a);
   int done = arm64_new_label(a);
 
   /* SG_VECTORP(obj) = SG_HPTRP(obj) && SG_VECTOR_TAG check */
   arm64_tst_r64_imm(a, JIT_REG_TEMP1, 0x03);
-  arm64_b_cond(a, ARM64_NE, done);  /* Not a heap pointer -> false */
+  arm64_b_cond(a, ARM64_NE, notVector);  /* Not a heap pointer -> false */
 
   /* Load first word and check tag */
   arm64_ldr_r64_mem(a, JIT_REG_TEMP2, JIT_REG_TEMP1, 0);
@@ -1723,6 +1726,7 @@ int Sg__JitEmit_VECTORP(SgJitContext *ctx)
   arm64_b_cond(a, ARM64_EQ, isVector);
 
   /* Not a vector */
+  arm64_bind_label(a, notVector);
   arm64_mov_r64_ptr(a, JIT_REG_TEMP1, SG_FALSE);
   arm64_b(a, done);
 

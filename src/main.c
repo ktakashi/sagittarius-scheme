@@ -29,6 +29,7 @@
  */
 #include <string.h>
 #include "sagittarius/private.h"
+#include "jit/jit.h"
 
 /* should we use _WIN32? */
 #if defined(_MSC_VER)
@@ -256,6 +257,9 @@ static void show_usage(int errorp)
 	  "    	trace       Shows info debug + stack frames.\n"
 	  "  -p<file>,--logport=<file>      Sets <file> as log port. This port will be\n"
 	  "                                 used for above options.\n"
+#ifdef HAVE_JIT
+	  "  -j,--jit       Enable JIT (experimental).\n"
+#endif
 #ifdef SAGITTARIUS_PROFILE
 	  "  -P<time>,--profile<time>       Run with profiler.\n"
 	  "     time        Sort by time\n"
@@ -559,6 +563,9 @@ int real_main(int argc, tchar **argv)
     {t("toplevel-only"), 0, 0, 't'},
     {t("expr"), optional_argument, 0, 'e'},
     {t("gc-warning"), 0, 0, 'G'},
+#ifdef HAVE_JIT
+    {t("jit"), 0, 0, 'j'},
+#endif
 #ifdef SAGITTARIUS_PROFILE
     {t("profile"), optional_argument, 0, 'P'},
 #endif
@@ -715,6 +722,11 @@ int real_main(int argc, tchar **argv)
     case 'd':
       SG_VM_SET_FLAG(vm, SG_DISABLE_CACHE);
       break;
+#ifdef HAVE_JIT
+    case 'j':
+      Sg_SetJitEnabled(TRUE);
+      break;
+#endif
 #ifdef SAGITTARIUS_PROFILE
     case 'P':
       profiler_mode = TRUE;

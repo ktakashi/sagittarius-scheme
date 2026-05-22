@@ -31,10 +31,25 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* Debug helper to track where error is set */
+/* For logging via VM logPort */
+#include "../../sagittarius.h"
+
+/* Log warning message to VM's logPort if log level permits */
+static void jit_asm_log_warn(const char *fmt, ...)
+{
+  SgVM *vm = Sg_VM();
+  if (SG_VM_LOG_LEVEL(vm, SG_WARN_LEVEL)) {
+    va_list ap;
+    va_start(ap, fmt);
+    /* Simple format - just print string for now */
+    Sg_Printf(vm->logPort, UC(";; JIT ASM: %s\n"), fmt);
+    va_end(ap);
+  }
+}
+
+/* Set error flag with logging */
 #define SET_ERROR(a, msg) do { \
-  fprintf(stderr, "JIT ASM: Error at %s:%d: %s\n", __FILE__, __LINE__, msg); \
-  fflush(stderr); \
+  jit_asm_log_warn(msg); \
   (a)->error = 1; \
 } while (0)
 
@@ -66,10 +81,23 @@
 static void emit32(Arm64Asm *a, uint32_t insn)
 {
   if (a->pos + 4 > a->size) {
-    fprintf(stderr, "JIT ASM: Buffer overflow at pos=%zu, size=%zu\n", a->pos, a->size);
-    fflush(stderr);
-    SET_ERROR(a, "error");
-    return;
+    /* Try to resize the buffer if we have a JIT buffer */
+    if (a->jitBuf != NULL) {
+      size_t newSize = a->size * 2;
+      /* Update used size before resize so memcpy copies the right amount */
+      a->jitBuf->used = a->pos;
+      if (Sg_ResizeJitBuffer(a->jitBuf, newSize) == 0) {
+	/* Update our local pointers */
+	a->buf = a->jitBuf->code;
+	a->size = a->jitBuf->size;
+      } else {
+	SET_ERROR(a, "Failed to resize JIT buffer");
+	return;
+      }
+    } else {
+      SET_ERROR(a, "Buffer overflow (fixed buffer, cannot resize)");
+      return;
+    }
   }
   /* Little-endian byte order */
   a->buf[a->pos++] = (uint8_t)(insn & 0xFF);
@@ -83,9 +111,7 @@ static void add_patch(Arm64Asm *a, int label, int type)
 {
   Arm64Patch *patch = malloc(sizeof(Arm64Patch));
   if (patch == NULL) {
-    fprintf(stderr, "JIT ASM: malloc failed in add_patch\n");
-    fflush(stderr);
-    SET_ERROR(a, "error");
+    SET_ERROR(a, "malloc failed in add_patch");
     return;
   }
   patch->offset = a->pos;
@@ -99,14 +125,14 @@ static void add_patch(Arm64Asm *a, int label, int type)
  * Assembler Lifecycle
  */
 
-Arm64Asm* arm64_asm_new(uint8_t *buf, size_t size)
+/* Internal helper to initialize an Arm64Asm structure */
+static Arm64Asm* arm64_asm_init(Arm64Asm *a, uint8_t *buf, size_t size,
+				SgJitCodeBuffer *jitBuf)
 {
-  Arm64Asm *a = malloc(sizeof(Arm64Asm));
-  if (a == NULL) return NULL;
-
   a->buf = buf;
   a->pos = 0;
   a->size = size;
+  a->jitBuf = jitBuf;
   a->labelCount = 0;
   a->labelCapacity = 32;
   a->labelOffsets = malloc(32 * sizeof(int));
@@ -119,6 +145,25 @@ Arm64Asm* arm64_asm_new(uint8_t *buf, size_t size)
   }
 
   return a;
+}
+
+Arm64Asm* arm64_asm_new(SgJitCodeBuffer *jitBuf)
+{
+  Arm64Asm *a;
+  if (jitBuf == NULL) return NULL;
+
+  a = malloc(sizeof(Arm64Asm));
+  if (a == NULL) return NULL;
+
+  return arm64_asm_init(a, jitBuf->code, jitBuf->size, jitBuf);
+}
+
+Arm64Asm* arm64_asm_new_fixed(uint8_t *buf, size_t size)
+{
+  Arm64Asm *a = malloc(sizeof(Arm64Asm));
+  if (a == NULL) return NULL;
+
+  return arm64_asm_init(a, buf, size, NULL);
 }
 
 void arm64_asm_free(Arm64Asm *a)
@@ -150,8 +195,7 @@ int arm64_asm_error(Arm64Asm *a)
 int arm64_asm_finalize(Arm64Asm *a)
 {
   if (a->error) {
-    fprintf(stderr, "JIT ASM: Error already set before finalize: %d\n", a->error);
-    fflush(stderr);
+    jit_asm_log_warn("Error already set before finalize");
     return -1;
   }
 
@@ -161,10 +205,8 @@ int arm64_asm_finalize(Arm64Asm *a)
     int labelOff = a->labelOffsets[p->label];
     if (labelOff < 0) {
       /* Unresolved label */
-      fprintf(stderr, "JIT ASM: Unresolved label %d at patch offset %zu\n",
-	      p->label, p->offset);
-      fflush(stderr);
-      SET_ERROR(a, "error");
+      jit_asm_log_warn("Unresolved label at patch offset");
+      SET_ERROR(a, "Unresolved label");
       return -1;
     }
 
@@ -251,9 +293,7 @@ int arm64_new_label(Arm64Asm *a)
 void arm64_bind_label(Arm64Asm *a, int label)
 {
   if (label < 0 || label >= a->labelCount) {
-    fprintf(stderr, "JIT ASM: Invalid label %d (count=%d)\n", label, a->labelCount);
-    fflush(stderr);
-    SET_ERROR(a, "error");
+    SET_ERROR(a, "Invalid label number");
     return;
   }
   a->labelOffsets[label] = (int)a->pos;
@@ -979,23 +1019,17 @@ void arm64_bl_label(Arm64Asm *a, int label)
 /* BL addr (branch with link) */
 void arm64_bl(Arm64Asm *a, void *target)
 {
-  /* For absolute addresses, we need to calculate PC-relative offset */
-  intptr_t currentPC = (intptr_t)(a->buf + a->pos);
-  intptr_t targetAddr = (intptr_t)target;
-  int64_t offset = targetAddr - currentPC;
-
-  /* Check if within ±128MB range */
-  if (offset < -(1LL << 27) || offset >= (1LL << 27) || (offset & 3)) {
-    /* Out of range - use indirect call via register */
-    arm64_mov_r64_ptr(a, ARM64_X16, target);
-    arm64_blr(a, ARM64_X16);
-    return;
-  }
-
-  int32_t imm26 = (int32_t)(offset / 4);
-  /* 100101 imm26 */
-  uint32_t insn = 0x94000000 | (imm26 & 0x03FFFFFF);
-  emit32(a, insn);
+  /*
+   * Always use indirect call for C functions.
+   * This is necessary because the buffer may be resized and moved to a new
+   * address, which would invalidate any PC-relative offsets calculated
+   * based on the old buffer address.
+   *
+   * Using indirect call: load the target address to X16, then BLR X16.
+   * X16 is the "intra-procedure-call" scratch register in AAPCS64.
+   */
+  arm64_mov_r64_ptr(a, ARM64_X16, target);
+  arm64_blr(a, ARM64_X16);
 }
 
 /* BLR Xn */

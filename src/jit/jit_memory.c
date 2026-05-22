@@ -129,6 +129,76 @@ void Sg_FreeJitBuffer(SgJitCodeBuffer *buf)
   /* buf itself is GC-managed, will be collected */
 }
 
+int Sg_ResizeJitBuffer(SgJitCodeBuffer *buf, size_t newSize)
+{
+  uint8_t *newCode;
+  uint8_t *oldCode;
+  size_t oldSize;
+
+  if (buf == NULL || newSize <= buf->size) return -1;
+
+  oldCode = buf->code;
+  oldSize = buf->size;
+
+#if defined(__APPLE__) && defined(__arm64__)
+  /* Apple Silicon: Use MAP_JIT for W^X compliance */
+  newCode = mmap(NULL, newSize,
+		 PROT_READ | PROT_WRITE | PROT_EXEC,
+		 MAP_PRIVATE | MAP_ANONYMOUS | MAP_JIT,
+		 -1, 0);
+  if (newCode == MAP_FAILED) {
+    return -1;
+  }
+  /* Start in writable mode for code generation */
+  pthread_jit_write_protect_np(0);
+
+#elif defined(__APPLE__)
+  /* macOS x86_64 */
+  newCode = mmap(NULL, newSize,
+		 PROT_READ | PROT_WRITE | PROT_EXEC,
+		 MAP_PRIVATE | MAP_ANONYMOUS,
+		 -1, 0);
+  if (newCode == MAP_FAILED) {
+    return -1;
+  }
+
+#elif defined(_WIN32)
+  /* Windows */
+  newCode = VirtualAlloc(NULL, newSize,
+			 MEM_COMMIT | MEM_RESERVE,
+			 PAGE_EXECUTE_READWRITE);
+  if (newCode == NULL) {
+    return -1;
+  }
+
+#else
+  /* Linux, BSD, etc. */
+  newCode = mmap(NULL, newSize,
+		 PROT_READ | PROT_WRITE | PROT_EXEC,
+		 MAP_PRIVATE | MAP_ANONYMOUS,
+		 -1, 0);
+  if (newCode == MAP_FAILED) {
+    return -1;
+  }
+#endif
+
+  /* Copy existing code to new buffer */
+  memcpy(newCode, oldCode, buf->used);
+
+  /* Free old buffer */
+#if defined(_WIN32)
+  VirtualFree(oldCode, 0, MEM_RELEASE);
+#else
+  munmap(oldCode, oldSize);
+#endif
+
+  /* Update buffer struct */
+  buf->code = newCode;
+  buf->size = newSize;
+
+  return 0;
+}
+
 void Sg_JitMakeWritable(SgJitCodeBuffer *buf)
 {
 #if defined(__APPLE__) && defined(__arm64__)

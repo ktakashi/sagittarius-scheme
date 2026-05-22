@@ -189,7 +189,7 @@
 		UC("VM: Calling closure %A, jitFlags=%d, jitCode=%p\n"),
 		SG_CODE_BUILDER_NAME(cb), cb->jitFlags, cb->jitCode);
     }
-    if (cb->jitFlags == SG_JIT_FLAG_COMPILED && cb->jitCode != NULL) {
+    if (Sg_JitEnabled() && cb->jitFlags == SG_JIT_FLAG_COMPILED && cb->jitCode != NULL) {
       /* Execute JIT-compiled code */
       SgJitCompiledCode jitFunc = (SgJitCompiledCode)cb->jitCode;
       CL(vm) = AC(vm);
@@ -204,23 +204,21 @@
       RET_INSN();
       CHECK_ATTENTION;
       NEXT;
-    } else if (cb->jitFlags == 0) {
+    } else if (Sg_JitEnabled() && cb->jitFlags == 0) {
       /* Track call count for hot code detection */
       cb->callCount++;
       if (cb->callCount >= Sg_GetJitThreshold()) {
         /* Attempt JIT compilation */
+	if (Sg_JitVerbose()) {
+	  Sg_Printf(Sg_StandardErrorPort(),
+		    UC("VM: AUTO-JIT compiling %A\n"),
+		    SG_CODE_BUILDER_NAME(cb));
+	}
         cb->jitCode = Sg_JitCompile(cb);
         if (cb->jitCode != NULL) {
           cb->jitFlags = SG_JIT_FLAG_COMPILED;
-          /* Execute JIT code on successful compilation */
-          SgJitCompiledCode jitFunc = (SgJitCompiledCode)cb->jitCode;
-          CL(vm) = AC(vm);
-          SG_PROF_COUNT_CALL(vm, CL(vm));
-          AC(vm) = jitFunc(vm, cl);
-          /* JIT function completed entire closure - return to caller */
-          RET_INSN();
-          CHECK_ATTENTION;
-          NEXT;
+	  /* Skip JIT execution on first compile - fall through to interpreter.
+	   * This allows the JIT code to be used on subsequent calls. */
         } else {
           cb->jitFlags = SG_JIT_FLAG_FAILED;
         }

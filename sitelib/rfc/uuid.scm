@@ -94,6 +94,8 @@
 (define *uuids-per-tick* (make-parameter 1024))
 (define *uuid-random-state* 
   (make-parameter (secure-random-generator *prng:chacha20*)))
+;; Helper for random generation (moved here to be available before first use)
+(define (random seed bound) (random-generator-random-integer seed bound))
 ;; For testing purpose
 (define *uuid-node* (make-parameter (get-mac-address)))
 (define *uuid-clock-seq* (make-parameter (random (*uuid-random-state*) 10000)))
@@ -243,7 +245,6 @@
 		     (else
 		      ;; TODO sleep but we don't do it
 		      (loop (+ (* (microsecond) 10) #x01B21DD213814000))))))))))
-(define (random seed bound) (random-generator-random-integer seed bound))
 ;; generators
 (define (make-null-uuid) (make <uuid>))
 (define (make-max-uuid) (make <uuid>

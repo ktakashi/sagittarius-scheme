@@ -126,6 +126,9 @@ typedef struct Arm64AsmRec {
   size_t   pos;         /* Current write position */
   size_t   size;        /* Buffer size */
 
+  /* JIT buffer (for dynamic resizing) */
+  SgJitCodeBuffer *jitBuf;
+
   /* Label management */
   int      labelCount;       /* Number of labels allocated */
   int      labelCapacity;    /* Capacity of labels array */
@@ -142,8 +145,11 @@ typedef struct Arm64AsmRec {
  * Assembler Lifecycle
  */
 
-/* Create assembler context */
-Arm64Asm* arm64_asm_new(uint8_t *buf, size_t size);
+/* Create assembler context (with JIT buffer for dynamic resizing) */
+Arm64Asm* arm64_asm_new(SgJitCodeBuffer *jitBuf);
+
+/* Create assembler context (legacy: fixed buffer, no resizing) */
+Arm64Asm* arm64_asm_new_fixed(uint8_t *buf, size_t size);
 
 /* Free assembler context */
 void arm64_asm_free(Arm64Asm *a);

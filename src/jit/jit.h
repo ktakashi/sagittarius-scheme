@@ -75,6 +75,11 @@ SG_EXTERN SgJitCodeBuffer* Sg_AllocJitBuffer(size_t size);
 /* Free a JIT code buffer */
 SG_EXTERN void Sg_FreeJitBuffer(SgJitCodeBuffer *buf);
 
+/* Resize a JIT code buffer. Returns 0 on success, -1 on failure.
+   After resizing, buf->code and buf->size are updated to reflect
+   the new allocation. The old content is preserved. */
+SG_EXTERN int Sg_ResizeJitBuffer(SgJitCodeBuffer *buf, size_t newSize);
+
 /* Make buffer writable (for code generation) */
 SG_EXTERN void Sg_JitMakeWritable(SgJitCodeBuffer *buf);
 
@@ -100,7 +105,13 @@ SG_EXTERN int Sg_JitAvailable(void);
  */
 
 /* Default threshold for hot code detection */
-#define SG_JIT_DEFAULT_THRESHOLD 100
+/* Default threshold for auto-JIT (call count before compilation)
+ * Set very high (1M) to effectively disable auto-JIT by default.
+ * Auto-JIT can cause crashes when exceptions occur because the JIT
+ * code's callee-saved registers are not restored on longjmp.
+ * Users should use explicit (jit-compile! proc) for now.
+ */
+#define SG_JIT_DEFAULT_THRESHOLD 1000000
 
 /* Enable/disable JIT compilation */
 SG_EXTERN void Sg_SetJitEnabled(int enabled);
