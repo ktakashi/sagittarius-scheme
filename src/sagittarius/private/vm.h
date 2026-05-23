@@ -313,6 +313,21 @@ struct SgVMRec
   SgVMEscapeReason escapeReason;
   void      *escapeData[2];
 
+#ifdef HAVE_JIT
+  /* JIT context for exception recovery.
+   * When JIT code calls C helpers that might throw exceptions,
+   * we need to save the JIT register state so it can be restored
+   * after longjmp bypasses the JIT epilogue.
+   */
+  struct {
+    int       active;           /* Is JIT code currently executing? */
+    SgObject *savedSp;          /* Saved Scheme stack pointer */
+    SgObject *savedFp;          /* Saved Scheme frame pointer */
+    SgObject  savedCl;          /* Saved current closure */
+    int       savedDepth;       /* Saved recursion depth */
+  } jitContext;
+#endif
+
   /* libraries */
   SgObject   currentLibrary;
   /* dynamic winders */

@@ -240,6 +240,9 @@ SgVM* Sg_NewThreadVM(SgVM *proto, SgObject name)
   v->escapeReason = SG_VM_ESCAPE_NONE;
   v->escapeData[0] = NULL;
   v->escapeData[1] = NULL;
+#ifdef HAVE_JIT
+  Sg_InitJitContext(v);
+#endif
   v->cache = SG_NIL;
   v->cstack = NULL;
   v->prompts = NULL;

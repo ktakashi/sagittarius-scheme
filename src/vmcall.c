@@ -200,6 +200,17 @@
 		  SG_CODE_BUILDER_NAME(cb));
       }
       AC(vm) = jitFunc(vm, cl);
+      /* Check for yield marker - JIT wants interpreter to continue */
+      if (SG_JIT_YIELD_P(AC(vm))) {
+        if (Sg_JitVerbose()) {
+          Sg_Printf(Sg_StandardErrorPort(),
+                    UC("VM: JIT yielded to interpreter for %A\n"),
+                    CL(vm));
+        }
+        /* VM state is already set up by JIT helper, just continue */
+        AC(vm) = SG_UNDEF;
+        NEXT;
+      }
       /* JIT function completed entire closure - return to caller */
       RET_INSN();
       CHECK_ATTENTION;

@@ -34,6 +34,7 @@
 
 #include "../sagittarius.h"
 #include "../sagittarius/private/code.h"
+#include "../sagittarius/private/generic.h"
 #include "../sagittarius/private/instruction.h"
 #include <time.h>
 #include <string.h>
@@ -42,6 +43,12 @@
 static int jit_enabled = 1;
 static int jit_threshold = SG_JIT_DEFAULT_THRESHOLD;
 static int jit_verbose = 0;  /* Disabled by default */
+
+/* Forward declarations for helper functions */
+typedef struct { SgObject *fp; int size; SgObject cl; SgContFrame *prev; } SavedCont;
+static void save_cont(SgVM *vm, SavedCont *sc);
+static void restore_cont(SgVM *vm, SavedCont *sc);
+static int adjust_args(SgVM *vm, int argc, SgObject proc);
 
 /* Profiling counters */
 static int jit_profile_enabled = 0;
@@ -122,6 +129,18 @@ void Sg_SetJitVerbose(int verbose)
 int Sg_JitVerbose(void)
 {
   return jit_verbose;
+}
+
+/*
+ * JIT Context Initialization
+ */
+void Sg_InitJitContext(SgVM *vm)
+{
+  vm->jitContext.active = 0;
+  vm->jitContext.savedSp = NULL;
+  vm->jitContext.savedFp = NULL;
+  vm->jitContext.savedCl = SG_FALSE;
+  vm->jitContext.savedDepth = 0;
 }
 
 /*
@@ -210,7 +229,7 @@ SgObject Sg__JitGrefCall(SgVM *vm, int argc, SgObject id)
     SgCodeBuilder *cb = SG_CODE_BUILDER(cl->code);
     if (cb->jitCode != NULL) {
       /* Call JIT code directly */
-      SgJitCompiledCode jitCode = cb->jitCode;
+      SgJitCompiledCode jitCode = (SgJitCompiledCode)cb->jitCode;
 
       if (jit_profile_enabled) {
         t_before_jit = get_nanos();
@@ -226,7 +245,7 @@ SgObject Sg__JitGrefCall(SgVM *vm, int argc, SgObject id)
       }
 
       /* Call the JIT code */
-      SgObject result = jitCode(vm, proc);
+      SgObject result = jitCode(vm, cl);
 
       if (jit_profile_enabled) {
         t_after_jit = get_nanos();
@@ -247,16 +266,36 @@ SgObject Sg__JitGrefCall(SgVM *vm, int argc, SgObject id)
       /* Return value is in result */
       vm->valuesCount = 1;
       return result;
+    } else {
+      /* Non-JIT closure: yield to interpreter
+       *
+       * The continuation frame was already pushed by JIT's FRAME instruction,
+       * with PC pointing to the bytecode after the call. When we yield:
+       * 1. Set up VM state for the callee closure
+       * 2. Return YIELD marker
+       * 3. vmcall.c sees YIELD and does NEXT (interpreter continues)
+       * 4. Interpreter runs the callee
+       * 5. When callee returns (RET_INSN), it pops our continuation
+       * 6. PC resumes at the bytecode after the call
+       * 7. Interpreter continues the caller's bytecode (not JIT!)
+       */
+      vm->fp = vm->sp - argc;
+      vm->cl = proc;
+      vm->pc = cb->code;
+
+      if (jit_verbose) {
+        Sg_Printf(Sg_StandardErrorPort(),
+                  UC("JIT: Yielding to interpreter for non-tail call to %A\n"),
+                  proc);
+      }
+
+      return SG_JIT_YIELD_MARKER;
     }
   }
 
-  /* Fall back to VM interpretation for non-JIT procedures.
-   * 
-   * We need to pop our continuation first (since Sg_Apply creates its own
-   * boundary frame), then call Sg_Apply to execute the procedure.
-   * After Sg_Apply returns, we set the VM state to what it should be
-   * after our continuation was popped.
-   */
+  /* SUBR: already handled via direct call in the main path */
+  /* Generic: already handled via JitCallGeneric */
+  /* Other procedure types: fall back to Sg_Apply for now */
   vm->fp = vm->sp - argc;
 
   /* Collect arguments from the stack */
@@ -266,33 +305,20 @@ SgObject Sg__JitGrefCall(SgVM *vm, int argc, SgObject id)
   }
 
   /* Save continuation info before popping */
-  SgContFrame *cont = vm->cont;
-  SgObject *saved_fp = cont->fp;
-  int saved_size = cont->size;
-  SgObject saved_cl = cont->cl;
-  SgContFrame *saved_prev = cont->prev;
+  SavedCont sc;
+  save_cont(vm, &sc);
   
   /* Pop the continuation frame (set SP to where it was before FRAME) */
-  vm->sp = saved_fp + saved_size;
-  vm->cl = saved_cl;
-  vm->fp = saved_fp;
-  vm->cont = saved_prev;
+  vm->sp = sc.fp + sc.size;
+  vm->cl = sc.cl;
+  vm->fp = sc.fp;
+  vm->cont = sc.prev;
 
   /* Apply the procedure */
   SgObject result = Sg_Apply(proc, args);
 
-  /* After Sg_Apply returns, the VM state may have been modified.
-   * We need to restore the state to what it should be after our
-   * continuation was popped:
-   * - FP = the saved FP from our continuation
-   * - SP = FP + size (the original SP before FRAME was pushed)
-   * - CL = the saved CL
-   * - cont = prev (already set above, but Sg_Apply may have changed it)
-   */
-  vm->fp = saved_fp;
-  vm->sp = saved_fp + saved_size;
-  vm->cl = saved_cl;
-  vm->cont = saved_prev;
+  /* Restore VM state */
+  restore_cont(vm, &sc);
 
   return result;
 }
@@ -312,34 +338,48 @@ SgObject Sg__JitGrefTailCall(SgVM *vm, int argc, SgObject id)
     return SG_UNDEF;
   }
 
+  /* SUBR - call directly without C continuation boundary */
+  if (SG_SUBRP(proc)) {
+    return Sg__JitTailCallSubr(vm, argc, proc);
+  }
+
+  /* Generic function - dispatch to method */
+  if (SG_GENERICP(proc)) {
+    return Sg__JitTailCallGeneric(vm, argc, proc);
+  }
+
   /* Check if it's a closure with JIT code */
   if (SG_CLOSUREP(proc)) {
     SgClosure *cl = SG_CLOSURE(proc);
     SgCodeBuilder *cb = SG_CODE_BUILDER(cl->code);
     if (cb->jitCode != NULL) {
       /* Tail call JIT code directly */
-      SgJitCompiledCode jitCode = cb->jitCode;
+      SgJitCompiledCode jitCode = (SgJitCompiledCode)cb->jitCode;
 
       /* Set up frame pointer for the call - overwrite current frame */
       vm->fp = vm->sp - argc;
       vm->cl = proc;
 
       /* Jump to JIT code (tail call - no continuation pushed) */
-      return jitCode(vm, proc);
+      return jitCode(vm, cl);
     }
   }
 
-  /* Fall back to VM interpretation */
+  /* Yield to interpreter for non-JIT closure (tail call)
+   * Set up VM state and return YIELD marker so interpreter continues */
   vm->fp = vm->sp - argc;
-
-  /* Collect arguments from the stack */
-  SgObject args = SG_NIL;
-  for (int i = argc - 1; i >= 0; i--) {
-    args = Sg_Cons(vm->fp[i], args);
+  vm->cl = proc;
+  if (SG_CLOSUREP(proc)) {
+    SgCodeBuilder *cb = SG_CODE_BUILDER(SG_CLOSURE(proc)->code);
+    vm->pc = cb->code;
   }
 
-  /* Apply the procedure (tail call) */
-  return Sg_Apply(proc, args);
+  if (jit_verbose) {
+    Sg_Printf(Sg_StandardErrorPort(),
+              UC("JIT: Yielding to interpreter for tail call to %A\n"), proc);
+  }
+
+  return SG_JIT_YIELD_MARKER;
 }
 
 /* Call a procedure (already in AC) - called from JIT code for CALL */
@@ -356,20 +396,30 @@ SgObject Sg__JitCall(SgVM *vm, int argc, SgObject proc)
     return SG_UNDEF;
   }
 
+  /* SUBR - call directly without C continuation boundary */
+  if (SG_SUBRP(proc)) {
+    return Sg__JitCallSubr(vm, argc, proc);
+  }
+
+  /* Generic function - dispatch to method */
+  if (SG_GENERICP(proc)) {
+    return Sg__JitCallGeneric(vm, argc, proc);
+  }
+
   /* Check if it's a closure with JIT code */
   if (SG_CLOSUREP(proc)) {
     SgClosure *cl = SG_CLOSURE(proc);
     SgCodeBuilder *cb = SG_CODE_BUILDER(cl->code);
     if (cb->jitCode != NULL) {
       /* Call JIT code directly */
-      SgJitCompiledCode jitCode = cb->jitCode;
+      SgJitCompiledCode jitCode = (SgJitCompiledCode)cb->jitCode;
 
       /* Set up frame pointer for the call */
       vm->fp = vm->sp - argc;
       vm->cl = proc;
 
       /* Call the JIT code */
-      SgObject result = jitCode(vm, proc);
+      SgObject result = jitCode(vm, cl);
 
       /* Restore VM state from continuation frame (like POP_CONT_DIRECT) */
       SgContFrame *cont = vm->cont;
@@ -382,10 +432,28 @@ SgObject Sg__JitCall(SgVM *vm, int argc, SgObject proc)
        * Note: DO NOT reset valuesCount here - if the JIT code used VALUES,
        * vm->valuesCount was already set appropriately. */
       return result;
+    } else {
+      /* Non-JIT closure: yield to interpreter
+       *
+       * The continuation frame was already pushed by JIT's FRAME instruction.
+       * When we yield, the interpreter runs the callee, then resumes at
+       * the caller's bytecode (not JIT).
+       */
+      vm->fp = vm->sp - argc;
+      vm->cl = proc;
+      vm->pc = cb->code;
+
+      if (jit_verbose) {
+        Sg_Printf(Sg_StandardErrorPort(),
+                  UC("JIT: Yielding to interpreter for non-tail call to %A\n"),
+                  proc);
+      }
+
+      return SG_JIT_YIELD_MARKER;
     }
   }
 
-  /* Fall back to VM interpretation for non-JIT procedures. */
+  /* Other procedure types: fall back to Sg_Apply for now */
   vm->fp = vm->sp - argc;
 
   /* Collect arguments from the stack */
@@ -395,26 +463,20 @@ SgObject Sg__JitCall(SgVM *vm, int argc, SgObject proc)
   }
 
   /* Save continuation info before popping */
-  SgContFrame *cont = vm->cont;
-  SgObject *saved_fp = cont->fp;
-  int saved_size = cont->size;
-  SgObject saved_cl = cont->cl;
-  SgContFrame *saved_prev = cont->prev;
+  SavedCont sc;
+  save_cont(vm, &sc);
   
   /* Pop the continuation frame (set SP to where it was before FRAME) */
-  vm->sp = saved_fp + saved_size;
-  vm->cl = saved_cl;
-  vm->fp = saved_fp;
-  vm->cont = saved_prev;
+  vm->sp = sc.fp + sc.size;
+  vm->cl = sc.cl;
+  vm->fp = sc.fp;
+  vm->cont = sc.prev;
 
   /* Apply the procedure */
   SgObject result = Sg_Apply(proc, args);
 
-  /* Restore VM state after Sg_Apply returns */
-  vm->fp = saved_fp;
-  vm->sp = saved_fp + saved_size;
-  vm->cl = saved_cl;
-  vm->cont = saved_prev;
+  /* Restore VM state */
+  restore_cont(vm, &sc);
 
   return result;
 }
@@ -432,34 +494,48 @@ SgObject Sg__JitTailCall(SgVM *vm, int argc, SgObject proc)
     return SG_UNDEF;
   }
 
+  /* SUBR - call directly without C continuation boundary */
+  if (SG_SUBRP(proc)) {
+    return Sg__JitTailCallSubr(vm, argc, proc);
+  }
+
+  /* Generic function - dispatch to method */
+  if (SG_GENERICP(proc)) {
+    return Sg__JitTailCallGeneric(vm, argc, proc);
+  }
+
   /* Check if it's a closure with JIT code */
   if (SG_CLOSUREP(proc)) {
     SgClosure *cl = SG_CLOSURE(proc);
     SgCodeBuilder *cb = SG_CODE_BUILDER(cl->code);
     if (cb->jitCode != NULL) {
       /* Tail call JIT code directly */
-      SgJitCompiledCode jitCode = cb->jitCode;
+      SgJitCompiledCode jitCode = (SgJitCompiledCode)cb->jitCode;
 
       /* Set up frame pointer for the call - overwrite current frame */
       vm->fp = vm->sp - argc;
       vm->cl = proc;
 
       /* Jump to JIT code (tail call - no continuation pushed) */
-      return jitCode(vm, proc);
+      return jitCode(vm, cl);
     }
   }
 
-  /* Fall back to VM interpretation */
+  /* Yield to interpreter for non-JIT closure (tail call)
+   * Set up VM state and return YIELD marker so interpreter continues */
   vm->fp = vm->sp - argc;
-
-  /* Collect arguments from the stack */
-  SgObject args = SG_NIL;
-  for (int i = argc - 1; i >= 0; i--) {
-    args = Sg_Cons(vm->fp[i], args);
+  vm->cl = proc;
+  if (SG_CLOSUREP(proc)) {
+    SgCodeBuilder *cb = SG_CODE_BUILDER(SG_CLOSURE(proc)->code);
+    vm->pc = cb->code;
   }
 
-  /* Apply the procedure (tail call) */
-  return Sg_Apply(proc, args);
+  if (jit_verbose) {
+    Sg_Printf(Sg_StandardErrorPort(),
+              UC("JIT: Yielding to interpreter for tail call to %A\n"), proc);
+  }
+
+  return SG_JIT_YIELD_MARKER;
 }
 
 /*
@@ -644,6 +720,346 @@ SgObject Sg__JitReceive(SgVM *vm, int reqCount, int optCount)
 
   vm->valuesCount = 1;
   return SG_UNDEF;  /* AC is not used after RECEIVE */
+}
+
+/*
+ * Helper: Adjust argument frame for optional arguments
+ *
+ * This implements the same logic as ADJUST_ARGUMENT_FRAME from vmcall.c:
+ * - Check required argument count
+ * - Fold rest args into a list for optional arguments
+ *
+ * Returns: new argc after adjustment, or -1 on error
+ */
+static int adjust_args(SgVM *vm, int argc, SgObject proc)
+{
+  int required = SG_PROCEDURE_REQUIRED(proc);
+  int optargs = SG_PROCEDURE_OPTIONAL(proc);
+
+  if (optargs) {
+    if (argc < required) {
+      Sg_WrongNumberOfArgumentsViolation(SG_PROCEDURE_NAME(proc),
+                                          required, argc, SG_FALSE);
+      return -1;
+    }
+    /* Fold rest args into a list */
+    SgObject p = SG_NIL;
+    while (argc > required + optargs - 1) {
+      SgObject a = *(--vm->sp);
+      p = Sg_Cons(a, p);
+      argc--;
+    }
+    *(vm->sp++) = p;
+    argc++;
+  } else {
+    if (argc != required) {
+      Sg_WrongNumberOfArgumentsViolation(SG_PROCEDURE_NAME(proc),
+                                          required, argc, SG_FALSE);
+      return -1;
+    }
+  }
+  return argc;
+}
+
+/*
+ * Helper: Save continuation frame info before popping
+ */
+static void save_cont(SgVM *vm, SavedCont *sc)
+{
+  SgContFrame *cont = vm->cont;
+  sc->fp = cont->fp;
+  sc->size = cont->size;
+  sc->cl = cont->cl;
+  sc->prev = cont->prev;
+}
+
+/*
+ * Helper: Restore VM state from saved continuation
+ */
+static void restore_cont(SgVM *vm, SavedCont *sc)
+{
+  vm->fp = sc->fp;
+  vm->sp = sc->fp + sc->size;
+  vm->cl = sc->cl;
+  vm->cont = sc->prev;
+}
+
+/*
+ * Call a SUBR (C-implemented procedure) directly
+ *
+ * This is called from JIT code when the procedure is a SUBR.
+ * It implements the same logic as ADJUST_ARGUMENT_FRAME + direct call
+ * from vmcall.c, avoiding the C continuation boundary created by Sg_Apply.
+ *
+ * argc: number of arguments on stack (vm->sp[-argc] to vm->sp[-1])
+ * proc: the SUBR procedure to call
+ */
+SgObject Sg__JitCallSubr(SgVM *vm, int argc, SgObject proc)
+{
+  if (jit_verbose) {
+    Sg_Printf(Sg_StandardErrorPort(),
+              UC("JIT: SUBR CALL proc=%A argc=%d\n"), proc, argc);
+  }
+
+  /* Adjust arguments for optional args */
+  argc = adjust_args(vm, argc, proc);
+  if (argc < 0) return SG_UNDEF;
+
+  /* Set up frame pointer */
+  vm->fp = vm->sp - argc;
+  vm->cl = proc;
+
+  /* Save and pop continuation frame */
+  SavedCont sc;
+  save_cont(vm, &sc);
+  vm->cont = sc.prev;
+
+  /* Direct call - no C continuation boundary! */
+  SgObject result = SG_SUBR_FUNC(proc)(vm->fp, argc, SG_SUBR_DATA(proc));
+
+  /* Restore VM state */
+  restore_cont(vm, &sc);
+
+  return result;
+}
+
+/*
+ * Tail call a SUBR directly
+ *
+ * For tail calls, we don't have a continuation frame to pop.
+ * We just shift args to FP and call directly.
+ */
+SgObject Sg__JitTailCallSubr(SgVM *vm, int argc, SgObject proc)
+{
+  if (jit_verbose) {
+    Sg_Printf(Sg_StandardErrorPort(),
+              UC("JIT: SUBR TAIL_CALL proc=%A argc=%d\n"), proc, argc);
+  }
+
+  /* Adjust arguments for optional args */
+  argc = adjust_args(vm, argc, proc);
+  if (argc < 0) return SG_UNDEF;
+
+  /* For tail call, shift args to FP position */
+  vm->fp = vm->sp - argc;
+  vm->cl = proc;
+
+  /* Direct call - no C continuation boundary! */
+  return SG_SUBR_FUNC(proc)(vm->fp, argc, SG_SUBR_DATA(proc));
+}
+
+/*
+ * Helper to shift args and add next-method
+ *
+ * Before: SP points after args [arg0, arg1, ..., argN-1]
+ * After:  SP points after [arg0, arg1, ..., argN-1, next-method]
+ */
+static void shift_and_add_next_method(SgVM *vm, int argc, SgObject nm)
+{
+  /* Make room for next-method by shifting args */
+  SgObject *src = vm->sp - argc;
+  SgObject *dst = src + 1;
+  
+  /* Shift args forward by one slot */
+  for (int i = argc - 1; i >= 0; i--) {
+    dst[i] = src[i];
+  }
+  
+  /* Insert next-method at the beginning (first arg position) */
+  src[0] = nm;
+  vm->sp++;
+}
+
+/*
+ * Call a generic function
+ *
+ * This implements the same logic as SG_PROC_GENERIC in vmcall.c:
+ * 1. Compute applicable methods
+ * 2. Create next-method (unless leaf)
+ * 3. Dispatch to first method
+ */
+SgObject Sg__JitCallGeneric(SgVM *vm, int argc, SgObject generic)
+{
+  if (jit_verbose) {
+    Sg_Printf(Sg_StandardErrorPort(),
+              UC("JIT: GENERIC CALL generic=%A argc=%d\n"),
+              generic, argc);
+  }
+
+  /* Compute applicable methods */
+  SgObject methods = Sg_ComputeMethods(generic, vm->sp - argc, argc, FALSE);
+
+  if (SG_NULLP(methods)) {
+    /* No applicable methods - call fallback */
+    SavedCont sc;
+    save_cont(vm, &sc);
+    
+    vm->fp = vm->sp - argc;
+    vm->cont = sc.prev;
+    
+    SgObject result = SG_GENERIC(generic)->fallback(vm->fp, argc, SG_GENERIC(generic));
+    
+    restore_cont(vm, &sc);
+    return result;
+  }
+
+  SgObject method = SG_CAR(methods);
+  SgObject nm;
+
+  /* Create next-method (unless leaf method) */
+  if (SG_METHOD_LEAF_P(method)) {
+    nm = SG_TRUE;  /* dummy - won't be used */
+  } else {
+    nm = Sg_MakeNextMethod(SG_GENERIC(generic), SG_CDR(methods),
+                           vm->sp - argc, argc, TRUE);
+  }
+
+  SgObject proc = SG_METHOD_PROCEDURE(method);
+
+  if (SG_SUBRP(proc)) {
+    /* C-defined method - call directly */
+    argc = adjust_args(vm, argc, method);
+    if (argc < 0) return SG_UNDEF;
+
+    SavedCont sc;
+    save_cont(vm, &sc);
+    
+    vm->fp = vm->sp - argc;
+    vm->cl = proc;
+    vm->cont = sc.prev;
+
+    SgObject result = SG_SUBR_FUNC(proc)(vm->fp, argc, SG_SUBR_DATA(proc));
+
+    restore_cont(vm, &sc);
+    return result;
+  } else {
+    /* Closure method */
+    SgClosure *cls = SG_CLOSURE(proc);
+    SgCodeBuilder *cb = SG_CODE_BUILDER(cls->code);
+
+    /* Add next-method as extra argument */
+    shift_and_add_next_method(vm, argc, nm);
+    argc++;
+
+    /* Argument adjustment for closure */
+    argc = adjust_args(vm, argc, SG_OBJ(cls));
+    if (argc < 0) return SG_UNDEF;
+
+    if (cb->jitCode != NULL) {
+      /* JIT-compiled method - call directly */
+      SgJitCompiledCode jitCode = (SgJitCompiledCode)cb->jitCode;
+
+      vm->fp = vm->sp - argc;
+      vm->cl = SG_OBJ(cls);
+
+      SgObject result = jitCode(vm, cls);
+
+      /* Restore from continuation frame */
+      SgContFrame *cont = vm->cont;
+      vm->fp = cont->fp;
+      vm->sp = cont->fp + cont->size;
+      vm->cl = cont->cl;
+      vm->cont = cont->prev;
+
+      return result;
+    } else {
+      /* Non-JIT closure: yield to interpreter
+       *
+       * The continuation frame was already pushed by JIT's FRAME instruction.
+       * When we yield, the interpreter runs the method, then resumes at
+       * the caller's bytecode (not JIT).
+       */
+      vm->fp = vm->sp - argc;
+      vm->cl = SG_OBJ(cls);
+      vm->pc = cb->code;
+
+      if (jit_verbose) {
+        Sg_Printf(Sg_StandardErrorPort(),
+                  UC("JIT: Generic yielding to interpreter for non-tail call to %A\n"),
+                  SG_OBJ(cls));
+      }
+
+      return SG_JIT_YIELD_MARKER;
+    }
+  }
+}
+
+/*
+ * Tail-call a generic function
+ */
+SgObject Sg__JitTailCallGeneric(SgVM *vm, int argc, SgObject generic)
+{
+  if (jit_verbose) {
+    Sg_Printf(Sg_StandardErrorPort(),
+              UC("JIT: GENERIC TAIL_CALL generic=%A argc=%d\n"),
+              generic, argc);
+  }
+
+  /* Compute applicable methods */
+  SgObject methods = Sg_ComputeMethods(generic, vm->sp - argc, argc, FALSE);
+
+  if (SG_NULLP(methods)) {
+    /* No applicable methods - call fallback */
+    vm->fp = vm->sp - argc;
+    return SG_GENERIC(generic)->fallback(vm->fp, argc, SG_GENERIC(generic));
+  }
+
+  SgObject method = SG_CAR(methods);
+  SgObject nm;
+
+  /* Create next-method (unless leaf method) */
+  if (SG_METHOD_LEAF_P(method)) {
+    nm = SG_TRUE;
+  } else {
+    nm = Sg_MakeNextMethod(SG_GENERIC(generic), SG_CDR(methods),
+                           vm->sp - argc, argc, TRUE);
+  }
+
+  SgObject proc = SG_METHOD_PROCEDURE(method);
+
+  if (SG_SUBRP(proc)) {
+    /* C-defined method - call directly */
+    argc = adjust_args(vm, argc, method);
+    if (argc < 0) return SG_UNDEF;
+
+    vm->fp = vm->sp - argc;
+    vm->cl = proc;
+
+    return SG_SUBR_FUNC(proc)(vm->fp, argc, SG_SUBR_DATA(proc));
+  } else {
+    /* Closure method */
+    SgClosure *cls = SG_CLOSURE(proc);
+    SgCodeBuilder *cb = SG_CODE_BUILDER(cls->code);
+
+    /* Add next-method */
+    shift_and_add_next_method(vm, argc, nm);
+    argc++;
+
+    /* Argument adjustment */
+    argc = adjust_args(vm, argc, SG_OBJ(cls));
+    if (argc < 0) return SG_UNDEF;
+
+    if (cb->jitCode != NULL) {
+      /* JIT-compiled method - tail call directly */
+      SgJitCompiledCode jitCode = (SgJitCompiledCode)cb->jitCode;
+      vm->fp = vm->sp - argc;
+      vm->cl = SG_OBJ(cls);
+      return jitCode(vm, cls);
+    } else {
+      /* Yield to interpreter for non-JIT closure (tail call) */
+      vm->fp = vm->sp - argc;
+      vm->cl = SG_OBJ(cls);
+      vm->pc = cb->code;
+
+      if (jit_verbose) {
+        Sg_Printf(Sg_StandardErrorPort(),
+                  UC("JIT: Generic yielding to interpreter for tail call to %A\n"),
+                  SG_OBJ(cls));
+      }
+
+      return SG_JIT_YIELD_MARKER;
+    }
+  }
 }
 
 SgJitCompiledCode Sg_JitCompile(SgCodeBuilder *cb)

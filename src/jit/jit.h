@@ -174,6 +174,18 @@ SG_EXTERN SgObject Sg__JitCall(struct SgVMRec *vm, int argc, SgObject proc);
 /* Tail-call a procedure (TAIL_CALL) - proc already in AC */
 SG_EXTERN SgObject Sg__JitTailCall(struct SgVMRec *vm, int argc, SgObject proc);
 
+/* Call a SUBR directly without C continuation boundary */
+SG_EXTERN SgObject Sg__JitCallSubr(struct SgVMRec *vm, int argc, SgObject proc);
+
+/* Tail-call a SUBR directly */
+SG_EXTERN SgObject Sg__JitTailCallSubr(struct SgVMRec *vm, int argc, SgObject proc);
+
+/* Call a generic function directly */
+SG_EXTERN SgObject Sg__JitCallGeneric(struct SgVMRec *vm, int argc, SgObject generic);
+
+/* Tail-call a generic function directly */
+SG_EXTERN SgObject Sg__JitTailCallGeneric(struct SgVMRec *vm, int argc, SgObject generic);
+
 /* Apply a procedure to a list of arguments (APPLY) */
 SG_EXTERN SgObject Sg__JitApply(struct SgVMRec *vm, int nargc, SgObject listArg, int isTail);
 
@@ -182,6 +194,49 @@ SG_EXTERN SgObject Sg__JitValues(struct SgVMRec *vm, int nvalues, SgObject lastV
 
 /* Receive multiple values (RECEIVE) */
 SG_EXTERN SgObject Sg__JitReceive(struct SgVMRec *vm, int reqCount, int optCount);
+
+/*
+ * JIT Context Helpers for Exception Recovery
+ *
+ * When JIT code calls C helpers that might throw exceptions,
+ * we save the JIT register state before the call so it can be
+ * restored after longjmp bypasses the JIT epilogue.
+ */
+
+/* Save JIT context before calling a potentially-throwing helper */
+#define SG_JIT_SAVE_CONTEXT(vm, sp, fp, cl, depth)      \
+  do {                                                   \
+    (vm)->jitContext.active = 1;                         \
+    (vm)->jitContext.savedSp = (sp);                     \
+    (vm)->jitContext.savedFp = (fp);                     \
+    (vm)->jitContext.savedCl = (cl);                     \
+    (vm)->jitContext.savedDepth = (depth);               \
+  } while (0)
+
+/* Clear JIT context after helper returns normally */
+#define SG_JIT_CLEAR_CONTEXT(vm)                         \
+  do {                                                   \
+    (vm)->jitContext.active = 0;                         \
+  } while (0)
+
+/* Check if JIT context is active (for exception handler) */
+#define SG_JIT_CONTEXT_ACTIVE(vm) ((vm)->jitContext.active)
+
+/* Initialize JIT context fields in a new VM */
+SG_EXTERN void Sg_InitJitContext(struct SgVMRec *vm);
+
+/*
+ * JIT Yield Marker
+ *
+ * When JIT code needs to call a non-JIT closure, it yields to the interpreter
+ * by returning this special marker. The VM loop checks for this marker and
+ * continues with interpreter execution instead of doing RET_INSN.
+ *
+ * The marker is a unique object that cannot be confused with normal return values.
+ * We use a tagged pointer that points to an invalid address.
+ */
+#define SG_JIT_YIELD_MARKER ((SgObject)(uintptr_t)0xDEADBEEF00000007UL)
+#define SG_JIT_YIELD_P(obj) ((obj) == SG_JIT_YIELD_MARKER)
 
 
 SG_CDECL_END

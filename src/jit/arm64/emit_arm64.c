@@ -2060,6 +2060,13 @@ int Sg__JitEmit_GREF_TAIL_CALL(SgJitContext *ctx, int argc, SgObject id)
   /* Result is in X0, move to AC (TEMP1) */
   arm64_mov_r64_r64(a, JIT_REG_TEMP1, ARM64_X0);
 
+  /* Reload JIT registers from VM after call.
+   * The helper may have modified VM state (e.g., for yield-to-interpreter).
+   * This ensures the epilogue writes the correct values back to VM. */
+  arm64_ldr_r64_mem(a, JIT_REG_SCHSP, JIT_REG_VM, VM_OFFSET_SP);
+  arm64_ldr_r64_mem(a, JIT_REG_SCHFP, JIT_REG_VM, VM_OFFSET_FP);
+  arm64_ldr_r64_mem(a, JIT_REG_CL, JIT_REG_VM, VM_OFFSET_CL);
+
   /*
    * For tail call, we need to return this result.
    * If depth > 0, we're inside SELF_CALL(s). The tail call consumed
@@ -2384,6 +2391,13 @@ int Sg__JitEmit_TAIL_CALL(SgJitContext *ctx, int argc)
 
   /* Result is in X0, move to AC */
   arm64_mov_r64_r64(a, JIT_REG_TEMP1, ARM64_X0);
+
+  /* Reload JIT registers from VM after call.
+   * The helper may have modified VM state (e.g., for yield-to-interpreter).
+   * This ensures the epilogue writes the correct values back to VM. */
+  arm64_ldr_r64_mem(a, JIT_REG_SCHSP, JIT_REG_VM, VM_OFFSET_SP);
+  arm64_ldr_r64_mem(a, JIT_REG_SCHFP, JIT_REG_VM, VM_OFFSET_FP);
+  arm64_ldr_r64_mem(a, JIT_REG_CL, JIT_REG_VM, VM_OFFSET_CL);
 
   /* Tail call always goes to epilogue (no unwind needed since helper handles it) */
   arm64_b(a, gen->labels[ctx->epilogueLabel]);
