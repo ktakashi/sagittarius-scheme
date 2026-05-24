@@ -111,7 +111,7 @@ SG_EXTERN int Sg_JitAvailable(void);
  * code's callee-saved registers are not restored on longjmp.
  * Users should use explicit (jit-compile! proc) for now.
  */
-#define SG_JIT_DEFAULT_THRESHOLD 100000000
+#define SG_JIT_DEFAULT_THRESHOLD 10000
 
 /* Enable/disable JIT compilation */
 SG_EXTERN void Sg_SetJitEnabled(int enabled);

@@ -812,6 +812,7 @@ static void restore_cont(SgVM *vm, SavedCont *sc)
 SgObject Sg__JitCallSubr(SgVM *vm, int argc, SgObject proc)
 {
   SgObject saved_cl = vm->cl;  /* Save caller's closure */
+  SgObject *saved_fp = vm->fp; /* Save caller's frame pointer */
 
   if (jit_verbose) {
     Sg_Printf(Sg_StandardErrorPort(),
@@ -830,8 +831,9 @@ SgObject Sg__JitCallSubr(SgVM *vm, int argc, SgObject proc)
   /* Direct call - SUBR calls are inline, no continuation frame manipulation */
   SgObject result = SG_SUBR_FUNC(proc)(vm->fp, argc, SG_SUBR_DATA(proc));
 
-  /* After SUBR returns, restore SP to pop arguments and restore caller's closure */
+  /* After SUBR returns, restore SP to pop arguments and restore FP/CL */
   vm->sp = vm->fp;
+  vm->fp = saved_fp;
   vm->cl = saved_cl;
 
   return result;
@@ -845,6 +847,8 @@ SgObject Sg__JitCallSubr(SgVM *vm, int argc, SgObject proc)
  */
 SgObject Sg__JitTailCallSubr(SgVM *vm, int argc, SgObject proc)
 {
+  SgObject *saved_fp = vm->fp; /* Save for JIT register reload */
+
   if (jit_verbose) {
     Sg_Printf(Sg_StandardErrorPort(),
               UC("JIT: SUBR TAIL_CALL proc=%A argc=%d sp=%p fp=%p\n"),
@@ -860,7 +864,12 @@ SgObject Sg__JitTailCallSubr(SgVM *vm, int argc, SgObject proc)
   vm->cl = proc;
 
   /* Direct call - SUBR tail call returns result directly */
-  return SG_SUBR_FUNC(proc)(vm->fp, argc, SG_SUBR_DATA(proc));
+  SgObject result = SG_SUBR_FUNC(proc)(vm->fp, argc, SG_SUBR_DATA(proc));
+
+  /* Restore FP for JIT register reload */
+  vm->fp = saved_fp;
+
+  return result;
 }
 
 /*
@@ -896,6 +905,7 @@ static void shift_and_add_next_method(SgVM *vm, int argc, SgObject nm)
 SgObject Sg__JitCallGeneric(SgVM *vm, int argc, SgObject generic)
 {
   SgObject saved_cl = vm->cl;  /* Save caller's closure */
+  SgObject *saved_fp = vm->fp; /* Save caller's frame pointer */
 
   if (jit_verbose) {
     Sg_Printf(Sg_StandardErrorPort(),
@@ -911,6 +921,7 @@ SgObject Sg__JitCallGeneric(SgVM *vm, int argc, SgObject generic)
     vm->fp = vm->sp - argc;
     SgObject result = SG_GENERIC(generic)->fallback(vm->fp, argc, SG_GENERIC(generic));
     vm->sp = vm->fp;  /* Pop args */
+    vm->fp = saved_fp;  /* Restore caller's frame pointer */
     vm->cl = saved_cl;  /* Restore caller's closure */
     return result;
   }
@@ -939,6 +950,7 @@ SgObject Sg__JitCallGeneric(SgVM *vm, int argc, SgObject generic)
     SgObject result = SG_SUBR_FUNC(proc)(vm->fp, argc, SG_SUBR_DATA(proc));
 
     vm->sp = vm->fp;  /* Pop args */
+    vm->fp = saved_fp;  /* Restore caller's frame pointer */
     vm->cl = saved_cl;  /* Restore caller's closure */
     return result;
   } else {
@@ -998,6 +1010,8 @@ SgObject Sg__JitCallGeneric(SgVM *vm, int argc, SgObject generic)
  */
 SgObject Sg__JitTailCallGeneric(SgVM *vm, int argc, SgObject generic)
 {
+  SgObject *saved_fp = vm->fp; /* Save for JIT register reload */
+
   if (jit_verbose) {
     Sg_Printf(Sg_StandardErrorPort(),
               UC("JIT: GENERIC TAIL_CALL generic=%A argc=%d\n"),
@@ -1010,7 +1024,9 @@ SgObject Sg__JitTailCallGeneric(SgVM *vm, int argc, SgObject generic)
   if (SG_NULLP(methods)) {
     /* No applicable methods - call fallback */
     vm->fp = vm->sp - argc;
-    return SG_GENERIC(generic)->fallback(vm->fp, argc, SG_GENERIC(generic));
+    SgObject result = SG_GENERIC(generic)->fallback(vm->fp, argc, SG_GENERIC(generic));
+    vm->fp = saved_fp;  /* Restore for JIT register reload */
+    return result;
   }
 
   SgObject method = SG_CAR(methods);
@@ -1034,7 +1050,9 @@ SgObject Sg__JitTailCallGeneric(SgVM *vm, int argc, SgObject generic)
     vm->fp = vm->sp - argc;
     vm->cl = proc;
 
-    return SG_SUBR_FUNC(proc)(vm->fp, argc, SG_SUBR_DATA(proc));
+    SgObject result = SG_SUBR_FUNC(proc)(vm->fp, argc, SG_SUBR_DATA(proc));
+    vm->fp = saved_fp;  /* Restore for JIT register reload */
+    return result;
   } else {
     /* Closure method */
     SgClosure *cls = SG_CLOSURE(proc);

@@ -258,20 +258,20 @@ int Sg__JitEmit_Epilogue(SgJitContext *ctx)
 /*
  * Yield Epilogue - used when yielding to interpreter
  *
- * This is like the normal epilogue but does NOT store vm->cl.
- * When yielding, the helper (Sg__JitGrefCall etc.) has already set
- * vm->cl to the callee's closure, and we must NOT overwrite it
- * with the JIT caller's closure (which is in X22).
+ * This is like the normal epilogue but does NOT store vm->cl or vm->fp.
+ * When yielding, the helper (Sg__JitCall, Sg__JitGrefCall etc.) has already set
+ * vm->fp to point to the callee's arguments and vm->cl to the callee's closure,
+ * and we must NOT overwrite them with the JIT caller's values.
  */
 int Sg__JitEmit_YieldEpilogue(SgJitContext *ctx)
 {
   Arm64Asm *a = GET_ASM(ctx);
 
-  /* Store VM registers EXCEPT vm->cl (helper already set it) */
+  /* Store only SP and AC. Do NOT store FP or CL - helper already set them! */
   arm64_str_r64_mem(a, JIT_REG_SCHSP, JIT_REG_VM, VM_OFFSET_SP);
-  arm64_str_r64_mem(a, JIT_REG_SCHFP, JIT_REG_VM, VM_OFFSET_FP);
+  /* NOTE: Do NOT store JIT_REG_SCHFP to VM_OFFSET_FP here - helper set it! */
   arm64_str_r64_mem(a, JIT_REG_TEMP1, JIT_REG_VM, VM_OFFSET_AC);
-  /* NOTE: Do NOT store JIT_REG_CL to VM_OFFSET_CL here! */
+  /* NOTE: Do NOT store JIT_REG_CL to VM_OFFSET_CL here - helper set it! */
 
   /* Restore callee-saved registers (same as normal epilogue) */
   arm64_ldp(a, ARM64_X23, ARM64_XZR, ARM64_SP, 0);

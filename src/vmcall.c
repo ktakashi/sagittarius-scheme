@@ -218,8 +218,6 @@
     } else if (Sg_JitEnabled() && cb != NULL && cb->jitFlags == 0 &&
                vm->state != COMPILING && vm->state != IMPORTING) {
       /* Track call count for hot code detection.
-       * NOTE: Using higher threshold (100M vs 1M) as workaround for 
-       * mysterious ARM64 code generation issue with smaller thresholds.
        * Skip JIT when in COMPILING/IMPORTING state to prevent compiler
        * code from being JIT compiled. */
       cb->callCount++;

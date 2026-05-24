@@ -810,9 +810,17 @@ int real_main(int argc, tchar **argv)
 
 #ifdef HAVE_JIT
   /* Enable JIT now if requested, after base library loading is complete.
-   * This ensures initialization and compilation use the interpreter. */
+   * This ensures initialization and compilation use the interpreter.
+   * JIT can be enabled via:
+   * - Command line: -j or --jit
+   * - Environment: SAGITTARIUS_JIT=1 */
   if (jit_requested) {
     Sg_SetJitEnabled(TRUE);
+  } else {
+    const char *jit_env = getenv("SAGITTARIUS_JIT");
+    if (jit_env && strcmp(jit_env, "1") == 0) {
+      Sg_SetJitEnabled(TRUE);
+    }
   }
 #endif
 
