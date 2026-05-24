@@ -2017,6 +2017,11 @@ int Sg__JitEmit_GREF_CALL(SgJitContext *ctx, int argc, SgObject id)
   /* Result is in X0, move to AC (TEMP1) */
   arm64_mov_r64_r64(a, JIT_REG_TEMP1, ARM64_X0);
 
+  /* Check for yield marker - if helper yielded, we must return to VM loop */
+  arm64_mov_r64_imm(a, JIT_REG_TEMP2, (uintptr_t)SG_JIT_YIELD_MARKER);
+  arm64_cmp_r64_r64(a, JIT_REG_TEMP1, JIT_REG_TEMP2);
+  arm64_b_cond(a, ARM64_EQ, ctx->epilogueLabel);
+
   /* Reload VM state after call (continuation was popped by helper) */
   arm64_ldr_r64_mem(a, JIT_REG_SCHSP, JIT_REG_VM, VM_OFFSET_SP);
   arm64_ldr_r64_mem(a, JIT_REG_SCHFP, JIT_REG_VM, VM_OFFSET_FP);
@@ -2331,6 +2336,11 @@ int Sg__JitEmit_CALL(SgJitContext *ctx, int argc)
   /* Restore LR */
   arm64_ldr_r64_mem(a, ARM64_LR, ARM64_SP, 0);
   arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
+
+  /* Check for yield marker - if helper yielded, we must return to VM loop */
+  arm64_mov_r64_imm(a, JIT_REG_TEMP2, (uintptr_t)SG_JIT_YIELD_MARKER);
+  arm64_cmp_r64_r64(a, JIT_REG_TEMP1, JIT_REG_TEMP2);
+  arm64_b_cond(a, ARM64_EQ, ctx->epilogueLabel);
 
   /* Reload VM state after call (continuation was popped by helper) */
   arm64_ldr_r64_mem(a, JIT_REG_SCHSP, JIT_REG_VM, VM_OFFSET_SP);
