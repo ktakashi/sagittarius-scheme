@@ -1,5 +1,0 @@
-Test project /Users/yo32es/projects/sagittarius-scheme
-        Start 227: crypto/pkcs8
-        Start 236: crypto/vector/signature
-        Start 232: crypto/vector/ecdh
-        Start 133: srfi/%3a226.scm
