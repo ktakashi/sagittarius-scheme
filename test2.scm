@@ -1,0 +1,75 @@
+#!read-macro=sagittarius/bv-string
+#!read-macro=sagittarius/regex
+(import (rnrs)
+        (rfc ssh)
+        (srfi :18)
+	(srfi :39)
+        (sagittarius crypto keys)
+        (sagittarius regex)
+        (sagittarius stty))
+
+(define (from-console)
+  (display "pass phrase> ") (flush-output-port (current-output-port))
+  (with-stty '((not echo) echonl) (lambda () (get-line (current-input-port)))))
+
+(define (query-hight&width)
+  (with-raw-io (standard-input-port)
+    (lambda ()
+      (put-bytevector (standard-output-port) #*"\x1b;[2J")
+      (put-bytevector (standard-output-port) #*"\x1b;[9999;9999H")
+      (put-bytevector (standard-output-port) #*"\x1b;[6n")
+      (flush-output-port (standard-output-port))
+      (let-values (((out e) (open-string-output-port)))
+        (do ((u8 (get-u8 (standard-input-port)) (get-u8 (standard-input-port))))
+            ((or (eof-object? u8) (= u8 (char->integer #\R))))
+          (when (or (= u8 #x3B) (< #x30 u8 #x39))
+            (put-char out (integer->char u8))))
+        (put-bytevector (standard-output-port) #*"\x1b;[1;1H")
+        (apply values (map string->number (string-split (e) #/;/)))))))
+
+(define (input-console c)
+  (define buf (make-bytevector 1))
+  (let loop ()
+    (let ((u8 (get-u8 (standard-input-port))))
+      (cond ((= u8 4) (ssh-channel-eof c)) ;; EOT
+            (else
+             (bytevector-u8-set! buf 0 u8)
+             (ssh-send-channel-data c buf)
+             (loop))))))
+
+(define (channel-output c)
+  (define (output)
+    (let loop ()
+      (let ((c (ssh-recv-channel-data c)))
+        (put-bytevector (standard-output-port) c)
+        (flush-output-port (standard-output-port))
+        (loop))))
+  (thread-start! (make-thread output)))
+
+;; replace host and username
+(define transport (open-client-ssh-transport!
+                   (make-client-ssh-transport "192.168.64.6" "ssh")))
+(define username "takashi")
+;; uncomment and replace id file
+(define (authenticate transport)
+  (define key (ssh-read-identity-file "/Users/yo32es/.ssh/id_ecdsa384" (from-console)))
+  (ssh-authenticate transport +ssh-auth-method-public-key+ username
+                    (key-pair-private key)
+                    (key-pair-public key)))
+#;(define (authenticate transport)
+  (ssh-authenticate transport +ssh-auth-method-keyboard-interactive+ username))
+(parameterize ((*ssh:ext-info-handler* print))
+(guard (e (else (report-error e) #t))
+  (let-values (((auth? msg) (authenticate transport)))
+    (unless auth? (error 'scheme-ssh "Failed to authenticate")))
+  ;;(guard (e (else (report-error e))) (print (authenticate transport))) ;; got unimplemneted
+  #;(call-with-ssh-channel (open-client-ssh-session-channel transport)
+    (lambda (c)
+      (let-values (((height width) (query-hight&width)))
+        (print (ssh-request-pseudo-terminal c :width width :height height))
+        (print (ssh-request-shell c))
+        (with-raw-io (standard-input-port)
+          (lambda ()
+            (channel-output c)
+            (input-console c))))))))
+(close-client-ssh-transport! transport)
