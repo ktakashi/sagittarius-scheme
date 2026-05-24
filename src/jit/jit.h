@@ -111,7 +111,7 @@ SG_EXTERN int Sg_JitAvailable(void);
  * code's callee-saved registers are not restored on longjmp.
  * Users should use explicit (jit-compile! proc) for now.
  */
-#define SG_JIT_DEFAULT_THRESHOLD 1000000
+#define SG_JIT_DEFAULT_THRESHOLD 100000000
 
 /* Enable/disable JIT compilation */
 SG_EXTERN void Sg_SetJitEnabled(int enabled);
@@ -120,6 +120,9 @@ SG_EXTERN int  Sg_JitEnabled(void);
 /* Set/get hot code threshold */
 SG_EXTERN void Sg_SetJitThreshold(int threshold);
 SG_EXTERN int  Sg_GetJitThreshold(void);
+
+/* Increment call count for hot code detection */
+SG_EXTERN void Sg_JitIncrementCallCount(SgCodeBuilder *cb);
 
 /* Verbose mode for debugging */
 SG_EXTERN void Sg_SetJitVerbose(int verbose);
@@ -146,6 +149,7 @@ SG_EXTERN void Sg_JitDisassemble(struct SgCodeBuilderRec *cb, struct SgPortRec *
 #define SG_JIT_FLAG_COMPILED   (1 << 0)  /* Successfully JIT compiled */
 #define SG_JIT_FLAG_FAILED     (1 << 1)  /* JIT compilation failed */
 #define SG_JIT_FLAG_NEVER      (1 << 2)  /* Never JIT (contains unsupported ops) */
+#define SG_JIT_FLAG_COMPILING  (1 << 3)  /* Currently being compiled (prevents double-compilation) */
 
 
 /*
@@ -249,6 +253,7 @@ SG_CDECL_END
 #define Sg_SetJitEnabled(x)     ((void)0)
 #define Sg_SetJitThreshold(x)   ((void)0)
 #define Sg_GetJitThreshold()    (0)
+#define Sg_JitIncrementCallCount(cb) ((void)0)
 #define Sg_SetJitVerbose(x)     ((void)0)
 #define Sg_JitVerbose()         (0)
 #define Sg_JitProfileReset()    ((void)0)

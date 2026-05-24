@@ -40,7 +40,7 @@
 #include <string.h>
 
 /* Global JIT configuration */
-static int jit_enabled = 1;
+static int jit_enabled = 0;  /* Disabled by default - use -j flag to enable */
 static int jit_threshold = SG_JIT_DEFAULT_THRESHOLD;
 static int jit_verbose = 0;  /* Disabled by default */
 
@@ -119,6 +119,11 @@ void Sg_SetJitThreshold(int threshold)
 int Sg_GetJitThreshold(void)
 {
   return jit_threshold;
+}
+
+void Sg_JitIncrementCallCount(SgCodeBuilder *cb)
+{
+  cb->callCount++;
 }
 
 void Sg_SetJitVerbose(int verbose)
@@ -223,6 +228,16 @@ SgObject Sg__JitGrefCall(SgVM *vm, int argc, SgObject id)
     return SG_UNDEF;
   }
 
+  /* SUBR - call directly without C continuation boundary */
+  if (SG_SUBRP(proc)) {
+    return Sg__JitCallSubr(vm, argc, proc);
+  }
+
+  /* Generic function - dispatch to method */
+  if (SG_GENERICP(proc)) {
+    return Sg__JitCallGeneric(vm, argc, proc);
+  }
+
   /* Check if it's a closure with JIT code */
   if (SG_CLOSUREP(proc)) {
     SgClosure *cl = SG_CLOSURE(proc);
@@ -293,9 +308,7 @@ SgObject Sg__JitGrefCall(SgVM *vm, int argc, SgObject id)
     }
   }
 
-  /* SUBR: already handled via direct call in the main path */
-  /* Generic: already handled via JitCallGeneric */
-  /* Other procedure types: fall back to Sg_Apply for now */
+  /* Other procedure types (e.g. CLOSURE): fall back to Sg_Apply for now */
   vm->fp = vm->sp - argc;
 
   /* Collect arguments from the stack */
@@ -556,15 +569,17 @@ SgObject Sg__JitTailCall(SgVM *vm, int argc, SgObject proc)
  */
 SgObject Sg__JitApply(SgVM *vm, int nargc, SgObject listArg, int isTail)
 {
-  long listLen = Sg_Length(listArg);
+  long listLen;
   SgObject proc;
   SgObject args = SG_NIL;
 
   if (jit_verbose) {
     Sg_Printf(Sg_StandardErrorPort(),
-	      UC("JIT: APPLY nargc=%d listArg=%A isTail=%d\n"),
-	      nargc, listArg, isTail);
+	      UC("JIT: APPLY nargc=%d listArg=%A isTail=%d sp=%p\n"),
+	      nargc, listArg, isTail, vm->sp);
   }
+
+  listLen = Sg_Length(listArg);
 
   if (listLen < 0) {
     Sg_AssertionViolation(SG_INTERN("apply"),
@@ -796,29 +811,28 @@ static void restore_cont(SgVM *vm, SavedCont *sc)
  */
 SgObject Sg__JitCallSubr(SgVM *vm, int argc, SgObject proc)
 {
+  SgObject saved_cl = vm->cl;  /* Save caller's closure */
+
   if (jit_verbose) {
     Sg_Printf(Sg_StandardErrorPort(),
-              UC("JIT: SUBR CALL proc=%A argc=%d\n"), proc, argc);
+              UC("JIT: SUBR CALL proc=%A argc=%d sp=%p fp=%p cont=%p\n"),
+              proc, argc, vm->sp, vm->fp, vm->cont);
   }
 
   /* Adjust arguments for optional args */
   argc = adjust_args(vm, argc, proc);
   if (argc < 0) return SG_UNDEF;
 
-  /* Set up frame pointer */
+  /* Set up frame pointer - SUBR expects args at FP[0], FP[1], ... */
   vm->fp = vm->sp - argc;
   vm->cl = proc;
 
-  /* Save and pop continuation frame */
-  SavedCont sc;
-  save_cont(vm, &sc);
-  vm->cont = sc.prev;
-
-  /* Direct call - no C continuation boundary! */
+  /* Direct call - SUBR calls are inline, no continuation frame manipulation */
   SgObject result = SG_SUBR_FUNC(proc)(vm->fp, argc, SG_SUBR_DATA(proc));
 
-  /* Restore VM state */
-  restore_cont(vm, &sc);
+  /* After SUBR returns, restore SP to pop arguments and restore caller's closure */
+  vm->sp = vm->fp;
+  vm->cl = saved_cl;
 
   return result;
 }
@@ -833,18 +847,19 @@ SgObject Sg__JitTailCallSubr(SgVM *vm, int argc, SgObject proc)
 {
   if (jit_verbose) {
     Sg_Printf(Sg_StandardErrorPort(),
-              UC("JIT: SUBR TAIL_CALL proc=%A argc=%d\n"), proc, argc);
+              UC("JIT: SUBR TAIL_CALL proc=%A argc=%d sp=%p fp=%p\n"),
+              proc, argc, vm->sp, vm->fp);
   }
 
   /* Adjust arguments for optional args */
   argc = adjust_args(vm, argc, proc);
   if (argc < 0) return SG_UNDEF;
 
-  /* For tail call, shift args to FP position */
+  /* For tail call, set up FP for args */
   vm->fp = vm->sp - argc;
   vm->cl = proc;
 
-  /* Direct call - no C continuation boundary! */
+  /* Direct call - SUBR tail call returns result directly */
   return SG_SUBR_FUNC(proc)(vm->fp, argc, SG_SUBR_DATA(proc));
 }
 
@@ -880,6 +895,8 @@ static void shift_and_add_next_method(SgVM *vm, int argc, SgObject nm)
  */
 SgObject Sg__JitCallGeneric(SgVM *vm, int argc, SgObject generic)
 {
+  SgObject saved_cl = vm->cl;  /* Save caller's closure */
+
   if (jit_verbose) {
     Sg_Printf(Sg_StandardErrorPort(),
               UC("JIT: GENERIC CALL generic=%A argc=%d\n"),
@@ -890,16 +907,11 @@ SgObject Sg__JitCallGeneric(SgVM *vm, int argc, SgObject generic)
   SgObject methods = Sg_ComputeMethods(generic, vm->sp - argc, argc, FALSE);
 
   if (SG_NULLP(methods)) {
-    /* No applicable methods - call fallback */
-    SavedCont sc;
-    save_cont(vm, &sc);
-    
+    /* No applicable methods - call fallback directly */
     vm->fp = vm->sp - argc;
-    vm->cont = sc.prev;
-    
     SgObject result = SG_GENERIC(generic)->fallback(vm->fp, argc, SG_GENERIC(generic));
-    
-    restore_cont(vm, &sc);
+    vm->sp = vm->fp;  /* Pop args */
+    vm->cl = saved_cl;  /* Restore caller's closure */
     return result;
   }
 
@@ -921,16 +933,13 @@ SgObject Sg__JitCallGeneric(SgVM *vm, int argc, SgObject generic)
     argc = adjust_args(vm, argc, method);
     if (argc < 0) return SG_UNDEF;
 
-    SavedCont sc;
-    save_cont(vm, &sc);
-    
     vm->fp = vm->sp - argc;
     vm->cl = proc;
-    vm->cont = sc.prev;
 
     SgObject result = SG_SUBR_FUNC(proc)(vm->fp, argc, SG_SUBR_DATA(proc));
 
-    restore_cont(vm, &sc);
+    vm->sp = vm->fp;  /* Pop args */
+    vm->cl = saved_cl;  /* Restore caller's closure */
     return result;
   } else {
     /* Closure method */
@@ -1090,8 +1099,10 @@ SgJitCompiledCode Sg_JitCompile(SgCodeBuilder *cb)
   for (int i = 0; i < cb->size; i++) {
     ctx.pcToLabel[i] = ctx.labelCount++;
   }
-  /* One more label for epilogue */
+  /* One more label for normal epilogue (stores vm->cl) */
   ctx.epilogueLabel = ctx.labelCount++;
+  /* One more label for yield epilogue (does NOT store vm->cl) */
+  ctx.yieldEpilogueLabel = ctx.labelCount++;
 
   /* Initialize platform-specific context */
   ctx.platform = Sg__JitPlatformInit(&ctx);
@@ -1726,16 +1737,8 @@ SgJitCompiledCode Sg_JitCompile(SgCodeBuilder *cb)
       break;
 
     case APPLY:
-      {
-	/* APPLY: val1 = total argc (including proc and list), val2 = tail flag
-	 * For 2-value instructions, we need to mask val1 properly */
-	int totalArgc = INSN_VALUE1(insn) & INSN_VALUE1_MASK;
-	int isTail = INSN_VALUE2(insn);
-	int nargc = totalArgc - 2;  /* explicit args (not including proc and list) */
-	if (!Sg__JitEmit_APPLY(&ctx, nargc, isTail)) goto fail;
-	pc++;
-      }
-      break;
+      /* APPLY instruction is currently buggy in JIT - fall back to VM */
+      goto fail;
 
     case VALUES:
       /* VALUES: val1 = number of values */
@@ -1766,15 +1769,25 @@ SgJitCompiledCode Sg_JitCompile(SgCodeBuilder *cb)
 
   if (jit_verbose) {
     Sg_Printf(Sg_StandardErrorPort(),
-	      UC("JIT: All instructions processed, emitting epilogue\n"));
+	      UC("JIT: All instructions processed, emitting epilogues\n"));
   }
 
-  /* Bind epilogue label and emit epilogue */
+  /* Bind normal epilogue label and emit epilogue (stores vm->cl) */
   Sg__JitBindLabel(&ctx, ctx.epilogueLabel);
   if (!Sg__JitEmit_Epilogue(&ctx)) {
     if (jit_verbose) {
       Sg_Printf(Sg_StandardErrorPort(),
 		UC("JIT: Epilogue failed\n"));
+    }
+    goto fail;
+  }
+
+  /* Bind yield epilogue label and emit yield epilogue (does NOT store vm->cl) */
+  Sg__JitBindLabel(&ctx, ctx.yieldEpilogueLabel);
+  if (!Sg__JitEmit_YieldEpilogue(&ctx)) {
+    if (jit_verbose) {
+      Sg_Printf(Sg_StandardErrorPort(),
+		UC("JIT: Yield epilogue failed\n"));
     }
     goto fail;
   }

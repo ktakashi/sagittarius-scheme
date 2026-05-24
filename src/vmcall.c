@@ -215,24 +215,34 @@
       RET_INSN();
       CHECK_ATTENTION;
       NEXT;
-    } else if (Sg_JitEnabled() && cb->jitFlags == 0) {
-      /* Track call count for hot code detection */
+    } else if (Sg_JitEnabled() && cb != NULL && cb->jitFlags == 0 &&
+               vm->state != COMPILING && vm->state != IMPORTING) {
+      /* Track call count for hot code detection.
+       * NOTE: Using higher threshold (100M vs 1M) as workaround for 
+       * mysterious ARM64 code generation issue with smaller thresholds.
+       * Skip JIT when in COMPILING/IMPORTING state to prevent compiler
+       * code from being JIT compiled. */
       cb->callCount++;
-      if (cb->callCount >= Sg_GetJitThreshold()) {
-        /* Attempt JIT compilation */
-	if (Sg_JitVerbose()) {
-	  Sg_Printf(Sg_StandardErrorPort(),
-		    UC("VM: AUTO-JIT compiling %A\n"),
-		    SG_CODE_BUILDER_NAME(cb));
+      uint32_t count = cb->callCount;
+      int threshold = Sg_GetJitThreshold();
+      if ((int)count >= threshold) {
+        /* Mark as "compiling" to prevent double compilation */
+	if (cb->jitFlags == 0) {
+	  cb->jitFlags = SG_JIT_FLAG_COMPILING;
+	  if (Sg_JitVerbose()) {
+	    Sg_Printf(Sg_StandardErrorPort(),
+		      UC("VM: AUTO-JIT compiling %A\n"),
+		      SG_CODE_BUILDER_NAME(cb));
+	  }
+	  cb->jitCode = Sg_JitCompile(cb);
+	  if (cb->jitCode != NULL) {
+	    cb->jitFlags = SG_JIT_FLAG_COMPILED;
+	    /* Skip JIT execution on first compile - fall through to interpreter.
+	     * This allows the JIT code to be used on subsequent calls. */
+	  } else {
+	    cb->jitFlags = SG_JIT_FLAG_FAILED;
+	  }
 	}
-        cb->jitCode = Sg_JitCompile(cb);
-        if (cb->jitCode != NULL) {
-          cb->jitFlags = SG_JIT_FLAG_COMPILED;
-	  /* Skip JIT execution on first compile - fall through to interpreter.
-	   * This allows the JIT code to be used on subsequent calls. */
-        } else {
-          cb->jitFlags = SG_JIT_FLAG_FAILED;
-        }
       }
     }
     /* If jitFlags has unexpected value, skip JIT and fall through to interpreter */

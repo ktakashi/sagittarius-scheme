@@ -255,6 +255,38 @@ int Sg__JitEmit_Epilogue(SgJitContext *ctx)
   return 1;
 }
 
+/*
+ * Yield Epilogue - used when yielding to interpreter
+ *
+ * This is like the normal epilogue but does NOT store vm->cl.
+ * When yielding, the helper (Sg__JitGrefCall etc.) has already set
+ * vm->cl to the callee's closure, and we must NOT overwrite it
+ * with the JIT caller's closure (which is in X22).
+ */
+int Sg__JitEmit_YieldEpilogue(SgJitContext *ctx)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+
+  /* Store VM registers EXCEPT vm->cl (helper already set it) */
+  arm64_str_r64_mem(a, JIT_REG_SCHSP, JIT_REG_VM, VM_OFFSET_SP);
+  arm64_str_r64_mem(a, JIT_REG_SCHFP, JIT_REG_VM, VM_OFFSET_FP);
+  arm64_str_r64_mem(a, JIT_REG_TEMP1, JIT_REG_VM, VM_OFFSET_AC);
+  /* NOTE: Do NOT store JIT_REG_CL to VM_OFFSET_CL here! */
+
+  /* Restore callee-saved registers (same as normal epilogue) */
+  arm64_ldp(a, ARM64_X23, ARM64_XZR, ARM64_SP, 0);
+  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
+  arm64_ldp(a, ARM64_X21, ARM64_X22, ARM64_SP, 0);
+  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
+  arm64_ldp(a, ARM64_X19, ARM64_X20, ARM64_SP, 0);
+  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
+  arm64_ldp(a, ARM64_FP, ARM64_LR, ARM64_SP, 0);
+  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
+
+  arm64_ret(a);
+  return 1;
+}
+
 
 /*
  * Basic Instructions
@@ -1997,6 +2029,7 @@ int Sg__JitEmit_FRAME(SgJitContext *ctx, int returnPc)
 int Sg__JitEmit_GREF_CALL(SgJitContext *ctx, int argc, SgObject id)
 {
   Arm64Asm *a = GET_ASM(ctx);
+  Arm64CodeGen *gen = GET_GEN(ctx);
 
   /* Sync VM state before call */
   arm64_str_r64_mem(a, JIT_REG_SCHSP, JIT_REG_VM, VM_OFFSET_SP);
@@ -2017,10 +2050,11 @@ int Sg__JitEmit_GREF_CALL(SgJitContext *ctx, int argc, SgObject id)
   /* Result is in X0, move to AC (TEMP1) */
   arm64_mov_r64_r64(a, JIT_REG_TEMP1, ARM64_X0);
 
-  /* Check for yield marker - if helper yielded, we must return to VM loop */
+  /* Check for yield marker - if helper yielded, we must return to VM loop
+   * Use yieldEpilogueLabel so vm->cl is NOT overwritten - helper set it */
   arm64_mov_r64_imm(a, JIT_REG_TEMP2, (uintptr_t)SG_JIT_YIELD_MARKER);
   arm64_cmp_r64_r64(a, JIT_REG_TEMP1, JIT_REG_TEMP2);
-  arm64_b_cond(a, ARM64_EQ, ctx->epilogueLabel);
+  arm64_b_cond(a, ARM64_EQ, gen->labels[ctx->yieldEpilogueLabel]);
 
   /* Reload VM state after call (continuation was popped by helper) */
   arm64_ldr_r64_mem(a, JIT_REG_SCHSP, JIT_REG_VM, VM_OFFSET_SP);
@@ -2310,6 +2344,7 @@ SG_EXTERN SgObject Sg__JitCall(SgVM *vm, int argc, SgObject proc);
 int Sg__JitEmit_CALL(SgJitContext *ctx, int argc)
 {
   Arm64Asm *a = GET_ASM(ctx);
+  Arm64CodeGen *gen = GET_GEN(ctx);
 
   /* Save LR before calling C function */
   arm64_str_r64_mem_pre(a, ARM64_LR, ARM64_SP, -16);
@@ -2337,10 +2372,11 @@ int Sg__JitEmit_CALL(SgJitContext *ctx, int argc)
   arm64_ldr_r64_mem(a, ARM64_LR, ARM64_SP, 0);
   arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
 
-  /* Check for yield marker - if helper yielded, we must return to VM loop */
+  /* Check for yield marker - if helper yielded, we must return to VM loop
+   * Use yieldEpilogueLabel so vm->cl is NOT overwritten - helper set it */
   arm64_mov_r64_imm(a, JIT_REG_TEMP2, (uintptr_t)SG_JIT_YIELD_MARKER);
   arm64_cmp_r64_r64(a, JIT_REG_TEMP1, JIT_REG_TEMP2);
-  arm64_b_cond(a, ARM64_EQ, ctx->epilogueLabel);
+  arm64_b_cond(a, ARM64_EQ, gen->labels[ctx->yieldEpilogueLabel]);
 
   /* Reload VM state after call (continuation was popped by helper) */
   arm64_ldr_r64_mem(a, JIT_REG_SCHSP, JIT_REG_VM, VM_OFFSET_SP);

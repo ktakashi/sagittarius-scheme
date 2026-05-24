@@ -536,6 +536,9 @@ int real_main(int argc, tchar **argv)
   int opt, optionIndex = 0, off = 0;
   int forceInteactiveP = FALSE, noMainP = FALSE, standard_given = FALSE;
   int load_base_library = TRUE;
+#ifdef HAVE_JIT
+  int jit_requested = FALSE;  /* Track user's -j request, enable after startup */
+#endif
   SgVM *vm;
   SgObject preimport = SG_NIL;
   SgObject expr = SG_FALSE, args = SG_NIL;
@@ -577,9 +580,15 @@ int real_main(int argc, tchar **argv)
   vm = Sg_VM();
   SG_VM_SET_FLAG(vm, SG_COMPATIBLE_MODE);
   Sg_GCSetPrintWarning(FALSE);	/* default off */
+#ifdef HAVE_JIT
+  while ((opt = getopt_long(argc, argv, 
+			    t("L:A:D:Y:S:F:f:I:hE:vicdp:P:sntr:e:Gj"),
+			    long_options, &optionIndex)) != -1) {
+#else
   while ((opt = getopt_long(argc, argv, 
 			    t("L:A:D:Y:S:F:f:I:hE:vicdp:P:sntr:e:G"),
 			    long_options, &optionIndex)) != -1) {
+#endif
     switch (opt) {
     case 't': load_base_library = FALSE; break;
     case 'E':
@@ -724,7 +733,9 @@ int real_main(int argc, tchar **argv)
       break;
 #ifdef HAVE_JIT
     case 'j':
-      Sg_SetJitEnabled(TRUE);
+      /* Don't enable JIT immediately - wait until after base library loading
+       * to ensure initialization and compilation use the interpreter */
+      jit_requested = TRUE;
       break;
 #endif
 #ifdef SAGITTARIUS_PROFILE
@@ -796,6 +807,14 @@ int real_main(int argc, tchar **argv)
     fmt[off++] = 'i';
     args = Sg_Cons(SG_MAKE_BOOL(forceInteactiveP), args);
   }
+
+#ifdef HAVE_JIT
+  /* Enable JIT now if requested, after base library loading is complete.
+   * This ensures initialization and compilation use the interpreter. */
+  if (jit_requested) {
+    Sg_SetJitEnabled(TRUE);
+  }
+#endif
 
   Sg_Start((optind_s < argc) ? SG_STRING(make_scheme_string(argv[optind_s]))
 	   : (!isatty(0) && !forceInteactiveP) ? Sg_CurrentInputPort()

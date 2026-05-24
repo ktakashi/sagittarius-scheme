@@ -57,6 +57,11 @@ SG_EXTERN int Sg__JitEmit_Prologue(SgJitContext *ctx);
 /* Emit function epilogue (store VM state, restore registers, return) */
 SG_EXTERN int Sg__JitEmit_Epilogue(SgJitContext *ctx);
 
+/* Emit yield epilogue (like epilogue but does NOT store vm->cl)
+ * Used when yielding to interpreter for non-JIT closures - the helper
+ * already set vm->cl to the callee's closure */
+SG_EXTERN int Sg__JitEmit_YieldEpilogue(SgJitContext *ctx);
+
 
 /*
  * Basic Instructions
