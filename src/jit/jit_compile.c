@@ -461,9 +461,21 @@ static SgObject yield_for_closure_tail(SgVM *vm, SgObject proc, int argc)
  */
 static SgObject dispatch_call(SgVM *vm, int argc, SgObject proc)
 {
+  /* Handle non-procedure callable objects (e.g., parameters) via object-apply.
+   * Same as VM: transform (obj arg...) -> (object-apply obj arg...)
+   */
   if (!SG_PROCEDUREP(proc)) {
-    Sg_Error(UC("procedure required, but got: %A"), proc);
-    return SG_UNDEF;
+    int i;
+    /* Shift args up by one slot to make room for proc as first arg */
+    for (i = 0; i < argc; i++) {
+      *(vm->sp - i) = *(vm->sp - i - 1);
+    }
+    *(vm->sp - argc) = proc;
+    vm->sp++;
+    argc++;
+    proc = SG_OBJ(&Sg_GenericObjectApply);
+    /* Fall through to generic dispatch below */
+    return Sg__JitCallGeneric(vm, argc, proc);
   }
   
   /* SUBR - call directly */
@@ -520,9 +532,21 @@ static SgObject dispatch_call(SgVM *vm, int argc, SgObject proc)
  */
 static SgObject dispatch_tail_call(SgVM *vm, int argc, SgObject proc)
 {
+  /* Handle non-procedure callable objects (e.g., parameters) via object-apply.
+   * Same as VM: transform (obj arg...) -> (object-apply obj arg...)
+   */
   if (!SG_PROCEDUREP(proc)) {
-    Sg_Error(UC("procedure required, but got: %A"), proc);
-    return SG_UNDEF;
+    int i;
+    /* Shift args up by one slot to make room for proc as first arg */
+    for (i = 0; i < argc; i++) {
+      *(vm->sp - i) = *(vm->sp - i - 1);
+    }
+    *(vm->sp - argc) = proc;
+    vm->sp++;
+    argc++;
+    proc = SG_OBJ(&Sg_GenericObjectApply);
+    /* Fall through to generic dispatch below */
+    return Sg__JitTailCallGeneric(vm, argc, proc);
   }
   
   /* SUBR - call directly */
