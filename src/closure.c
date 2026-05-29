@@ -35,6 +35,9 @@
 #include "sagittarius/private/library.h"
 #include "sagittarius/private/identifier.h"
 #include "sagittarius/private/pair.h"
+#include "sagittarius/private/vm.h"
+#include "sagittarius/private/port.h"
+#include "sagittarius/private/writer.h"
 
 /* #define DEBUG_CHECK 1 */
 #define CHECK_CLOSURE_TRANSPARENCY
@@ -64,8 +67,18 @@ SgObject Sg_VMMakeClosure(SgObject code, int self_pos, SgObject *frees)
   cl->code = code;
   if (freec && !frees) {
     /* better than SEGV... */
+    SgVM *vm = Sg_VM();
+    void *retaddr = __builtin_return_address(0);
+    void *retaddr2 = __builtin_return_address(1);
+    Sg_Printf(Sg_StandardErrorPort(),
+              UC("DEBUG CLOSURE: freec=%d frees=%p retaddr=%p retaddr2=%p\n"), 
+              freec, frees, retaddr, retaddr2);
+    Sg_Printf(Sg_StandardErrorPort(),
+              UC("DEBUG CLOSURE: vm->sp=%p vm->fp=%p vm->stack=%p vm->pc=%p\n"),
+              vm->sp, vm->fp, vm->stack, vm->pc);
     Sg_Panic("Free variable count is %d, but actual argument is null", freec);
   }
+  
   for (i = 0; i < freec; i++) {
     cl->frees[i] = frees[freec - i - 1];
   }
@@ -88,6 +101,16 @@ SgObject Sg_VMMakeClosure(SgObject code, int self_pos, SgObject *frees)
 
 SgObject Sg_MakeClosure(SgObject code, SgObject *frees)
 {
+  int freec = SG_CODE_BUILDER_FREEC(code);
+  if (freec > 0 && frees == NULL) {
+    Sg_Printf(Sg_StandardErrorPort(),
+              UC("BUG: Sg_MakeClosure called with freec=%d but frees=NULL\n"),
+              freec);
+    Sg_Printf(Sg_StandardErrorPort(),
+              UC("BUG: code=%A name=%A\n"), code,
+              SG_CODE_BUILDER(code)->name ? SG_CODE_BUILDER(code)->name : SG_FALSE);
+    Sg_FlushPort(Sg_StandardErrorPort());
+  }
   return Sg_VMMakeClosure(code, 0, frees);
 }
 

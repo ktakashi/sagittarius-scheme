@@ -53,6 +53,7 @@ typedef struct SgJitContextRec {
   int labelCount;         /* Total number of labels allocated */
   int epilogueLabel;      /* Label for function epilogue (stores vm->cl) */
   int yieldEpilogueLabel; /* Label for yield epilogue (does NOT store vm->cl) */
+  int bareYieldEpilogueLabel; /* Label for bare yield epilogue (doesn't store AC) */
 } SgJitContext;
 
 /*

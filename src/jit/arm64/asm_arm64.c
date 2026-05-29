@@ -250,6 +250,18 @@ int arm64_asm_finalize(Arm64Asm *a)
       insn = (insn & 0xFF00001F) | ((imm19 & 0x7FFFF) << 5);
       break;
     }
+    case ARM64_PATCH_ADR: {
+      /* ADR: imm21 at bits 5-23 (hi19) and 29-30 (lo2), offset in bytes */
+      if (relOff < -(1 << 20) || relOff >= (1 << 20)) {
+	SET_ERROR(a, "ADR offset out of range");
+	return -1;
+      }
+      uint32_t immlo = relOff & 0x3;
+      uint32_t immhi = (relOff >> 2) & 0x7FFFF;
+      /* Clear old imm bits and set new ones */
+      insn = (insn & 0x9F00001F) | (immlo << 29) | (immhi << 5);
+      break;
+    }
     default:
       SET_ERROR(a, "error");
       return -1;
@@ -297,6 +309,32 @@ void arm64_bind_label(Arm64Asm *a, int label)
     return;
   }
   a->labelOffsets[label] = (int)a->pos;
+}
+
+/* ADR Rd, label  -- load PC-relative address of label into Rd
+ *
+ * ADR encoding: 0 | immlo:2 | 10000 | immhi:19 | Rd:5
+ * where imm = immhi:immlo, a signed 21-bit offset in bytes
+ */
+void arm64_adr_label(Arm64Asm *a, Arm64Reg rd, int label)
+{
+  if (label >= 0 && label < a->labelCount && a->labelOffsets[label] >= 0) {
+    /* Label is bound - calculate offset */
+    int32_t offset = a->labelOffsets[label] - (int32_t)a->pos;
+    if (offset < -(1 << 20) || offset >= (1 << 20)) {
+      SET_ERROR(a, "ADR label out of range");
+      return;
+    }
+    uint32_t immlo = offset & 0x3;
+    uint32_t immhi = (offset >> 2) & 0x7FFFF;
+    /* 0 immlo 10000 immhi Rd */
+    uint32_t insn = (immlo << 29) | (0x10 << 24) | (immhi << 5) | rd;
+    emit32(a, insn);
+  } else {
+    /* Forward reference - emit placeholder and patch later */
+    add_patch(a, label, ARM64_PATCH_ADR);
+    emit32(a, (0x10 << 24) | rd);  /* ADR with 0 offset */
+  }
 }
 
 

@@ -40,7 +40,9 @@
 #include "sagittarius/private/vector.h"
 #include "sagittarius/private/vm.h"
 #include "sagittarius/private/writer.h"
-
+#ifdef HAVE_JIT
+#include "jit/jit.h"
+#endif
 #define INIT_CODE_PACKET(p, t, inst, a0, a1, o)		\
   do {							\
     (p).insn = (inst);					\
@@ -264,6 +266,65 @@ void Sg_CodeBuilderEmit(SgCodeBuilder *cb, SgWord insn, PacketType type,
 void Sg_CodeBuilderAddSrc(SgCodeBuilder *cb, int insn, SgObject src)
 {
   if (!SG_FALSEP(src)) {
+#ifdef HAVE_JIT
+    /* DEBUG: Check if src contains VM pointer */
+    SgVM *vm = Sg_VM();
+    /* DEBUG: Print all AddSrc calls when JIT is enabled */
+    if (Sg_JitEnabled()) {
+      /* Check each element */
+      if (SG_PAIRP(src)) {
+        SgObject p;
+        int i = 0;
+        SG_FOR_EACH(p, src) {
+          if (SG_VMP(p)) {
+            Sg_Printf(Sg_StandardErrorPort(),
+                      UC("ADDSRC: Found VM at index %d in src list! vm=%p src[%d]=%p\n"),
+                      i, vm, i, p);
+            Sg_Printf(Sg_StandardErrorPort(),
+                      UC("  cb=%p insn=%d src=%S\n"),
+                      cb, insn, src);
+            Sg_Printf(Sg_StandardErrorPort(),
+                      UC("  cb->name=%A cb->size=%d\n"),
+                      cb->name, cb->size);
+            /* Print stack trace to see who's calling */
+            Sg_Printf(Sg_StandardErrorPort(), UC("  VM state: cl=%A pc=%p\n"), vm->cl, vm->pc);
+            Sg_FlushPort(Sg_StandardErrorPort());
+            return;  /* Don't add corrupted src */
+          }
+          if (SG_PAIRP(p) && SG_VMP(SG_CAR(p))) {
+            Sg_Printf(Sg_StandardErrorPort(),
+                      UC("ADDSRC: Found VM in CAR at index %d! vm=%p\n"),
+                      i, vm);
+            Sg_Printf(Sg_StandardErrorPort(),
+                      UC("  cb=%p insn=%d src=%S\n"),
+                      cb, insn, src);
+            Sg_Printf(Sg_StandardErrorPort(),
+                      UC("  cb->name=%A cb->size=%d\n"),
+                      cb->name, cb->size);
+            /* Print all continuation frames for context */
+            SgContFrame *cont = vm->cont;
+            int depth = 0;
+            while (cont && depth < 10) {
+              Sg_Printf(Sg_StandardErrorPort(),
+                        UC("  CONT[%d]: cl=%A prev=%p\n"),
+                        depth, cont->cl, cont->prev);
+              cont = cont->prev;
+              depth++;
+            }
+            Sg_FlushPort(Sg_StandardErrorPort());
+            return;  /* Don't add corrupted src */
+          }
+          i++;
+        }
+      }
+      if (SG_VMP(src)) {
+        Sg_Printf(Sg_StandardErrorPort(),
+                  UC("ADDSRC: src IS the VM! vm=%p\n"), vm);
+        Sg_FlushPort(Sg_StandardErrorPort());
+        return;
+      }
+    }
+#endif
     /*
       we construct the source info into code-builder:
       ((index1 . src1) (index2 . src2) ...) ; alist

@@ -174,6 +174,9 @@ int arm64_new_label(Arm64Asm *a);
 /* Bind label to current position */
 void arm64_bind_label(Arm64Asm *a, int label);
 
+/* ADR Rd, label - load PC-relative address of label into register */
+void arm64_adr_label(Arm64Asm *a, Arm64Reg rd, int label);
+
 
 /*
  * Data Movement Instructions

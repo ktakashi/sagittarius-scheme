@@ -813,13 +813,30 @@ int real_main(int argc, tchar **argv)
    * This ensures initialization and compilation use the interpreter.
    * JIT can be enabled via:
    * - Command line: -j or --jit
-   * - Environment: SAGITTARIUS_JIT=1 */
+   * - Environment: SAGITTARIUS_JIT=1
+   * JIT threshold:
+   * - Environment: SAGITTARIUS_JIT_THRESHOLD=N
+   * JIT verbose:
+   * - Environment: SAGITTARIUS_JIT_VERBOSE=1 */
   if (jit_requested) {
     Sg_SetJitEnabled(TRUE);
   } else {
     const char *jit_env = getenv("SAGITTARIUS_JIT");
     if (jit_env && strcmp(jit_env, "1") == 0) {
       Sg_SetJitEnabled(TRUE);
+    }
+  }
+  {
+    const char *threshold_env = getenv("SAGITTARIUS_JIT_THRESHOLD");
+    if (threshold_env) {
+      int threshold = atoi(threshold_env);
+      if (threshold > 0) {
+        Sg_SetJitThreshold(threshold);
+      }
+    }
+    const char *verbose_env = getenv("SAGITTARIUS_JIT_VERBOSE");
+    if (verbose_env && strcmp(verbose_env, "1") == 0) {
+      Sg_SetJitVerbose(TRUE);
     }
   }
 #endif

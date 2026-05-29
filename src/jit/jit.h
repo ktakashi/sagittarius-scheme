@@ -157,8 +157,10 @@ SG_EXTERN void Sg_JitDisassemble(struct SgCodeBuilderRec *cb, struct SgPortRec *
  * Called from JIT-compiled code for operations that need C support.
  */
 
-/* Push a continuation frame before a non-tail call */
-SG_EXTERN void Sg__JitPushFrame(struct SgVMRec *vm, SgWord *returnPc);
+/* Push a continuation frame before a non-tail call.
+ * jitReturnAddr is the native code address to re-enter after callee returns.
+ * Pass NULL if called from interpreter (no JIT re-entry). */
+SG_EXTERN void Sg__JitPushFrame(struct SgVMRec *vm, SgWord *returnPc, void *jitReturnAddr);
 
 /* Look up a global variable (GREF) */
 SG_EXTERN SgObject Sg__JitGref(SgObject id);
@@ -196,8 +198,24 @@ SG_EXTERN SgObject Sg__JitApply(struct SgVMRec *vm, int nargc, SgObject listArg,
 /* Return multiple values (VALUES) */
 SG_EXTERN SgObject Sg__JitValues(struct SgVMRec *vm, int nvalues, SgObject lastVal);
 
+/* Build a list from AC and stack elements (LIST) */
+SG_EXTERN SgObject Sg__JitList(struct SgVMRec *vm, int n, SgObject lastVal);
+
 /* Receive multiple values (RECEIVE) */
 SG_EXTERN SgObject Sg__JitReceive(struct SgVMRec *vm, int reqCount, int optCount);
+
+/* Re-enter JIT code after yielding to interpreter.
+ * Called from RET_INSN when continuation marks contain a JIT return address.
+ * This function jumps to the saved return address, effectively
+ * resuming JIT execution where it left off.
+ */
+SG_EXTERN SgObject Sg__JitReenter(struct SgVMRec *vm);
+
+/*
+ * Re-enter JIT code at the specified address.
+ * Called from RET_INSN when marks contain JIT return address.
+ */
+SG_EXTERN SgObject Sg__JitReenterAt(struct SgVMRec *vm, void *returnAddr);
 
 /*
  * JIT Context Helpers for Exception Recovery
@@ -238,9 +256,15 @@ SG_EXTERN void Sg_InitJitContext(struct SgVMRec *vm);
  *
  * The marker is a unique object that cannot be confused with normal return values.
  * We use a tagged pointer that points to an invalid address.
+ *
+ * SG_JIT_YIELD_MARKER: Normal yield - vmcall.c will set AC = UNDEF
+ * SG_JIT_YIELD_PRESERVE_AC: Yield but AC was already set by the helper
+ *                           (e.g., for SUBRs like eval that set up continuations)
  */
 #define SG_JIT_YIELD_MARKER ((SgObject)(uintptr_t)0xDEADBEEF00000007UL)
-#define SG_JIT_YIELD_P(obj) ((obj) == SG_JIT_YIELD_MARKER)
+#define SG_JIT_YIELD_PRESERVE_AC ((SgObject)(uintptr_t)0xDEADBEEF00000017UL)
+#define SG_JIT_YIELD_P(obj) ((obj) == SG_JIT_YIELD_MARKER || (obj) == SG_JIT_YIELD_PRESERVE_AC)
+#define SG_JIT_YIELD_PRESERVE_AC_P(obj) ((obj) == SG_JIT_YIELD_PRESERVE_AC)
 
 
 SG_CDECL_END

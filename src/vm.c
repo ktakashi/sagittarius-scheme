@@ -983,6 +983,23 @@ static void init_compiler()
 }
 
 /* compiler */
+/* DEBUG: Check if sexp contains VM pointer */
+static int contains_vm(SgObject obj, SgVM *vm, int depth) {
+  if (depth > 100) return FALSE;  /* Avoid infinite recursion */
+  if (SG_VMP(obj)) return TRUE;
+  if (SG_PAIRP(obj)) {
+    return contains_vm(SG_CAR(obj), vm, depth+1) || 
+           contains_vm(SG_CDR(obj), vm, depth+1);
+  }
+  if (SG_VECTORP(obj)) {
+    int i;
+    for (i = 0; i < SG_VECTOR_SIZE(obj); i++) {
+      if (contains_vm(SG_VECTOR_ELEMENT(obj, i), vm, depth+1)) return TRUE;
+    }
+  }
+  return FALSE;
+}
+
 #define define_compiler(name, apply)				\
   SgObject SG_CPP_CAT(Sg_, name)(SgObject o, SgObject e)	\
   {								\
@@ -991,6 +1008,25 @@ static void init_compiler()
     if (SG_UNDEFP(compiler)) {					\
       init_compiler();						\
     }								\
+    /* DEBUG: Check for VM in sexp */                           \
+    if (Sg_JitVerbose() && contains_vm(o, Sg_VM(), 0)) {        \
+      SgVM *vm = Sg_VM();                                       \
+      Sg_Printf(Sg_StandardErrorPort(),                         \
+                UC("COMPILE DEBUG: sexp contains VM! sexp=%S env=%A\n"), o, e); \
+      Sg_Printf(Sg_StandardErrorPort(),                         \
+                UC("  vm->cl=%A vm->state=%d\n"), vm->cl, vm->state); \
+      /* Print continuation stack */                            \
+      SgContFrame *cont = vm->cont;                             \
+      int depth = 0;                                            \
+      while (cont && depth < 15) {                              \
+        Sg_Printf(Sg_StandardErrorPort(),                       \
+                  UC("  COMPILE_CONT[%d]: cl=%A\n"),            \
+                  depth, cont->cl);                             \
+        cont = cont->prev;                                      \
+        depth++;                                                \
+      }                                                         \
+      Sg_FlushPort(Sg_StandardErrorPort());                     \
+    }                                                           \
     return apply(compiler, o, e);				\
   }
 define_compiler(Compile, Sg_Apply2)
@@ -1041,6 +1077,46 @@ static SgObject next_eval_cc(SgObject v, void **data)
 {
   SgObject body, before, after, env = data[0];
   SgVM *vm = theVM;
+  
+  /* Debug: Check if v is wrong - this indicates a serious bug */
+  if (SG_CLOSUREP(v)) {
+    Sg_Printf(Sg_StandardErrorPort(),
+              UC("FATAL BUG: next_eval_cc received a CLOSURE instead of code builder!\n"));
+    Sg_Printf(Sg_StandardErrorPort(),
+              UC("  v=%A vm->cont=%p vm->marks=%p\n"), v, vm->cont, vm->marks);
+    if (vm->cont) {
+      Sg_Printf(Sg_StandardErrorPort(),
+                UC("  cont->pc=%p cont->cl=%A cont->fp=%p\n"), 
+                vm->cont->pc, vm->cont->cl, vm->cont->fp);
+    }
+    Sg_FlushPort(Sg_StandardErrorPort());
+    /* Continue to show the panic message */
+  }
+  
+  if (!SG_CODE_BUILDERP(v)) {
+    Sg_Printf(Sg_StandardErrorPort(),
+              UC("next_eval_cc: v=%p type=%A code_builder_p=%d closure_p=%d\n"),
+              v, Sg_ClassOf(v), SG_CODE_BUILDERP(v), SG_CLOSUREP(v));
+    Sg_FlushPort(Sg_StandardErrorPort());
+  }
+  
+  if (SG_CODE_BUILDERP(v) && SG_CODE_BUILDER_FREEC(v) > 0) {
+    Sg_Printf(Sg_StandardErrorPort(),
+              UC("EVAL BUG: next_eval_cc got code builder with %d free vars!\n"),
+              SG_CODE_BUILDER_FREEC(v));
+    Sg_Printf(Sg_StandardErrorPort(),
+              UC("EVAL BUG: cb=%A name=%A\n"), v, 
+              SG_CODE_BUILDER(v)->name ? SG_CODE_BUILDER(v)->name : SG_FALSE);
+    Sg_FlushPort(Sg_StandardErrorPort());
+  }
+
+#ifdef HAVE_JIT
+  if (Sg_JitVerbose()) {
+    Sg_Printf(Sg_StandardErrorPort(),
+              UC("JIT: next_eval_cc called, v=%p, freec=%d\n"),
+              v, SG_CODE_BUILDERP(v) ? SG_CODE_BUILDER_FREEC(v) : -1);
+  }
+#endif
   /* Now we are checking with this defined variable during compilation,
      and if a macro have eval in it blow resets the defined variables.
      to avoid it we need to keep it. */
@@ -1073,7 +1149,9 @@ static SgObject next_eval_cc(SgObject v, void **data)
 SgObject Sg_VMEval(SgObject sexp, SgObject env)
 {
   SgVM *vm = theVM;
-  void **data = vm_new_cont(next_eval_cc, 1);
+  void **data;
+  
+  data = vm_new_cont(next_eval_cc, 1);
   data[0] = env;
   if (vm->state != IMPORTING) vm->state = COMPILING;
   return Sg_VMCompile(sexp, env);
@@ -1798,6 +1876,11 @@ static SgContFrame * splice_cont(SgVM *vm, SgContFrame *saved,
   return top;
 }
 
+#ifdef HAVE_JIT
+/* Forward declaration - defined later with other JIT mark functions */
+static void clear_jit_return_marks(SgVM *vm);
+#endif
+
 static SgContMarks * splice_marks(SgVM *vm, SgContMarks *marks)
 {
   /* here we need to copy the mark chain like the cont */
@@ -1999,6 +2082,13 @@ static SgObject cont_invoke_complete(ContInvokeCtx *ctx)
 {
   SgVM *vm = theVM;
 
+#ifdef HAVE_JIT
+  if (Sg_JitVerbose()) {
+    Sg_Printf(Sg_StandardErrorPort(),
+              UC("JIT: cont_invoke_complete called, op=%d\n"), ctx->op);
+  }
+#endif
+
   switch (ctx->op) {
   case CONT_OP_THROW: {
     /* Regular continuation throw completion */
@@ -2011,6 +2101,12 @@ static SgObject cont_invoke_complete(ContInvokeCtx *ctx)
       /* Composable continuation: add frames atop current continuation */
       vm->cont = splice_cont(vm, c->cont, prompt);
       vm->marks = splice_marks(vm, c->marks);
+#ifdef HAVE_JIT
+      /* Clear JIT return marks AND returnAddr since stack layout changes fundamentally.
+       * If we don't clear returnAddr, JIT might re-enter with wrong state. */
+      clear_jit_return_marks(vm);
+      vm->jitContext.returnAddr = NULL;
+#endif
       if (c->winders != vm->dynamicWinders) {
 	SgObject to_merge = capture_prompt_winders(prompt, c->winders);
 	vm->dynamicWinders = merge_winders(to_merge, vm->dynamicWinders);
@@ -2053,6 +2149,11 @@ static SgObject cont_invoke_complete(ContInvokeCtx *ctx)
 	save_cont(vm);
 	vm->cont = splice_cont(vm, c->cont, prompt);
 	vm->marks = splice_marks(vm, c->marks);
+#ifdef HAVE_JIT
+	/* Clear JIT return marks AND returnAddr since stack layout changes fundamentally */
+	clear_jit_return_marks(vm);
+	vm->jitContext.returnAddr = NULL;
+#endif
       }
       return throw_continuation_end(vm, args);
     }
@@ -2106,6 +2207,11 @@ static SgObject cont_invoke_complete(ContInvokeCtx *ctx)
     if (prompt && c->type == SG_COMPOSABLE_CONTINUATION) {
       vm->cont = splice_cont(vm, c->cont, prompt);
       vm->marks = splice_marks(vm, c->marks);
+#ifdef HAVE_JIT
+      /* Clear JIT return marks AND returnAddr since stack layout changes fundamentally */
+      clear_jit_return_marks(vm);
+      vm->jitContext.returnAddr = NULL;
+#endif
       if (c->winders != vm->dynamicWinders) {
 	SgObject to_merge = capture_prompt_winders(prompt, c->winders);
 	vm->dynamicWinders = merge_winders(to_merge, vm->dynamicWinders);
@@ -2150,6 +2256,11 @@ static SgObject throw_continuation_body(SgObject handlers,
 					SgPrompt *prompt)
 {
   ContInvokeCtx ctx;
+  if (Sg_JitVerbose()) {
+    Sg_Printf(Sg_StandardErrorPort(),
+              UC("JIT: throw_continuation_body called, handlers=%A prompt=%p type=%d\n"),
+              handlers, prompt, c ? c->type : -1);
+  }
   ctx.op = CONT_OP_THROW;
   ctx.winder_policy = prompt ? WINDER_MERGE : WINDER_SET;
   ctx.handlers = handlers;
@@ -2353,6 +2464,14 @@ static SgObject throw_continuation(SgObject *argv, int argc, void *data)
   SgVM *vm = Sg_VM();
   SgPrompt *prompt = (SgPrompt *)SG_CDR(data);
   SgPrompt *barrier;
+
+#ifdef HAVE_JIT
+  if (Sg_JitVerbose()) {
+    Sg_Printf(Sg_StandardErrorPort(),
+              UC("JIT: throw_continuation called, argc=%d type=%d\n"),
+              argc, c ? c->type : -1);
+  }
+#endif
 
   /* Check if we're trying to enter a barrier from outside */
   barrier = check_barrier_entry(vm, c);
@@ -3018,6 +3137,112 @@ SgMarkEntry * Sg_CurrentFirstContinuationMark(SgObject promptTag, SgObject key)
   return first_continuation_mark(vm, vm->cont, vm->marks, promptTag, key);
 }
 
+#ifdef HAVE_JIT
+/*
+ * JIT Continuation Mark Support
+ *
+ * These functions allow JIT code to associate return addresses with
+ * continuation frames via the mark system. This ensures proper handling
+ * when continuations are captured and restored.
+ */
+
+/* Unique key for JIT return address marks */
+static SgObject jit_return_addr_key = SG_FALSE;
+
+/* Push a new mark frame for a continuation frame (called from JIT FRAME) */
+void Sg_JitPushContMarks(SgVM *vm, SgContFrame *cont)
+{
+  SgContMarks *cm = SG_NEW(SgContMarks);
+  cm->frame = cont;
+  cm->entries = NULL;
+  cm->prev = vm->marks;
+  vm->marks = cm;
+}
+
+/* Set JIT return address mark in the current mark frame */
+void Sg_JitSetReturnMark(SgVM *vm, void *returnAddr)
+{
+  if (vm->marks && returnAddr) {
+    SgMarkEntry *e = SG_NEW(SgMarkEntry);
+    e->key = jit_return_addr_key;
+    e->value = (SgObject)returnAddr;  /* Store raw pointer */
+    e->next = vm->marks->entries;
+    vm->marks->entries = e;
+  }
+}
+
+/* Get JIT return address from the current mark frame.
+ */
+void* Sg_JitGetReturnMark(SgVM *vm)
+{
+  if (vm->marks && vm->marks->entries) {
+    SgMarkEntry *entry = vm->marks->entries;
+    while (entry) {
+      if (entry->key == jit_return_addr_key) {
+        return (void*)entry->value;
+      }
+      entry = entry->next;
+    }
+  }
+  return NULL;
+}
+
+/* Pop the current mark frame (called when RET pops continuation) */
+void Sg_JitPopContMarks(SgVM *vm, SgContFrame *cont)
+{
+  /* Pop mark frames until we find one that doesn't match this cont frame,
+     or until we run out of marks */
+  while (vm->marks && vm->marks->frame == cont) {
+    vm->marks = vm->marks->prev;
+  }
+}
+
+/* Clear all JIT return marks from the mark chain.
+ * Called when composable continuations are invoked because the stack layout
+ * changes fundamentally and JIT re-entry would fail.
+ */
+static void clear_jit_return_marks(SgVM *vm)
+{
+  SgContMarks *marks = vm->marks;
+  int cleared = 0;
+  if (Sg_JitVerbose()) {
+    Sg_Printf(Sg_StandardErrorPort(),
+              UC("JIT: clear_jit_return_marks called, vm->marks=%p\n"), vm->marks);
+  }
+  while (marks) {
+    SgMarkEntry *prev = NULL;
+    SgMarkEntry *entry = marks->entries;
+    while (entry) {
+      if (entry->key == jit_return_addr_key) {
+        cleared++;
+        /* Remove this entry from the list */
+        if (prev) {
+          prev->next = entry->next;
+        } else {
+          marks->entries = entry->next;
+        }
+        /* Don't update prev, move to next */
+        entry = entry->next;
+      } else {
+        prev = entry;
+        entry = entry->next;
+      }
+    }
+    marks = marks->prev;
+  }
+  if (Sg_JitVerbose()) {
+    Sg_Printf(Sg_StandardErrorPort(),
+              UC("JIT: clear_jit_return_marks cleared %d marks\n"), cleared);
+  }
+}
+
+/* Initialize JIT mark key - call during VM init */
+void Sg__InitJitMarks()
+{
+  jit_return_addr_key = Sg_MakeSymbol(SG_MAKE_STRING("jit-return-address"), FALSE);
+}
+#endif /* HAVE_JIT */
+
 /* given load path must be unshifted.
    NB: we don't check the validity of given path.
  */
@@ -3103,11 +3328,70 @@ static SgObject collect_arguments(SgVM *vm, SgObject *fp, int argc, SgObject cl)
   return Sg_Acons(SG_INTERN("local"), h, r);
 }
 
+/* DEBUG: Recursively scan an object for VM pointer contamination */
+static int scan_for_vm_pointer(SgObject obj, SgVM *vm, int depth, 
+                               SgObject *found_in, int *found_pos)
+{
+  if (depth > 20) return 0;  /* Limit recursion */
+  if (!SG_PTRP(obj)) return 0;
+  if (obj == (SgObject)vm) return 1;
+  
+  if (SG_PAIRP(obj)) {
+    if (SG_CAR(obj) == (SgObject)vm) {
+      *found_in = obj;
+      *found_pos = 0;  /* CAR */
+      return 1;
+    }
+    if (SG_CDR(obj) == (SgObject)vm) {
+      *found_in = obj;
+      *found_pos = 1;  /* CDR */
+      return 1;
+    }
+    if (scan_for_vm_pointer(SG_CAR(obj), vm, depth + 1, found_in, found_pos)) return 1;
+    if (scan_for_vm_pointer(SG_CDR(obj), vm, depth + 1, found_in, found_pos)) return 1;
+  }
+  else if (SG_VECTORP(obj)) {
+    long i, len = SG_VECTOR_SIZE(obj);
+    for (i = 0; i < len && i < 100; i++) {
+      if (SG_VECTOR_ELEMENT(obj, i) == (SgObject)vm) {
+        *found_in = obj;
+        *found_pos = (int)i;
+        return 1;
+      }
+      if (scan_for_vm_pointer(SG_VECTOR_ELEMENT(obj, i), vm, depth + 1, found_in, found_pos)) return 1;
+    }
+  }
+  return 0;
+}
+
 static SgObject get_source_info(SgObject cl, SgWord *pc)
 {
+  /* DEBUG: Check if cl is valid */
+  SgVM *vm = Sg_VM();
+  if (cl == (SgObject)vm) {
+    Sg_Printf(Sg_StandardErrorPort(),
+              UC("ERROR: get_source_info received VM as cl!\n"));
+    Sg_FlushPort(Sg_StandardErrorPort());
+    return SG_NIL;
+  }
+  if (!SG_CLOSUREP(cl)) {
+    Sg_Printf(Sg_StandardErrorPort(),
+              UC("ERROR: get_source_info received non-closure: %p (procedurep=%d closurep=%d)\n"),
+              cl, SG_PROCEDUREP(cl), SG_CLOSUREP(cl));
+    Sg_FlushPort(Sg_StandardErrorPort());
+    return SG_NIL;
+  }
   SgObject src = get_closure_source(cl, pc);
   if (SG_FALSEP(src)) {
     src = SG_CODE_BUILDER(SG_CLOSURE(cl)->code)->src;
+    /* DEBUG: Check if src is the VM pointer itself */
+    if (src == (SgObject)vm) {
+      Sg_Printf(Sg_StandardErrorPort(),
+                UC("ERROR: cb->src is the VM pointer!\n"));
+      Sg_FlushPort(Sg_StandardErrorPort());
+      return SG_NIL;
+    }
+    /* Skip deep scan - it crashes with corrupted pointers */
   } else {
     /* need to be alist */
     src = SG_LIST1(src);
@@ -3408,6 +3692,15 @@ static SG_INLINE SgContFrame *skip_prompt_frame(SgVM *vm)
 #define POP_CONT_DIRECT(cont__)						\
   do {									\
     if (vm->marks) vm->marks = vm->marks->prev;				\
+    /* DEBUG: Check for cont->cl corruption */				\
+    if ((cont__)->cl == (SgObject)vm) {					\
+      Sg_Printf(Sg_StandardErrorPort(),					\
+                UC("VM: ERROR: cont->cl == vm in POP_CONT_DIRECT!\n")); \
+      Sg_Printf(Sg_StandardErrorPort(),					\
+                UC("VM:   cont=%p prev=%p pc=%p fp=%p\n"),		\
+                cont__, (cont__)->prev, (cont__)->pc, (cont__)->fp);	\
+      Sg_FlushPort(Sg_StandardErrorPort());				\
+    }									\
     if (cont__->fp == C_CONT_MARK) {					\
       void *data__[SG_CCONT_DATA_SIZE];					\
       SgObject v__ = AC(vm);						\
@@ -3419,6 +3712,17 @@ static SG_INLINE SgContFrame *skip_prompt_frame(SgVM *vm)
 	*d__++ = *s__++;						\
       }									\
       after__ = ((SgCContinuationProc*)cont__->pc);			\
+      /* Debug: Check for next_eval_cc receiving wrong value */		\
+      if (after__ == next_eval_cc && !SG_CODE_BUILDERP(v__)) {		\
+        Sg_Printf(Sg_StandardErrorPort(),				\
+                  UC("DEBUG POP_CONT: About to call next_eval_cc with wrong v!\n")); \
+        Sg_Printf(Sg_StandardErrorPort(),				\
+                  UC("  v__=%A (closure_p=%d)\n"), v__, SG_CLOSUREP(v__)); \
+        Sg_Printf(Sg_StandardErrorPort(),				\
+                  UC("  cont__=%p cont__->cl=%A cont__->prev=%p\n"),	\
+                  cont__, cont__->cl, cont__->prev);			\
+        Sg_FlushPort(Sg_StandardErrorPort());				\
+      }									\
       if (IN_STACK_P((SgObject*)cont__, vm)) {				\
 	SP(vm) = (SgObject*)cont__;					\
       }									\
@@ -4019,8 +4323,106 @@ static void process_queued_requests(SgVM *vm)
       /* no more continuation */				\
       return AC(vm);						\
     }								\
+    /* Check for JIT re-entry BEFORE popping (marks have return addr) */ \
+    CHECK_JIT_REENTRY_BEFORE_POP(vm, cont__);			\
     POP_CONT_DIRECT(cont__);					\
   } while (0)							\
+
+/* JIT re-entry check: if a JIT function yielded to interpreter,
+ * and now the callee has returned, we need to re-enter JIT code.
+ * This must be called BEFORE the marks are popped, since the return
+ * address is stored in the marks.
+ * Before re-entering, we must restore VM state from the continuation
+ * frame (sp, fp, cl) since the callee may have modified them.
+ *
+ * NOTE: If the JIT code yields again (e.g., TAIL_CALL), we must
+ * continue the VM loop instead of returning from run_loop. */
+#ifdef HAVE_JIT
+#define CHECK_JIT_REENTRY_BEFORE_POP(vm_, cont__)		\
+  do {								\
+    void *retAddr__ = Sg_JitGetReturnMark(vm_);			\
+    if (retAddr__ != NULL) {					\
+      SgObject result__;					\
+      if (Sg_JitVerbose()) {					\
+        Sg_Printf(Sg_StandardErrorPort(),			\
+                  UC("VM: CHECK_JIT_REENTRY vm->ac=%p (yield=%d), cont->cl=%S\n"), \
+                  AC(vm_), SG_JIT_YIELD_P(AC(vm_)), (cont__)->cl);	\
+      }								\
+      /* DEBUG: Check for cont->cl corruption */		\
+      if ((cont__)->cl == (SgObject)(vm_)) {			\
+        Sg_Printf(Sg_StandardErrorPort(),			\
+                  UC("VM: ERROR: cont->cl == vm in JIT_REENTRY!\n")); \
+        Sg_Printf(Sg_StandardErrorPort(),			\
+                  UC("VM:   cont=%p prev=%p pc=%p fp=%p\n"),	\
+                  cont__, (cont__)->prev, (cont__)->pc, (cont__)->fp); \
+        Sg_FlushPort(Sg_StandardErrorPort());			\
+      }								\
+      /* Pop marks for this frame before re-entering */		\
+      Sg_JitPopContMarks(vm_, cont__);				\
+      /* Restore VM state from continuation frame (like POP_CONT_DIRECT). \
+       * The callee may have changed cl/fp, so we must restore. */	\
+      CL(vm_) = (cont__)->cl;					\
+      /* Pop the continuation frame itself */			\
+      CONT(vm_) = (cont__)->prev;				\
+      /* Handle stack vs heap continuation frames differently */	\
+      if (IN_STACK_P((SgObject *)(cont__), vm_)) {		\
+        /* In-stack frame: use fp directly */			\
+        FP(vm_) = (cont__)->fp;					\
+        SP(vm_) = FP(vm_) + (cont__)->size;			\
+      } else {							\
+        /* Heap frame: copy env to stack base (like POP_CONT_DIRECT) */ \
+        int size__ = (cont__)->size;				\
+        FP(vm_) = SP(vm_) = (vm_)->stack;			\
+        if (size__ > 0) {					\
+          SgObject *s__ = (cont__)->env, *d__ = SP(vm_);	\
+          SP(vm_) += size__;					\
+          while (size__-- > 0) { *d__++ = *s__++; }		\
+        }							\
+      }								\
+      /* Debug: print state before re-entry */			\
+      if (Sg_JitVerbose()) {					\
+        Sg_Printf(Sg_StandardErrorPort(),			\
+                  UC("VM: About to re-enter JIT, vm->ac=%p retAddr=%p fp=%p sp=%p size=%d\n"), \
+                  AC(vm_), retAddr__, FP(vm_), SP(vm_), (cont__)->size);	\
+        /* Print all locals */					\
+        for (int i = 0; i < (cont__)->size; i++) {		\
+          Sg_Printf(Sg_StandardErrorPort(),			\
+                    UC("VM: local[%d]=%p (%A)\n"), i, FP(vm_)[i], FP(vm_)[i]); \
+        }							\
+        Sg_FlushPort(Sg_StandardErrorPort());			\
+      }								\
+      /* Re-enter JIT code with the return address */		\
+      result__ = Sg__JitReenterAt(vm_, retAddr__);		\
+      if (Sg_JitVerbose()) {					\
+        Sg_Printf(Sg_StandardErrorPort(),			\
+                  UC("VM: JIT re-entry returned %p (yield=%d)\n"), \
+                  result__, SG_JIT_YIELD_P(result__));		\
+      }								\
+      /* Check if JIT yielded again (e.g., TAIL_CALL) */	\
+      if (SG_JIT_YIELD_P(result__)) {				\
+        /* JIT helper already set up VM state for callee */	\
+        if (Sg_JitVerbose()) {					\
+          Sg_Printf(Sg_StandardErrorPort(),			\
+                    UC("VM: JIT re-entry yielded, pc=%p cl=%S preserveAC=%d\n"), \
+                    PC(vm_), CL(vm_), SG_JIT_YIELD_PRESERVE_AC_P(result__)); \
+        }							\
+        /* Only clear AC if not PRESERVE_AC */			\
+        if (!SG_JIT_YIELD_PRESERVE_AC_P(result__)) {		\
+          AC(vm_) = SG_UNDEF;					\
+        }							\
+        NEXT;  /* Continue VM loop with callee's code */	\
+      }								\
+      /* JIT completed normally - need to return from caller */	\
+      /* JIT already executed from contPc to RET, so we should */	\
+      /* trigger another RET to pop the next continuation. */	\
+      AC(vm_) = result__;					\
+      PC(vm_) = PC_TO_RETURN;					\
+      NEXT;							\
+    }								\
+  } while (0)
+#else
+#define CHECK_JIT_REENTRY_BEFORE_POP(vm_, cont__) ((void)0)
+#endif
 
 /*
   print call frames
@@ -4466,6 +4868,9 @@ void Sg__InitVM()
 #endif
   sym_continuation = Sg_MakeSymbol(SG_MAKE_STRING("continuation"), FALSE);
   cont_mark_set_sym = Sg_MakeSymbol(SG_MAKE_STRING("continuation mark set"), FALSE);
+#ifdef HAVE_JIT
+  Sg__InitJitMarks();
+#endif
 #ifdef _WIN32
   SymInitialize(GetCurrentProcess(), NULL, TRUE);
 #endif

@@ -62,6 +62,10 @@ SG_EXTERN int Sg__JitEmit_Epilogue(SgJitContext *ctx);
  * already set vm->cl to the callee's closure */
 SG_EXTERN int Sg__JitEmit_YieldEpilogue(SgJitContext *ctx);
 
+/* Emit bare yield epilogue (does NOT store AC or vm->cl)
+ * Used when SUBR set up continuation with AC value - vmcall.c preserves AC */
+SG_EXTERN int Sg__JitEmit_BareYieldEpilogue(SgJitContext *ctx);
+
 
 /*
  * Basic Instructions

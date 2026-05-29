@@ -51,17 +51,29 @@ typedef struct {
 
 /*
  * VM Register Mapping (callee-saved for persistence across C calls)
+ * 
+ * Note: We deliberately do NOT use X23 because:
+ * 1. The C caller may have important data in X23 (e.g., code builder pointer)
+ * 2. When JIT yields and re-enters via trampoline, the trampoline saves/restores
+ *    whatever X23 value run_loop has at that moment, which may not match
+ *    the original caller's X23
+ * 3. By not using X23 at all, we avoid register corruption issues
+ *
+ * The recursion depth counter is stored in vm->jitContext.savedDepth (memory)
+ * instead of a register.
  */
 #define JIT_REG_VM      ARM64_X19  /* SgVM* pointer */
 #define JIT_REG_SCHSP   ARM64_X20  /* Scheme stack pointer (vm->sp) */
 #define JIT_REG_SCHFP   ARM64_X21  /* Scheme frame pointer (vm->fp) */
 #define JIT_REG_CL      ARM64_X22  /* Current closure */
-#define JIT_REG_DEPTH   ARM64_X23  /* Self-call recursion depth counter */
+/* JIT_REG_DEPTH removed - now uses vm->jitContext.savedDepth in memory */
 #define JIT_REG_TEMP1   ARM64_X0   /* Temp/Accumulator (also return value) */
 #define JIT_REG_TEMP2   ARM64_X1   /* Temp register */
 #define JIT_REG_TEMP3   ARM64_X2   /* Temp register */
 #define JIT_REG_TEMP4   ARM64_X16  /* Temp register (intra-procedure call) */
 
+/* Forward declarations for debug helpers */
+static void jit_tail_call_fallthrough_error(void);
 
 /*
  * Tagged Value Constants
@@ -80,6 +92,9 @@ typedef struct {
 #define VM_OFFSET_CL         offsetof(SgVM, cl)
 #define VM_OFFSET_CONT       offsetof(SgVM, cont)
 #define VM_OFFSET_VALUESCOUNT offsetof(SgVM, valuesCount)
+#define VM_OFFSET_JIT_RETURN offsetof(SgVM, jitContext.returnAddr)
+#define VM_OFFSET_JIT_DEPTH  offsetof(SgVM, jitContext.savedDepth)
+#define VM_OFFSET_JIT_ACTIVE offsetof(SgVM, jitContext.active)
 
 
 /*
@@ -115,6 +130,281 @@ typedef struct {
  */
 #define GET_GEN(ctx) ((Arm64CodeGen*)((ctx)->platform))
 #define GET_ASM(ctx) (GET_GEN(ctx)->a)
+
+/*
+ * Call Helper Functions
+ *
+ * These helper functions encapsulate common patterns used across
+ * CALL, TAIL_CALL, GREF_CALL, GREF_TAIL_CALL, SELF_CALL, and SELF_TAIL_CALL.
+ */
+
+/* Sync VM state: store SP, FP, CL to VM structure */
+static void emit_sync_vm_state(Arm64Asm *a, int includeAC)
+{
+  if (includeAC) {
+    arm64_str_r64_mem(a, JIT_REG_TEMP1, JIT_REG_VM, VM_OFFSET_AC);
+  }
+  arm64_str_r64_mem(a, JIT_REG_SCHSP, JIT_REG_VM, VM_OFFSET_SP);
+  arm64_str_r64_mem(a, JIT_REG_SCHFP, JIT_REG_VM, VM_OFFSET_FP);
+  arm64_str_r64_mem(a, JIT_REG_CL, JIT_REG_VM, VM_OFFSET_CL);
+}
+
+/* Reload VM state: load SP, FP, CL from VM structure */
+static void emit_reload_vm_state(Arm64Asm *a)
+{
+  arm64_ldr_r64_mem(a, JIT_REG_SCHSP, JIT_REG_VM, VM_OFFSET_SP);
+  arm64_ldr_r64_mem(a, JIT_REG_SCHFP, JIT_REG_VM, VM_OFFSET_FP);
+  arm64_ldr_r64_mem(a, JIT_REG_CL, JIT_REG_VM, VM_OFFSET_CL);
+}
+
+/* Save LR to ARM stack (push) */
+static void emit_save_lr(Arm64Asm *a)
+{
+  arm64_str_r64_mem_pre(a, ARM64_LR, ARM64_SP, -16);
+}
+
+/* Restore LR from ARM stack (pop) */
+static void emit_restore_lr(Arm64Asm *a)
+{
+  arm64_ldr_r64_mem(a, ARM64_LR, ARM64_SP, 0);
+  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
+}
+
+/* Setup re-entry point: call Sg_JitSetReturnMark with the re-entry label */
+static void emit_setup_reentry(Arm64Asm *a, int reentryLabel)
+{
+  arm64_adr_label(a, ARM64_X1, reentryLabel);  /* X1 = returnAddr */
+  arm64_mov_r64_r64(a, ARM64_X0, JIT_REG_VM);  /* X0 = vm */
+  arm64_bl(a, Sg_JitSetReturnMark);
+}
+
+/* Check for yield marker and branch to appropriate epilogue, then bind re-entry */
+static void emit_check_yield_and_reentry(SgJitContext *ctx, int reentryLabel)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+  Arm64CodeGen *gen = GET_GEN(ctx);
+
+  /* Check for YIELD_PRESERVE_AC (SUBR set up continuation with AC value) */
+  arm64_mov_r64_imm(a, JIT_REG_TEMP2, (uintptr_t)SG_JIT_YIELD_PRESERVE_AC);
+  arm64_cmp_r64_r64(a, JIT_REG_TEMP1, JIT_REG_TEMP2);
+  arm64_b_cond(a, ARM64_EQ, gen->labels[ctx->bareYieldEpilogueLabel]);
+
+  /* Check for normal yield marker (closure yield) */
+  arm64_mov_r64_imm(a, JIT_REG_TEMP2, (uintptr_t)SG_JIT_YIELD_MARKER);
+  arm64_cmp_r64_r64(a, JIT_REG_TEMP1, JIT_REG_TEMP2);
+  arm64_b_cond(a, ARM64_EQ, gen->labels[ctx->yieldEpilogueLabel]);
+
+  /* Re-entry point: this is where we resume after a yield + re-entry */
+  arm64_bind_label(a, reentryLabel);
+}
+
+/* Emit depth unwind loop for tail calls (unwinds SELF_CALL ARM stack frames) */
+static void emit_depth_unwind_and_epilogue(SgJitContext *ctx)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+  Arm64CodeGen *gen = GET_GEN(ctx);
+
+  int topLevelReturn = arm64_new_label(a);
+  int unwindLoop = arm64_new_label(a);
+
+  /* Load depth from memory into TEMP3 */
+  arm64_ldr_r64_mem(a, JIT_REG_TEMP3, JIT_REG_VM, (int32_t)VM_OFFSET_JIT_DEPTH);
+  arm64_cmp_r64_imm(a, JIT_REG_TEMP3, 0);
+  arm64_b_cond(a, ARM64_EQ, topLevelReturn);
+
+  /* Depth > 0: unwind all SELF_CALL ARM stack frames */
+  arm64_bind_label(a, unwindLoop);
+
+  /* Pop saved_LR (we don't need it, just skip) */
+  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
+  /* Pop saved_cont (we don't need it, tail call consumed the frame) */
+  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
+  /* Decrement depth in register */
+  arm64_sub_r64_r64_imm(a, JIT_REG_TEMP3, JIT_REG_TEMP3, 1);
+
+  /* Check if more frames to unwind */
+  arm64_cmp_r64_imm(a, JIT_REG_TEMP3, 0);
+  arm64_b_cond(a, ARM64_NE, unwindLoop);
+
+  /* Store final depth (0) back to memory */
+  arm64_str_r64_mem(a, JIT_REG_TEMP3, JIT_REG_VM, (int32_t)VM_OFFSET_JIT_DEPTH);
+
+  /* Depth == 0: go to epilogue */
+  arm64_bind_label(a, topLevelReturn);
+  arm64_b(a, gen->labels[ctx->epilogueLabel]);
+}
+
+/* Shift arguments from SP to FP for tail calls */
+static void emit_shift_args_for_tail_call(Arm64Asm *a, int argc)
+{
+  if (argc > 0) {
+    int32_t argBytes = argc * (int32_t)sizeof(SgObject);
+    /* Source = SP - argc */
+    arm64_sub_r64_r64_imm(a, JIT_REG_TEMP2, JIT_REG_SCHSP, argBytes);
+
+    /* Copy args from source to FP */
+    for (int i = 0; i < argc; i++) {
+      int32_t off = i * (int32_t)sizeof(SgObject);
+      arm64_ldr_r64_mem(a, JIT_REG_TEMP1, JIT_REG_TEMP2, off);
+      arm64_str_r64_mem(a, JIT_REG_TEMP1, JIT_REG_SCHFP, off);
+    }
+
+    /* SP = FP + argc */
+    arm64_add_r64_r64_imm(a, JIT_REG_SCHSP, JIT_REG_SCHFP, argBytes);
+  } else {
+    arm64_mov_r64_r64(a, JIT_REG_SCHSP, JIT_REG_SCHFP);
+  }
+}
+
+/*
+ * Call type enumeration for unified handler
+ */
+typedef enum {
+  CALL_TYPE_GREF,       /* GREF_CALL: global reference call */
+  CALL_TYPE_AC,         /* CALL: proc in AC */
+} JitCallType;
+
+/*
+ * Unified non-tail call emitter
+ *
+ * Handles both GREF_CALL and CALL with parameterized behavior.
+ * Returns 1 on success, 0 on failure.
+ */
+static int emit_non_tail_call(SgJitContext *ctx, int argc, JitCallType type,
+                              SgObject id /* for GREF */)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+
+  /* Save LR before calling C function */
+  emit_save_lr(a);
+
+  /* Sync VM state (CALL needs AC synced for proc) */
+  emit_sync_vm_state(a, type == CALL_TYPE_AC);
+
+  /* Create a label for the re-entry point */
+  int reentryLabel = arm64_new_label(a);
+
+  /* For CALL, we need to preserve proc across SetReturnMark call */
+  if (type == CALL_TYPE_AC) {
+    arm64_str_r64_mem_pre(a, JIT_REG_TEMP1, ARM64_SP, -16);
+  }
+
+  /* Store re-entry address in continuation marks BEFORE the call */
+  emit_setup_reentry(a, reentryLabel);
+
+  if (type == CALL_TYPE_AC) {
+    arm64_ldr_r64_mem(a, JIT_REG_TEMP1, ARM64_SP, 0);
+    arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
+  }
+
+  /* Setup call arguments and call the appropriate helper */
+  if (type == CALL_TYPE_GREF) {
+    /* Sg__JitGrefCall(vm, argc, id) */
+    arm64_mov_r64_r64(a, ARM64_X0, JIT_REG_VM);
+    arm64_mov_r64_imm(a, ARM64_X1, argc);
+    arm64_mov_r64_imm(a, ARM64_X2, (intptr_t)id);
+    arm64_bl(a, Sg__JitGrefCall);
+  } else {
+    /* Sg__JitCall(vm, argc, proc) */
+    /* IMPORTANT: JIT_REG_TEMP1 is X0, so copy proc to X2 BEFORE setting X0 */
+    arm64_mov_r64_r64(a, ARM64_X2, JIT_REG_TEMP1);  /* X2 = proc */
+    arm64_mov_r64_r64(a, ARM64_X0, JIT_REG_VM);     /* X0 = vm */
+    arm64_mov_r64_imm(a, ARM64_X1, argc);           /* X1 = argc */
+    arm64_bl(a, Sg__JitCall);
+  }
+
+  /* Result is in X0, move to AC (TEMP1) */
+  arm64_mov_r64_r64(a, JIT_REG_TEMP1, ARM64_X0);
+
+  /* Restore LR */
+  emit_restore_lr(a);
+
+  /* Check for yield marker and bind re-entry point */
+  emit_check_yield_and_reentry(ctx, reentryLabel);
+
+  /* Reload VM state after call */
+  emit_reload_vm_state(a);
+
+  return 1;
+}
+
+/*
+ * Unified tail call emitter
+ *
+ * Handles both GREF_TAIL_CALL and TAIL_CALL with parameterized behavior.
+ * Returns 1 on success, 0 on failure.
+ */
+static int emit_tail_call(SgJitContext *ctx, int argc, JitCallType type,
+                          SgObject id /* for GREF */)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+  Arm64CodeGen *gen = GET_GEN(ctx);
+
+  if (type == CALL_TYPE_AC) {
+    /* Save proc (AC/TEMP1=X0) to TEMP3 before we modify SP/FP */
+    arm64_mov_r64_r64(a, JIT_REG_TEMP3, JIT_REG_TEMP1);
+
+    /* Shift args from SP to FP */
+    emit_shift_args_for_tail_call(a, argc);
+  }
+
+  /* Sync VM state before call */
+  emit_sync_vm_state(a, 0);
+
+  /* Setup call arguments and call the appropriate helper */
+  if (type == CALL_TYPE_GREF) {
+    /* Sg__JitGrefTailCall(vm, argc, id) */
+    arm64_mov_r64_r64(a, ARM64_X0, JIT_REG_VM);
+    arm64_mov_r64_imm(a, ARM64_X1, argc);
+    arm64_mov_r64_imm(a, ARM64_X2, (intptr_t)id);
+    arm64_bl(a, Sg__JitGrefTailCall);
+  } else {
+    /* Sg__JitTailCall(vm, argc, proc) */
+    arm64_mov_r64_r64(a, ARM64_X2, JIT_REG_TEMP3);  /* X2 = proc (saved earlier) */
+    arm64_mov_r64_r64(a, ARM64_X0, JIT_REG_VM);     /* X0 = vm */
+    arm64_mov_r64_imm(a, ARM64_X1, argc);           /* X1 = argc */
+    arm64_bl(a, Sg__JitTailCall);
+  }
+
+  /* Result is in X0, move to AC (TEMP1) */
+  arm64_mov_r64_r64(a, JIT_REG_TEMP1, ARM64_X0);
+
+  /* Check for YIELD_PRESERVE_AC first.
+   * SUBRs like `eval` set up VM continuation state, set vm->ac to the
+   * procedure to dispatch, and return YIELD_PRESERVE_AC. In this case,
+   * we go to bareYieldEpilogue which does NOT overwrite vm->ac.
+   */
+  arm64_mov_r64_imm(a, JIT_REG_TEMP2, (uintptr_t)SG_JIT_YIELD_PRESERVE_AC);
+  arm64_cmp_r64_r64(a, JIT_REG_TEMP1, JIT_REG_TEMP2);
+  arm64_b_cond(a, ARM64_EQ, gen->labels[ctx->bareYieldEpilogueLabel]);
+
+  /* Check for normal yield marker.
+   * Closures yield with YIELD_MARKER, and yieldEpilogue stores it to vm->ac.
+   */
+  arm64_mov_r64_imm(a, JIT_REG_TEMP2, (uintptr_t)SG_JIT_YIELD_MARKER);
+  arm64_cmp_r64_r64(a, JIT_REG_TEMP1, JIT_REG_TEMP2);
+  arm64_b_cond(a, ARM64_EQ, gen->labels[ctx->yieldEpilogueLabel]);
+
+  /* Reload VM state (only needed if not yielding) */
+  emit_reload_vm_state(a);
+
+  /* Unwind depth and go to epilogue */
+  emit_depth_unwind_and_epilogue(ctx);
+
+  if (type == CALL_TYPE_AC && Sg_JitVerbose()) {
+    Sg_Printf(Sg_StandardErrorPort(),
+              UC("JIT EMIT: TAIL_CALL branching to epilogueLabel=%d (internal=%d), code offset=%d\n"),
+              ctx->epilogueLabel, gen->labels[ctx->epilogueLabel], (int)arm64_asm_size(a));
+  }
+
+  return 1;
+}
+
+/* DEBUG: This function should never be called - indicates branch to epilogue failed */
+static void jit_tail_call_fallthrough_error(void)
+{
+  Sg_Panic("JIT BUG: TAIL_CALL fell through instead of branching to epilogue!");
+}
 
 
 /*
@@ -192,22 +482,37 @@ int Sg__JitEmit_Prologue(SgJitContext *ctx)
   /* Set frame pointer to zero (not using it) */
   arm64_mov_r64_r64(a, ARM64_FP, ARM64_XZR);
 
-  /* Save callee-saved registers we'll use */
+  /* Save callee-saved registers we'll use (X19-X22 only, not X23)
+   * We deliberately do NOT save X23 because:
+   * 1. The C caller may have important data in X23 (e.g., code builder pointer)
+   * 2. When JIT yields and re-enters via trampoline, the trampoline saves/restores
+   *    whatever X23 value run_loop has at that moment, which may not match
+   *    the original caller's X23
+   * 3. By not using X23 at all, we avoid this register corruption issue
+   */
   /* STP X19, X20, [SP, #-16]! */
   arm64_stp_pre(a, ARM64_X19, ARM64_X20, ARM64_SP, -16);
   /* STP X21, X22, [SP, #-16]! */
   arm64_stp_pre(a, ARM64_X21, ARM64_X22, ARM64_SP, -16);
-  /* Save X23 for self-call depth tracking (paired with XZR for alignment) */
-  arm64_stp_pre(a, ARM64_X23, ARM64_XZR, ARM64_SP, -16);
 
-  /* Initialize recursion depth counter to 0 */
-  arm64_mov_r64_imm(a, JIT_REG_DEPTH, 0);
-
+  /* Initialize recursion depth counter to 0 in memory (vm->jitContext.savedDepth)
+   * We use memory instead of X23 to avoid register corruption issues. */
   /* Load VM pointer from first argument (X0) */
   arm64_mov_r64_r64(a, JIT_REG_VM, ARM64_X0);
 
-  /* Load closure from second argument (X1) */
+  /* Load closure from second argument (X1) - MUST do this BEFORE we clobber X1!
+   * JIT_REG_TEMP2 is X1, so any use of TEMP2 will destroy the closure argument. */
   arm64_mov_r64_r64(a, JIT_REG_CL, ARM64_X1);
+
+  /* Initialize depth to 0 in jitContext.savedDepth
+   * Use TEMP3 (X2) instead of TEMP2 (X1) since we just saved X1 to X22 */
+  arm64_mov_r64_imm(a, JIT_REG_TEMP3, 0);
+  arm64_str_r64_mem(a, JIT_REG_TEMP3, JIT_REG_VM, (int32_t)VM_OFFSET_JIT_DEPTH);
+
+  /* Set jitContext.active = 1 to indicate JIT code is executing.
+   * This prevents AUTO-JIT compilation from happening during JIT execution. */
+  arm64_mov_r64_imm(a, JIT_REG_TEMP3, 1);
+  arm64_str_r64_mem(a, JIT_REG_TEMP3, JIT_REG_VM, (int32_t)VM_OFFSET_JIT_ACTIVE);
 
   /* Load VM registers from VM structure */
   /* SP = vm->sp */
@@ -234,16 +539,18 @@ int Sg__JitEmit_Epilogue(SgJitContext *ctx)
   arm64_str_r64_mem(a, JIT_REG_TEMP1, JIT_REG_VM, VM_OFFSET_AC);
   arm64_str_r64_mem(a, JIT_REG_CL, JIT_REG_VM, VM_OFFSET_CL);
 
+  /* Clear jitContext.active = 0 since JIT code is exiting.
+   * Do this AFTER storing AC since we use TEMP1 for the zero. */
+  arm64_str_r64_mem(a, ARM64_XZR, JIT_REG_VM, (int32_t)VM_OFFSET_JIT_ACTIVE);;
+
   /* Note: DO NOT reset valuesCount here!
    * If VALUES was executed, vm->valuesCount was already set by Sg__JitValues.
    * If no VALUES was executed, valuesCount remains at 1 (default).
    * The VM initializes valuesCount = 1 in the prologue and most instructions
    * that produce single values (like CONST, LREF, etc.) also set it to 1. */
 
-  /* Restore callee-saved registers (reverse order of prologue) */
-  /* Restore X23 */
-  arm64_ldp(a, ARM64_X23, ARM64_XZR, ARM64_SP, 0);
-  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
+  /* Restore callee-saved registers (reverse order of prologue)
+   * We only saved X19-X22 and FP/LR, not X23 */
   arm64_ldp(a, ARM64_X21, ARM64_X22, ARM64_SP, 0);
   arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
   arm64_ldp(a, ARM64_X19, ARM64_X20, ARM64_SP, 0);
@@ -262,20 +569,21 @@ int Sg__JitEmit_Epilogue(SgJitContext *ctx)
  * When yielding, the helper (Sg__JitCall, Sg__JitGrefCall etc.) has already set
  * vm->fp to point to the callee's arguments and vm->cl to the callee's closure,
  * and we must NOT overwrite them with the JIT caller's values.
+ *
+ * The helper may also adjust vm->sp (e.g., for optional/rest argument handling),
+ * so we must NOT overwrite vm->sp either.
  */
 int Sg__JitEmit_YieldEpilogue(SgJitContext *ctx)
 {
   Arm64Asm *a = GET_ASM(ctx);
 
-  /* Store only SP and AC. Do NOT store FP or CL - helper already set them! */
-  arm64_str_r64_mem(a, JIT_REG_SCHSP, JIT_REG_VM, VM_OFFSET_SP);
-  /* NOTE: Do NOT store JIT_REG_SCHFP to VM_OFFSET_FP here - helper set it! */
+  /* Only store AC. Do NOT store SP, FP, or CL - helper already set them! */
+  /* NOTE: Do NOT store JIT_REG_SCHSP to VM_OFFSET_SP here - helper may have modified it! */
   arm64_str_r64_mem(a, JIT_REG_TEMP1, JIT_REG_VM, VM_OFFSET_AC);
+  /* NOTE: Do NOT store JIT_REG_SCHFP to VM_OFFSET_FP here - helper set it! */
   /* NOTE: Do NOT store JIT_REG_CL to VM_OFFSET_CL here - helper set it! */
 
-  /* Restore callee-saved registers (same as normal epilogue) */
-  arm64_ldp(a, ARM64_X23, ARM64_XZR, ARM64_SP, 0);
-  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
+  /* Restore callee-saved registers (same as normal epilogue, no X23) */
   arm64_ldp(a, ARM64_X21, ARM64_X22, ARM64_SP, 0);
   arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
   arm64_ldp(a, ARM64_X19, ARM64_X20, ARM64_SP, 0);
@@ -285,6 +593,122 @@ int Sg__JitEmit_YieldEpilogue(SgJitContext *ctx)
 
   arm64_ret(a);
   return 1;
+}
+
+/*
+ * Bare Yield Epilogue - used when SUBR set up continuation with AC value
+ *
+ * Unlike yieldEpilogue, this does NOT store AC to vm->ac.
+ * The helper already set vm->ac to the procedure to dispatch, and
+ * we use YIELD_PRESERVE_AC marker so vmcall.c knows not to overwrite it.
+ */
+int Sg__JitEmit_BareYieldEpilogue(SgJitContext *ctx)
+{
+  Arm64Asm *a = GET_ASM(ctx);
+
+  /* Do NOT store AC - helper already set vm->ac correctly.
+   * Do NOT store SP, FP, or CL - helper already set them.
+   * Just return with YIELD_PRESERVE_AC in X0 so vmcall.c preserves AC. */
+
+  /* Restore callee-saved registers (same as normal epilogue, no X23) */
+  arm64_ldp(a, ARM64_X21, ARM64_X22, ARM64_SP, 0);
+  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
+  arm64_ldp(a, ARM64_X19, ARM64_X20, ARM64_SP, 0);
+  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
+  arm64_ldp(a, ARM64_FP, ARM64_LR, ARM64_SP, 0);
+  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
+
+  arm64_ret(a);
+  return 1;
+}
+
+
+/*
+ * JIT Re-entry Trampoline
+ *
+ * This function is called from the interpreter's RET_INSN when
+ * vm->jitContext.returnAddr is set. It sets up the JIT register
+ * environment and jumps to the return address to resume JIT execution.
+ *
+ * The re-entry point expects the same register state as after a CALL:
+ * - X19 (JIT_REG_VM) = VM pointer
+ * - X20-X22 = reloaded from VM state
+ * - X0 = AC (return value from callee)
+ *
+ * We need to save callee-saved registers like the JIT prologue does,
+ * because the return point eventually reaches the JIT epilogue which
+ * will restore them.
+ *
+ * IMPORTANT: We do NOT save X23 because the C caller may have important
+ * data in X23 (e.g., code builder pointer in vmcall.c). By not touching
+ * X23 at all, we preserve whatever the C caller had there.
+ */
+SgObject Sg__JitReenter(SgVM *vm)
+{
+  void *returnAddr = vm->jitContext.returnAddr;
+  vm->jitContext.returnAddr = NULL;
+
+  if (returnAddr == NULL) {
+    /* This shouldn't happen, but handle gracefully */
+    return vm->ac;
+  }
+
+  return Sg__JitReenterAt(vm, returnAddr);
+}
+
+/*
+ * Re-enter JIT code at the specified address.
+ * 
+ * This uses a naked trampoline to avoid compiler-generated prologue/epilogue.
+ * The JIT epilogue will handle restoring registers and returning.
+ *
+ * Stack layout (matches JIT prologue, no X23):
+ *   SP+0:  X21, X22
+ *   SP+16: X19, X20
+ *   SP+32: FP, LR
+ */
+__attribute__((naked, noreturn))
+SgObject Sg__JitReenterAt(SgVM *vm, void *returnAddr)
+{
+  /* Arguments: X0 = vm, X1 = returnAddr, LR = return address to caller */
+  __asm__ volatile(
+    /* If returnAddr (X1) is NULL, return vm->ac immediately */
+    "cbz x1, 1f\n"
+    
+    /* Save frame pointer and link register */
+    "stp x29, x30, [sp, #-16]!\n"
+    "mov x29, xzr\n"
+    
+    /* Save callee-saved registers (same order as JIT prologue, no X23) */
+    "stp x19, x20, [sp, #-16]!\n"
+    "stp x21, x22, [sp, #-16]!\n"
+    
+    /* Initialize depth counter in memory (vm->jitContext.savedDepth = 0) */
+    "str xzr, [x0, %c4]\n"
+    
+    /* Save returnAddr before we clobber X1 */
+    "mov x2, x1\n"
+    
+    /* Set up JIT registers from VM state */
+    "mov x19, x0\n"         /* X19 = VM pointer */
+    "ldr x20, [x19, %c1]\n" /* X20 = vm->sp */
+    "ldr x21, [x19, %c2]\n" /* X21 = vm->fp */
+    "ldr x22, [x19, %c3]\n" /* X22 = vm->cl */
+    "ldr x0, [x19, %c0]\n"  /* X0 = vm->ac */
+    
+    /* Jump to return address (re-entry point) */
+    "br x2\n"
+    
+    /* Handle NULL returnAddr - return vm->ac */
+    "1:\n"
+    "ldr x0, [x0, %c0]\n"   /* X0 = vm->ac (vm is in X0) */
+    "ret\n"
+    :
+    : "i" (VM_OFFSET_AC), "i" (VM_OFFSET_SP), "i" (VM_OFFSET_FP), "i" (VM_OFFSET_CL),
+      "i" (VM_OFFSET_JIT_DEPTH)
+    : "memory"
+  );
+  /* Control never reaches here - either br or ret above */
 }
 
 
@@ -682,6 +1106,8 @@ int Sg__JitEmit_NUM_GE(SgJitContext *ctx)
  * Control Flow
  */
 
+void Sg__JitDebugPoint(int code, SgObject ac);
+
 int Sg__JitEmit_TEST(SgJitContext *ctx, int targetPc)
 {
   Arm64Asm *a = GET_ASM(ctx);
@@ -715,8 +1141,9 @@ int Sg__JitEmit_RET(SgJitContext *ctx)
    */
   int topLevelReturn = arm64_new_label(a);
   
-  /* Check if depth == 0 */
-  arm64_cmp_r64_imm(a, JIT_REG_DEPTH, 0);
+  /* Load depth from memory and check if depth == 0 */
+  arm64_ldr_r64_mem(a, JIT_REG_TEMP2, JIT_REG_VM, (int32_t)VM_OFFSET_JIT_DEPTH);
+  arm64_cmp_r64_imm(a, JIT_REG_TEMP2, 0);
   arm64_b_cond(a, ARM64_EQ, topLevelReturn);
   
   /* Depth > 0: return to SELF_CALL via ARM RET */
@@ -949,6 +1376,11 @@ int Sg__JitEmit_NULLP(SgJitContext *ctx)
   arm64_bind_label(a, done);
   return 1;
 }
+
+/* Forward declarations for debug helpers */
+void Sg__JitDebugPairp(SgObject obj);
+void Sg__JitDebugPairpResult(SgObject result);
+void Sg__JitDebugPairpCar(SgObject car, int tag);
 
 int Sg__JitEmit_PAIRP(SgJitContext *ctx)
 {
@@ -1274,34 +1706,25 @@ int Sg__JitEmit_EQV(SgJitContext *ctx)
 /*
  * SYMBOLP - Symbol check: AC = symbol?(AC)
  */
+
+/* C helper for symbol check */
+static SgObject jit_symbolp(SgObject obj)
+{
+  return SG_MAKE_BOOL(SG_SYMBOLP(obj));
+}
+
 int Sg__JitEmit_SYMBOLP(SgJitContext *ctx)
 {
   Arm64Asm *a = GET_ASM(ctx);
-  int isSymbol = arm64_new_label(a);
-  int notSymbol = arm64_new_label(a);
-  int done = arm64_new_label(a);
 
-  /* Symbol check: SG_SYMBOLP(obj) = SG_HPTRP(obj) && SG_SYMBOL_TAG(obj) */
-  /* SG_HPTRP = (obj & 0x03) == 0 */
-  arm64_tst_r64_imm(a, JIT_REG_TEMP1, 0x03);
-  arm64_b_cond(a, ARM64_NE, notSymbol);  /* Not a heap pointer -> false */
+  /* Call C helper */
+  arm64_str_r64_mem_pre(a, ARM64_LR, ARM64_SP, -16);
+  arm64_mov_r64_r64(a, ARM64_X0, JIT_REG_TEMP1);
+  arm64_bl(a, jit_symbolp);
+  arm64_mov_r64_r64(a, JIT_REG_TEMP1, ARM64_X0);
+  arm64_ldr_r64_mem(a, ARM64_LR, ARM64_SP, 0);
+  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
 
-  /* Load first word and check tag */
-  arm64_ldr_r64_mem(a, JIT_REG_TEMP2, JIT_REG_TEMP1, 0);
-  /* Symbol tag = 0x0F (from sagittarius/private/sagittariusdefs.h) */
-  arm64_and_r64_r64_imm(a, JIT_REG_TEMP2, JIT_REG_TEMP2, 0xFF);
-  arm64_cmp_r64_imm(a, JIT_REG_TEMP2, 0x0F);
-  arm64_b_cond(a, ARM64_EQ, isSymbol);
-
-  /* Not a symbol */
-  arm64_bind_label(a, notSymbol);
-  arm64_mov_r64_ptr(a, JIT_REG_TEMP1, SG_FALSE);
-  arm64_b(a, done);
-
-  arm64_bind_label(a, isSymbol);
-  arm64_mov_r64_ptr(a, JIT_REG_TEMP1, SG_TRUE);
-
-  arm64_bind_label(a, done);
   return 1;
 }
 
@@ -1380,19 +1803,31 @@ int Sg__JitEmit_LIST(SgJitContext *ctx, int n)
   /* Save LR before calling C function */
   arm64_str_r64_mem_pre(a, ARM64_LR, ARM64_SP, -16);
 
-  /* Adjust SP to point to start of arguments (before the n items) */
-  /* Arguments are at SP - n*8 */
-  arm64_sub_r64_r64_imm(a, ARM64_X0, JIT_REG_SCHSP, n * sizeof(SgObject));
+  /* IMPORTANT: Sync SP to VM BEFORE calling helper!
+   * The helper reads from vm->sp, so we must update it first. */
+  arm64_str_r64_mem(a, JIT_REG_SCHSP, JIT_REG_VM, (int32_t)VM_OFFSET_SP);
 
-  /* X1 = n */
-  arm64_mov_r64_imm(a, ARM64_X1, n);
-
-  /* Call Sg_ArrayToList(array, n) */
-  arm64_bl(a, Sg_ArrayToList);
+  /* Call Sg__JitList(vm, n, ac)
+   * X0 = vm
+   * X1 = n
+   * X2 = ac (last element)
+   *
+   * The helper will:
+   * - Start with ret = Cons(ac, NIL)
+   * - Prepend n-1 elements from stack
+   * - Pop n-1 elements from SP
+   *
+   * CRITICAL: JIT_REG_TEMP1 is X0, so we must copy AC to X2 BEFORE
+   * setting X0 to vm, otherwise we'd pass vm as the last element!
+   */
+  arm64_mov_r64_r64(a, ARM64_X2, JIT_REG_TEMP1);  /* X2 = AC (copy FIRST!) */
+  arm64_mov_r64_r64(a, ARM64_X0, JIT_REG_VM);     /* X0 = vm */
+  arm64_mov_r64_imm(a, ARM64_X1, n);              /* X1 = n */
+  arm64_bl(a, Sg__JitList);
   arm64_mov_r64_r64(a, JIT_REG_TEMP1, ARM64_X0);
 
-  /* Pop the n arguments from stack */
-  arm64_sub_r64_r64_imm(a, JIT_REG_SCHSP, JIT_REG_SCHSP, n * sizeof(SgObject));
+  /* Reload SP from VM since helper may have modified it */
+  arm64_ldr_r64_mem(a, JIT_REG_SCHSP, JIT_REG_VM, (int32_t)VM_OFFSET_SP);
 
   /* Restore LR */
   arm64_ldr_r64_mem(a, ARM64_LR, ARM64_SP, 0);
@@ -2017,6 +2452,21 @@ int Sg__JitEmit_FRAME(SgJitContext *ctx, int returnPc)
   /* Sync new SP to VM (needed for C helper calls that may follow) */
   arm64_str_r64_mem(a, JIT_REG_SCHSP, JIT_REG_VM, VM_OFFSET_SP);
 
+  /* Push continuation marks for this frame (needed for proper continuation capture).
+   * Call Sg_JitPushContMarks(vm, vm->cont)
+   * We need to save LR and call the C function.
+   */
+  arm64_str_r64_mem_pre(a, ARM64_LR, ARM64_SP, -16);
+  
+  /* X0 = vm, X1 = vm->cont (the new frame) */
+  arm64_mov_r64_r64(a, ARM64_X0, JIT_REG_VM);
+  arm64_ldr_r64_mem(a, ARM64_X1, JIT_REG_VM, VM_OFFSET_CONT);
+  
+  arm64_bl(a, Sg_JitPushContMarks);
+  
+  arm64_ldr_r64_mem(a, ARM64_LR, ARM64_SP, 0);
+  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
+
   return 1;
 }
 
@@ -2028,40 +2478,7 @@ int Sg__JitEmit_FRAME(SgJitContext *ctx, int returnPc)
  */
 int Sg__JitEmit_GREF_CALL(SgJitContext *ctx, int argc, SgObject id)
 {
-  Arm64Asm *a = GET_ASM(ctx);
-  Arm64CodeGen *gen = GET_GEN(ctx);
-
-  /* Sync VM state before call */
-  arm64_str_r64_mem(a, JIT_REG_SCHSP, JIT_REG_VM, VM_OFFSET_SP);
-  arm64_str_r64_mem(a, JIT_REG_SCHFP, JIT_REG_VM, VM_OFFSET_FP);
-  arm64_str_r64_mem(a, JIT_REG_CL, JIT_REG_VM, VM_OFFSET_CL);
-
-  /* Call Sg__JitGrefCall(vm, argc, id)
-   * X0 = vm
-   * X1 = argc
-   * X2 = id (the global identifier)
-   */
-  arm64_mov_r64_r64(a, ARM64_X0, JIT_REG_VM);
-  arm64_mov_r64_imm(a, ARM64_X1, argc);
-  arm64_mov_r64_imm(a, ARM64_X2, (intptr_t)id);
-
-  arm64_bl(a, Sg__JitGrefCall);
-
-  /* Result is in X0, move to AC (TEMP1) */
-  arm64_mov_r64_r64(a, JIT_REG_TEMP1, ARM64_X0);
-
-  /* Check for yield marker - if helper yielded, we must return to VM loop
-   * Use yieldEpilogueLabel so vm->cl is NOT overwritten - helper set it */
-  arm64_mov_r64_imm(a, JIT_REG_TEMP2, (uintptr_t)SG_JIT_YIELD_MARKER);
-  arm64_cmp_r64_r64(a, JIT_REG_TEMP1, JIT_REG_TEMP2);
-  arm64_b_cond(a, ARM64_EQ, gen->labels[ctx->yieldEpilogueLabel]);
-
-  /* Reload VM state after call (continuation was popped by helper) */
-  arm64_ldr_r64_mem(a, JIT_REG_SCHSP, JIT_REG_VM, VM_OFFSET_SP);
-  arm64_ldr_r64_mem(a, JIT_REG_SCHFP, JIT_REG_VM, VM_OFFSET_FP);
-  arm64_ldr_r64_mem(a, JIT_REG_CL, JIT_REG_VM, VM_OFFSET_CL);
-
-  return 1;
+  return emit_non_tail_call(ctx, argc, CALL_TYPE_GREF, id);
 }
 
 /*
@@ -2077,68 +2494,7 @@ int Sg__JitEmit_GREF_CALL(SgJitContext *ctx, int argc, SgObject id)
  */
 int Sg__JitEmit_GREF_TAIL_CALL(SgJitContext *ctx, int argc, SgObject id)
 {
-  Arm64Asm *a = GET_ASM(ctx);
-  Arm64CodeGen *gen = GET_GEN(ctx);
-
-  /* Sync VM state before call */
-  arm64_str_r64_mem(a, JIT_REG_SCHSP, JIT_REG_VM, VM_OFFSET_SP);
-  arm64_str_r64_mem(a, JIT_REG_SCHFP, JIT_REG_VM, VM_OFFSET_FP);
-  arm64_str_r64_mem(a, JIT_REG_CL, JIT_REG_VM, VM_OFFSET_CL);
-
-  /* Call Sg__JitGrefTailCall(vm, argc, id)
-   * X0 = vm
-   * X1 = argc
-   * X2 = id (the global identifier)
-   */
-  arm64_mov_r64_r64(a, ARM64_X0, JIT_REG_VM);
-  arm64_mov_r64_imm(a, ARM64_X1, argc);
-  arm64_mov_r64_imm(a, ARM64_X2, (intptr_t)id);
-
-  arm64_bl(a, Sg__JitGrefTailCall);
-
-  /* Result is in X0, move to AC (TEMP1) */
-  arm64_mov_r64_r64(a, JIT_REG_TEMP1, ARM64_X0);
-
-  /* Reload JIT registers from VM after call.
-   * The helper may have modified VM state (e.g., for yield-to-interpreter).
-   * This ensures the epilogue writes the correct values back to VM. */
-  arm64_ldr_r64_mem(a, JIT_REG_SCHSP, JIT_REG_VM, VM_OFFSET_SP);
-  arm64_ldr_r64_mem(a, JIT_REG_SCHFP, JIT_REG_VM, VM_OFFSET_FP);
-  arm64_ldr_r64_mem(a, JIT_REG_CL, JIT_REG_VM, VM_OFFSET_CL);
-
-  /*
-   * For tail call, we need to return this result.
-   * If depth > 0, we're inside SELF_CALL(s). The tail call consumed
-   * the Scheme continuation frame(s), so we need to unwind the ARM
-   * stack frames for all SELF_CALLs and decrement depth accordingly.
-   */
-  int topLevelReturn = arm64_new_label(a);
-  int unwindLoop = arm64_new_label(a);
-  
-  arm64_cmp_r64_imm(a, JIT_REG_DEPTH, 0);
-  arm64_b_cond(a, ARM64_EQ, topLevelReturn);
-  
-  /* Depth > 0: unwind all SELF_CALL ARM stack frames */
-  arm64_bind_label(a, unwindLoop);
-  
-  /* Pop saved_LR (we don't need it, just skip) */
-  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
-  /* Pop saved_cont (we don't need it, tail call consumed the frame) */
-  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
-  /* Decrement depth */
-  arm64_sub_r64_r64_imm(a, JIT_REG_DEPTH, JIT_REG_DEPTH, 1);
-  
-  /* Check if more frames to unwind */
-  arm64_cmp_r64_imm(a, JIT_REG_DEPTH, 0);
-  arm64_b_cond(a, ARM64_NE, unwindLoop);
-  
-  /* Fall through to epilogue */
-  
-  /* Depth == 0: go to epilogue */
-  arm64_bind_label(a, topLevelReturn);
-  arm64_b(a, gen->labels[ctx->epilogueLabel]);
-
-  return 1;
+  return emit_tail_call(ctx, argc, CALL_TYPE_GREF, id);
 }
 
 /*
@@ -2159,14 +2515,14 @@ int Sg__JitEmit_SELF_CALL(SgJitContext *ctx, int argc)
   /*
    * For self-recursive non-tail call:
    * 1. Save vm->cont and LR to ARM stack
-   * 2. Increment depth counter
+   * 2. Increment depth counter (in memory)
    * 3. Set FP = SP - argc
    * 4. Sync SP/FP/CL to VM
    * 5. BL to bodyEntry
    * 6. Restore LR and cont
    * 7. Restore SP, FP from cont frame
    * 8. Update vm->cont
-   * 9. Decrement depth
+   * 9. Decrement depth (in memory)
    *
    * Optimizations applied:
    * - Skip CL restore (same closure for self-calls)
@@ -2181,8 +2537,10 @@ int Sg__JitEmit_SELF_CALL(SgJitContext *ctx, int argc)
   arm64_str_r64_mem_pre(a, JIT_REG_TEMP2, ARM64_SP, -16);  /* Push saved_cont */
   arm64_str_r64_mem_pre(a, ARM64_LR, ARM64_SP, -16);       /* Push saved_LR */
 
-  /* Increment recursion depth */
-  arm64_add_r64_r64_imm(a, JIT_REG_DEPTH, JIT_REG_DEPTH, 1);
+  /* Increment recursion depth (in memory) */
+  arm64_ldr_r64_mem(a, JIT_REG_TEMP2, JIT_REG_VM, (int32_t)VM_OFFSET_JIT_DEPTH);
+  arm64_add_r64_r64_imm(a, JIT_REG_TEMP2, JIT_REG_TEMP2, 1);
+  arm64_str_r64_mem(a, JIT_REG_TEMP2, JIT_REG_VM, (int32_t)VM_OFFSET_JIT_DEPTH);
 
   /* FP = SP - argc (point to arguments for the recursive call) */
   arm64_sub_r64_r64_imm(a, JIT_REG_SCHFP, JIT_REG_SCHSP, argBytes);
@@ -2213,8 +2571,10 @@ int Sg__JitEmit_SELF_CALL(SgJitContext *ctx, int argc)
   arm64_ldr_r64_mem(a, JIT_REG_TEMP3, JIT_REG_TEMP2, CONT_OFFSET_PREV);
   arm64_str_r64_mem(a, JIT_REG_TEMP3, JIT_REG_VM, VM_OFFSET_CONT);
 
-  /* Decrement recursion depth */
-  arm64_sub_r64_r64_imm(a, JIT_REG_DEPTH, JIT_REG_DEPTH, 1);
+  /* Decrement recursion depth (in memory) */
+  arm64_ldr_r64_mem(a, JIT_REG_TEMP2, JIT_REG_VM, (int32_t)VM_OFFSET_JIT_DEPTH);
+  arm64_sub_r64_r64_imm(a, JIT_REG_TEMP2, JIT_REG_TEMP2, 1);
+  arm64_str_r64_mem(a, JIT_REG_TEMP2, JIT_REG_VM, (int32_t)VM_OFFSET_JIT_DEPTH);
 
   return 1;
 }
@@ -2244,11 +2604,14 @@ int Sg__JitEmit_SELF_TAIL_CALL(SgJitContext *ctx, int argc, SgObject id)
   /*
    * Runtime check: if depth > 0, use helper (can't optimize safely).
    * If depth == 0, use direct branch optimization.
+   * Depth is stored in vm->jitContext.savedDepth (memory).
    */
   int useHelper = arm64_new_label(a);
   int done = arm64_new_label(a);
   
-  arm64_cmp_r64_imm(a, JIT_REG_DEPTH, 0);
+  /* Load depth from memory and check */
+  arm64_ldr_r64_mem(a, JIT_REG_TEMP2, JIT_REG_VM, (int32_t)VM_OFFSET_JIT_DEPTH);
+  arm64_cmp_r64_imm(a, JIT_REG_TEMP2, 0);
   arm64_b_cond(a, ARM64_NE, useHelper);
 
   /* ===== Depth == 0: Use optimized direct branch ===== */
@@ -2312,20 +2675,28 @@ int Sg__JitEmit_SELF_TAIL_CALL(SgJitContext *ctx, int argc, SgObject id)
   /*
    * Unwind all SELF_CALL ARM stack frames (same logic as GREF_TAIL_CALL).
    * The tail call consumed the Scheme continuation frames.
+   * Depth is in memory - load into TEMP3 for the loop.
    */
   int unwindLoop = arm64_new_label(a);
+  
+  /* Load depth from memory */
+  arm64_ldr_r64_mem(a, JIT_REG_TEMP3, JIT_REG_VM, (int32_t)VM_OFFSET_JIT_DEPTH);
+  
   arm64_bind_label(a, unwindLoop);
   
   /* Pop saved_LR (skip) */
   arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
   /* Pop saved_cont (skip) */
   arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
-  /* Decrement depth */
-  arm64_sub_r64_r64_imm(a, JIT_REG_DEPTH, JIT_REG_DEPTH, 1);
+  /* Decrement depth in register */
+  arm64_sub_r64_r64_imm(a, JIT_REG_TEMP3, JIT_REG_TEMP3, 1);
   
   /* Check if more frames to unwind */
-  arm64_cmp_r64_imm(a, JIT_REG_DEPTH, 0);
+  arm64_cmp_r64_imm(a, JIT_REG_TEMP3, 0);
   arm64_b_cond(a, ARM64_NE, unwindLoop);
+  
+  /* Store final depth (0) back to memory */
+  arm64_str_r64_mem(a, JIT_REG_TEMP3, JIT_REG_VM, (int32_t)VM_OFFSET_JIT_DEPTH);
   
   /* Go to epilogue */
   arm64_b(a, gen->labels[ctx->epilogueLabel]);
@@ -2343,47 +2714,7 @@ SG_EXTERN SgObject Sg__JitCall(SgVM *vm, int argc, SgObject proc);
 
 int Sg__JitEmit_CALL(SgJitContext *ctx, int argc)
 {
-  Arm64Asm *a = GET_ASM(ctx);
-  Arm64CodeGen *gen = GET_GEN(ctx);
-
-  /* Save LR before calling C function */
-  arm64_str_r64_mem_pre(a, ARM64_LR, ARM64_SP, -16);
-
-  /* Sync VM state before call, including AC which has the proc */
-  arm64_str_r64_mem(a, JIT_REG_TEMP1, JIT_REG_VM, VM_OFFSET_AC);
-  arm64_str_r64_mem(a, JIT_REG_SCHSP, JIT_REG_VM, VM_OFFSET_SP);
-  arm64_str_r64_mem(a, JIT_REG_SCHFP, JIT_REG_VM, VM_OFFSET_FP);
-  arm64_str_r64_mem(a, JIT_REG_CL, JIT_REG_VM, VM_OFFSET_CL);
-
-  /* Call Sg__JitCall(vm, argc, proc)
-   * IMPORTANT: JIT_REG_TEMP1 is X0, so we must copy proc to X2 BEFORE
-   * setting X0 to vm (since X0 = TEMP1 and would be overwritten)
-   */
-  arm64_mov_r64_r64(a, ARM64_X2, JIT_REG_TEMP1);  /* X2 = proc (must be first!) */
-  arm64_mov_r64_r64(a, ARM64_X0, JIT_REG_VM);     /* X0 = vm */
-  arm64_mov_r64_imm(a, ARM64_X1, argc);           /* X1 = argc */
-
-  arm64_bl(a, Sg__JitCall);
-
-  /* Result is in X0, move to AC (TEMP1) */
-  arm64_mov_r64_r64(a, JIT_REG_TEMP1, ARM64_X0);
-
-  /* Restore LR */
-  arm64_ldr_r64_mem(a, ARM64_LR, ARM64_SP, 0);
-  arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
-
-  /* Check for yield marker - if helper yielded, we must return to VM loop
-   * Use yieldEpilogueLabel so vm->cl is NOT overwritten - helper set it */
-  arm64_mov_r64_imm(a, JIT_REG_TEMP2, (uintptr_t)SG_JIT_YIELD_MARKER);
-  arm64_cmp_r64_r64(a, JIT_REG_TEMP1, JIT_REG_TEMP2);
-  arm64_b_cond(a, ARM64_EQ, gen->labels[ctx->yieldEpilogueLabel]);
-
-  /* Reload VM state after call (continuation was popped by helper) */
-  arm64_ldr_r64_mem(a, JIT_REG_SCHSP, JIT_REG_VM, VM_OFFSET_SP);
-  arm64_ldr_r64_mem(a, JIT_REG_SCHFP, JIT_REG_VM, VM_OFFSET_FP);
-  arm64_ldr_r64_mem(a, JIT_REG_CL, JIT_REG_VM, VM_OFFSET_CL);
-
-  return 1;
+  return emit_non_tail_call(ctx, argc, CALL_TYPE_AC, SG_UNDEF);
 }
 
 /*
@@ -2402,33 +2733,13 @@ int Sg__JitEmit_TAIL_CALL(SgJitContext *ctx, int argc)
   /* Save proc (AC/TEMP1=X0) to TEMP3 before we modify SP/FP */
   arm64_mov_r64_r64(a, JIT_REG_TEMP3, JIT_REG_TEMP1);
 
-  /* For tail call, shift args from SP to FP */
-  if (argc > 0) {
-    int32_t argBytes = argc * (int32_t)sizeof(SgObject);
-    /* Source = SP - argc */
-    arm64_sub_r64_r64_imm(a, JIT_REG_TEMP2, JIT_REG_SCHSP, argBytes);
-    
-    /* Copy args from source to FP */
-    for (int i = 0; i < argc; i++) {
-      int32_t off = i * (int32_t)sizeof(SgObject);
-      arm64_ldr_r64_mem(a, JIT_REG_TEMP1, JIT_REG_TEMP2, off);
-      arm64_str_r64_mem(a, JIT_REG_TEMP1, JIT_REG_SCHFP, off);
-    }
-
-    /* SP = FP + argc */
-    arm64_add_r64_r64_imm(a, JIT_REG_SCHSP, JIT_REG_SCHFP, argBytes);
-  } else {
-    arm64_mov_r64_r64(a, JIT_REG_SCHSP, JIT_REG_SCHFP);
-  }
+  /* Shift args from SP to FP */
+  emit_shift_args_for_tail_call(a, argc);
 
   /* Sync VM state before call */
-  arm64_str_r64_mem(a, JIT_REG_SCHSP, JIT_REG_VM, VM_OFFSET_SP);
-  arm64_str_r64_mem(a, JIT_REG_SCHFP, JIT_REG_VM, VM_OFFSET_FP);
-  arm64_str_r64_mem(a, JIT_REG_CL, JIT_REG_VM, VM_OFFSET_CL);
+  emit_sync_vm_state(a, 0);
 
-  /* Call Sg__JitTailCall(vm, argc, proc)
-   * IMPORTANT: proc was saved to TEMP3 earlier
-   */
+  /* Call Sg__JitTailCall(vm, argc, proc) */
   arm64_mov_r64_r64(a, ARM64_X2, JIT_REG_TEMP3);  /* X2 = proc (from saved TEMP3) */
   arm64_mov_r64_r64(a, ARM64_X0, JIT_REG_VM);     /* X0 = vm */
   arm64_mov_r64_imm(a, ARM64_X1, argc);           /* X1 = argc */
@@ -2438,15 +2749,11 @@ int Sg__JitEmit_TAIL_CALL(SgJitContext *ctx, int argc)
   /* Result is in X0, move to AC */
   arm64_mov_r64_r64(a, JIT_REG_TEMP1, ARM64_X0);
 
-  /* Reload JIT registers from VM after call.
-   * The helper may have modified VM state (e.g., for yield-to-interpreter).
-   * This ensures the epilogue writes the correct values back to VM. */
-  arm64_ldr_r64_mem(a, JIT_REG_SCHSP, JIT_REG_VM, VM_OFFSET_SP);
-  arm64_ldr_r64_mem(a, JIT_REG_SCHFP, JIT_REG_VM, VM_OFFSET_FP);
-  arm64_ldr_r64_mem(a, JIT_REG_CL, JIT_REG_VM, VM_OFFSET_CL);
+  /* Reload VM state */
+  emit_reload_vm_state(a);
 
-  /* Tail call always goes to epilogue (no unwind needed since helper handles it) */
-  arm64_b(a, gen->labels[ctx->epilogueLabel]);
+  /* Unwind depth and go to epilogue */
+  emit_depth_unwind_and_epilogue(ctx);
 
   return 1;
 }
@@ -2457,6 +2764,10 @@ int Sg__JitEmit_TAIL_CALL(SgJitContext *ctx, int argc)
  * Like CALL but the target is a known closure (faster path).
  * For JIT, we delegate to the same C helper since the optimization
  * is already in checking for JIT code in the closure.
+ */
+
+/*
+ * LOCAL_CALL instruction - call a local closure
  */
 int Sg__JitEmit_LOCAL_CALL(SgJitContext *ctx, int argc)
 {
@@ -2481,27 +2792,83 @@ int Sg__JitEmit_LOCAL_TAIL_CALL(SgJitContext *ctx, int argc)
  * selfPos: 0 = no self-reference, n = self-ref at frees[n-1]
  * cb: code builder for the closure body
  * freec: number of free variables (already on stack)
+ *
+ * NOTE: The JIT keeps its own SP register (JIT_REG_SCHSP) which may differ
+ * from vm->sp during JIT execution. When creating closures, we must use
+ * the JIT's SP register to find free variables that were just pushed.
  */
+
+/* Helper to create closure - takes frees pointer from JIT's SP register */
+static SgObject jit_make_closure(SgObject cb, int selfPos, SgObject *frees)
+{
+  int freec = SG_CODE_BUILDER_FREEC(cb);
+  SgObject name = SG_CODE_BUILDER_NAME(cb);
+  
+  /* Trace closures with 4 free vars (like loop in load-from-port/prompt) */
+  if (Sg_JitVerbose() && freec >= 3) {
+    SgVM *vm = Sg_VM();
+    SgObject cl = vm->cl;
+    Sg_Printf(Sg_StandardErrorPort(),
+              UC("JIT_CLOSURE: name=%A freec=%d frees=%p vm->sp=%p\n"),
+              name, freec, frees, vm->sp);
+    Sg_Printf(Sg_StandardErrorPort(),
+              UC("  current vm->cl=%A cl_freec=%d\n"),
+              SG_CLOSUREP(cl) ? SG_PROCEDURE_NAME(cl) : cl,
+              SG_CLOSUREP(cl) ? SG_CODE_BUILDER_FREEC(SG_CLOSURE(cl)->code) : -1);
+    if (SG_CLOSUREP(cl)) {
+      int clfreec = SG_CODE_BUILDER_FREEC(SG_CLOSURE(cl)->code);
+      for (int i = 0; i < clfreec; i++) {
+        Sg_Printf(Sg_StandardErrorPort(),
+                  UC("  cl->frees[%d]=%A\n"), i, SG_CLOSURE(cl)->frees[i]);
+      }
+    }
+    for (int i = 0; i < freec; i++) {
+      Sg_Printf(Sg_StandardErrorPort(),
+                UC("  frees[%d]=%A\n"), i, frees[i]);
+    }
+    Sg_FlushPort(Sg_StandardErrorPort());
+  }
+  return Sg_VMMakeClosure(cb, selfPos, frees);
+}
+
 int Sg__JitEmit_CLOSURE(SgJitContext *ctx, int selfPos, SgObject cb, int freec)
 {
   Arm64Asm *a = GET_ASM(ctx);
 
-  /* Adjust SP to point to free variables: SP -= freec * sizeof(SgObject) */
-  if (freec > 0) {
-    int32_t freeBytes = freec * (int32_t)sizeof(SgObject);
-    arm64_sub_r64_r64_imm(a, JIT_REG_SCHSP, JIT_REG_SCHSP, freeBytes);
+  /* DEBUG: Print that we're emitting this CLOSURE instruction */
+  if (Sg_JitVerbose()) {
+    Sg_Printf(Sg_StandardErrorPort(),
+              UC("JIT EMIT: CLOSURE selfPos=%d cb=%A freec=%d\n"),
+              selfPos, cb, freec);
+    Sg_FlushPort(Sg_StandardErrorPort());
   }
 
-  /* Call Sg_VMMakeClosure(cb, selfPos, sp)
+  /* Save LR first */
+  arm64_str_r64_mem_pre(a, ARM64_LR, ARM64_SP, -16);
+
+  /* IMPORTANT: Use JIT_REG_SCHSP directly instead of reloading from vm->sp!
+   * The JIT maintains JIT_REG_SCHSP (X20) as the current stack pointer.
+   * After PUSH instructions, JIT_REG_SCHSP is updated but vm->sp may not be.
+   * The free variables were just pushed by LREF_PUSH/PUSH instructions,
+   * so they are at JIT_REG_SCHSP - freec * sizeof(SgObject).
+   */
+
+  /* Calculate frees pointer: SP - freec * sizeof(SgObject) */
+  arm64_mov_r64_r64(a, ARM64_X2, JIT_REG_SCHSP);  /* X2 = current SP */
+  if (freec > 0) {
+    int32_t freeBytes = freec * (int32_t)sizeof(SgObject);
+    arm64_sub_r64_r64_imm(a, ARM64_X2, ARM64_X2, freeBytes);  /* X2 = frees pointer */
+  }
+
+  /* Call jit_make_closure(cb, selfPos, frees)
    * X0 = code builder
    * X1 = self position
-   * X2 = free variables pointer (current SP)
+   * X2 = free variables pointer (already set above)
    */
-  arm64_str_r64_mem_pre(a, ARM64_LR, ARM64_SP, -16);
   arm64_mov_r64_ptr(a, ARM64_X0, cb);             /* X0 = code builder */
   arm64_mov_r64_imm(a, ARM64_X1, selfPos);        /* X1 = self position */
-  arm64_mov_r64_r64(a, ARM64_X2, JIT_REG_SCHSP);  /* X2 = frees pointer */
-  arm64_bl(a, Sg_VMMakeClosure);
+  /* X2 already has frees pointer */
+  arm64_bl(a, jit_make_closure);
   arm64_mov_r64_r64(a, JIT_REG_TEMP1, ARM64_X0);  /* AC = result closure */
   arm64_ldr_r64_mem(a, ARM64_LR, ARM64_SP, 0);
   arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
