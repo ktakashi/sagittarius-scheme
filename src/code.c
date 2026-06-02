@@ -40,9 +40,7 @@
 #include "sagittarius/private/vector.h"
 #include "sagittarius/private/vm.h"
 #include "sagittarius/private/writer.h"
-#ifdef HAVE_JIT
-#include "jit/jit.h"
-#endif
+
 #define INIT_CODE_PACKET(p, t, inst, a0, a1, o)		\
   do {							\
     (p).insn = (inst);					\

@@ -87,6 +87,19 @@ struct SgCodeBuilderRec
 #define SG_CODE_BUILDER_MAX_STACK(obj) SG_CODE_BUILDER(obj)->maxStack
 #define SG_CODE_BUILDER_SRC(obj)       SG_CODE_BUILDER(obj)->src
 
+#ifdef HAVE_JIT
+#define SG_STATIC_CODE_BUILDER_JIT_FIELDS , NULL, 0, 0
+#define SG_CODE_BUILDER_JIT_INIT(b)					\
+  do {									\
+    (b)->jitCode = NULL;						\
+    (b)->callCount = 0;							\
+    (b)->jitFlags = 0;							\
+  } while (0)
+#else
+#define SG_STATIC_CODE_BUILDER_JIT_FIELDS
+#define SG_CODE_BUILDER_JIT_INIT(b) ((void)0)
+#endif
+
 #define SG_STATIC_CODE_BUILDER(codeptr, name, argc, optional, freec, maxStack, size) \
   {									\
     { SG_CLASS_STATIC_TAG(Sg_CodeBuilderClass) },			\
@@ -104,19 +117,6 @@ struct SgCodeBuilderRec
     SG_UNDEF								\
     SG_STATIC_CODE_BUILDER_JIT_FIELDS					\
   }
-
-#ifdef HAVE_JIT
-#define SG_STATIC_CODE_BUILDER_JIT_FIELDS , NULL, 0, 0
-#define SG_CODE_BUILDER_JIT_INIT(b)					\
-  do {									\
-    (b)->jitCode = NULL;						\
-    (b)->callCount = 0;							\
-    (b)->jitFlags = 0;							\
-  } while (0)
-#else
-#define SG_STATIC_CODE_BUILDER_JIT_FIELDS
-#define SG_CODE_BUILDER_JIT_INIT(b) ((void)0)
-#endif
 
 #define SG_CODE_BUILDER_INIT(b, ptr, n, ac, o, fc, ms, s)		\
   do {									\

@@ -180,10 +180,10 @@
   case SG_PROC_CLOSURE: {
     SgClosure * cl = SG_CLOSURE(AC(vm));
     SgCodeBuilder *cb = SG_CODE_BUILDER(cl->code);
-#ifdef HAVE_JIT
     CHECK_STACK(cb->maxStack, vm);
     ADJUST_ARGUMENT_FRAME(cl, argc);
-    
+
+#ifdef HAVE_JIT
     /* JIT execution path */
     if (Sg_JitVerbose()) {
       Sg_Printf(Sg_StandardErrorPort(),
