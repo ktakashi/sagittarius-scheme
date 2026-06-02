@@ -35,9 +35,6 @@
 #include "sagittarius/private/library.h"
 #include "sagittarius/private/identifier.h"
 #include "sagittarius/private/pair.h"
-#include "sagittarius/private/vm.h"
-#include "sagittarius/private/port.h"
-#include "sagittarius/private/writer.h"
 
 /* #define DEBUG_CHECK 1 */
 #define CHECK_CLOSURE_TRANSPARENCY
@@ -65,7 +62,10 @@ SgObject Sg_VMMakeClosure(SgObject code, int self_pos, SgObject *frees)
   freec = SG_CODE_BUILDER_FREEC(code);
 
   cl->code = code;
-  
+  if (freec && !frees) {
+    /* better than SEGV... */
+    Sg_Panic("Free variable count is %d, but actual argument is null", freec);
+  }
   for (i = 0; i < freec; i++) {
     cl->frees[i] = frees[freec - i - 1];
   }
