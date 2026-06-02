@@ -3252,9 +3252,6 @@ static SgObject collect_arguments(SgVM *vm, SgObject *fp, int argc, SgObject cl)
 
 static SgObject get_source_info(SgObject cl, SgWord *pc)
 {
-  if (!SG_CLOSUREP(cl)) {
-    return SG_NIL;
-  }
   SgObject src = get_closure_source(cl, pc);
   if (SG_FALSEP(src)) {
     src = SG_CODE_BUILDER(SG_CLOSURE(cl)->code)->src;

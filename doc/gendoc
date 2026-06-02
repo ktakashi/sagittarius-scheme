@@ -3,7 +3,6 @@
 (import (rnrs)
 	(rnrs eval)
 	(getopt)
-	(sagittarius vm)          ;; For JIT control
 	(sagittarius document)
 	(sagittarius document format html)
 	(sagittarius regex)
@@ -16,9 +15,6 @@
 	(text sxml tools)
 	(util file)
 	(pp))
-
-;; Disable JIT during doc generation to avoid crashes
-(disable-jit!)
 
 (define *output-directory* (make-parameter #f))
 (define *output-file* (make-parameter #f))
