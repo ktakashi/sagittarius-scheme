@@ -7,7 +7,8 @@ MESSAGE(STATUS "operating system: ${CMAKE_SYSTEM_NAME}")
 IF(HAVE_JIT)
   SET(JIT_SOURCES
     jit/jit_memory.c
-    jit/jit_compile.c)
+    jit/jit_compile.c
+    lib_jit.c)
   IF(JIT_ARCH STREQUAL "arm64")
     LIST(APPEND JIT_SOURCES
       jit/arm64/asm_arm64.c

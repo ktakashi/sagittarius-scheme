@@ -65,19 +65,6 @@ SgObject Sg_VMMakeClosure(SgObject code, int self_pos, SgObject *frees)
   freec = SG_CODE_BUILDER_FREEC(code);
 
   cl->code = code;
-  if (freec && !frees) {
-    /* better than SEGV... */
-    SgVM *vm = Sg_VM();
-    void *retaddr = __builtin_return_address(0);
-    void *retaddr2 = __builtin_return_address(1);
-    Sg_Printf(Sg_StandardErrorPort(),
-              UC("DEBUG CLOSURE: freec=%d frees=%p retaddr=%p retaddr2=%p\n"), 
-              freec, frees, retaddr, retaddr2);
-    Sg_Printf(Sg_StandardErrorPort(),
-              UC("DEBUG CLOSURE: vm->sp=%p vm->fp=%p vm->stack=%p vm->pc=%p\n"),
-              vm->sp, vm->fp, vm->stack, vm->pc);
-    Sg_Panic("Free variable count is %d, but actual argument is null", freec);
-  }
   
   for (i = 0; i < freec; i++) {
     cl->frees[i] = frees[freec - i - 1];

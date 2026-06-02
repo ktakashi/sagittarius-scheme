@@ -28,6 +28,7 @@
 
 #include "jit.h"
 #include "jit_internal.h"
+#include <string.h>  /* for strstr */
 #include "jit_emit.h"
 
 #ifdef HAVE_JIT
@@ -219,6 +220,47 @@ void Sg_InitJitContext(SgVM *vm)
  * JIT Helper Functions - called from JIT-compiled code
  */
 
+/*
+ * Resolve identifier to GLOC at JIT compile time.
+ * 
+ * The VM interpreter performs "inline caching" - when it executes GREF,
+ * it resolves identifiers to GLOCs and overwrites the bytecode. This
+ * causes a race condition:
+ * 
+ * 1. JIT compiles code, reading IDENTIFIER from bytecode
+ * 2. VM interpreter runs, patches bytecode with GLOC
+ * 3. Original IDENTIFIER may be GC'd (memory reused)
+ * 4. JIT code runs with stale IDENTIFIER pointer
+ * 
+ * We fix this by resolving identifiers to GLOCs during JIT compilation,
+ * matching the VM's inline caching behavior. This also updates the bytecode
+ * so future JIT compilations see the GLOC directly.
+ *
+ * Returns: The resolved id (either the original GLOC, or a newly resolved
+ *          GLOC if the identifier was successfully resolved, or the original
+ *          identifier if resolution failed).
+ */
+static SgObject resolve_identifier_at_compile_time(SgCodeBuilder *cb, int pc,
+                                                    SgObject id)
+{
+  if (SG_IDENTIFIERP(id)) {
+    SgGloc *gloc = Sg_FindBinding(SG_IDENTIFIER_LIBRARY(id),
+                                  SG_IDENTIFIER_NAME(id),
+                                  SG_UNBOUND);
+    if (!SG_UNBOUNDP(gloc) && SG_GLOCP(gloc)) {
+      /* Update bytecode with GLOC (same as VM inline caching) */
+      cb->code[pc + 1] = (SgWord)gloc;
+      if (jit_verbose) {
+        Sg_Printf(Sg_StandardErrorPort(),
+                  UC("JIT: Resolved identifier to GLOC %A in %A\n"),
+                  SG_GLOC(gloc)->name, cb->name);
+      }
+      return (SgObject)gloc;
+    }
+  }
+  return id;
+}
+
 /* Helper to resolve a GREF identifier to a procedure.
  * Returns SG_UNBOUND if the identifier is not yet bound (e.g., during import).
  * This should NOT throw an error - the identifier might be bound by the time
@@ -304,10 +346,22 @@ SgObject Sg__JitMakeBox(SgObject value)
 /* Shift arguments from SP to FP for tail calls */
 static void shift_args_to_fp(SgVM *vm, int argc)
 {
+  if (jit_verbose && argc > 0) {
+    Sg_Printf(Sg_StandardErrorPort(),
+              UC("JIT: shift_args_to_fp BEFORE: argc=%d fp=%p sp=%p fp[0]=%p (%A) sp[-1]=%p (%A)\n"),
+              argc, vm->fp, vm->sp, vm->fp[0], vm->fp[0], vm->sp[-1], vm->sp[-1]);
+    Sg_FlushPort(Sg_StandardErrorPort());
+  }
   for (int i = 0; i < argc; i++) {
     vm->fp[i] = vm->sp[-(argc - i)];
   }
   vm->sp = vm->fp + argc;
+  if (jit_verbose && argc > 0) {
+    Sg_Printf(Sg_StandardErrorPort(),
+              UC("JIT: shift_args_to_fp AFTER: sp=%p fp[0]=%p (%A)\n"),
+              vm->sp, vm->fp[0], vm->fp[0]);
+    Sg_FlushPort(Sg_StandardErrorPort());
+  }
 }
 
 /* Adjust optional arguments for non-tail closure calls.
@@ -319,6 +373,20 @@ static int adjust_optargs_nontail(SgVM *vm, SgObject proc, int argc,
   int required = SG_PROCEDURE_REQUIRED(proc);
   int optargs = SG_PROCEDURE_OPTIONAL(proc);
   SgObject *args_start = vm->sp - argc;
+  
+  if (jit_verbose) {
+    Sg_Printf(Sg_StandardErrorPort(),
+              UC("JIT: adjust_optargs_nontail proc=%A argc=%d required=%d optargs=%d\n"),
+              proc, argc, required, optargs);
+    Sg_Printf(Sg_StandardErrorPort(),
+              UC("JIT:   args_start=%p vm->sp=%p\n"),
+              args_start, vm->sp);
+    for (int i = 0; i < argc && i < 5; i++) {
+      Sg_Printf(Sg_StandardErrorPort(),
+                UC("JIT:   args_start[%d] = %A\n"), i, args_start[i]);
+    }
+    Sg_FlushPort(Sg_StandardErrorPort());
+  }
   
   if (argc < required) {
     Sg_WrongNumberOfArgumentsViolation(SG_PROCEDURE_NAME(proc),
@@ -340,6 +408,13 @@ static int adjust_optargs_nontail(SgVM *vm, SgObject proc, int argc,
   
   /* Update sp to reflect the new argument count */
   vm->sp = args_start + argc;
+  
+  if (jit_verbose) {
+    Sg_Printf(Sg_StandardErrorPort(),
+              UC("JIT:   AFTER: argc=%d args_start[0]=%A vm->sp=%p\n"),
+              argc, args_start[0], vm->sp);
+    Sg_FlushPort(Sg_StandardErrorPort());
+  }
   
   if (args_start_out) *args_start_out = args_start;
   return argc;
@@ -399,6 +474,12 @@ static SgObject yield_for_closure(SgVM *vm, SgObject proc, int argc)
     if (new_argc < 0) return SG_UNDEF;
     vm->fp = args_start;
     argc = new_argc;
+    if (jit_verbose) {
+      Sg_Printf(Sg_StandardErrorPort(),
+                UC("JIT: yield_for_closure optargs: argc=%d fp=%p fp[0]=%A\n"),
+                argc, vm->fp, vm->fp[0]);
+      Sg_FlushPort(Sg_StandardErrorPort());
+    }
   } else if (argc != required) {
     Sg_WrongNumberOfArgumentsViolation(SG_PROCEDURE_NAME(proc),
                                        required, argc,
@@ -448,9 +529,15 @@ static SgObject yield_for_closure_tail(SgVM *vm, SgObject proc, int argc)
   vm->pc = cb->code;
   
   if (jit_verbose) {
+    int i;
     Sg_Printf(Sg_StandardErrorPort(),
               UC("JIT: Yielding for closure tail call to %A (argc=%d, fp=%p, sp=%p)\n"),
               proc, argc, vm->fp, vm->sp);
+    for (i = 0; i < argc && i < 5; i++) {
+      Sg_Printf(Sg_StandardErrorPort(),
+                UC("JIT:   FP[%d] = %p (%A)\n"),
+                i, vm->fp[i], vm->fp[i]);
+    }
   }
   
   return SG_JIT_YIELD_MARKER;
@@ -461,6 +548,14 @@ static SgObject yield_for_closure_tail(SgVM *vm, SgObject proc, int argc)
  */
 static SgObject dispatch_call(SgVM *vm, int argc, SgObject proc)
 {
+  /* DEBUG: Check if proc is a yield marker */
+  if ((uintptr_t)proc == (uintptr_t)SG_JIT_YIELD_MARKER ||
+      (uintptr_t)proc == (uintptr_t)SG_JIT_YIELD_PRESERVE_AC) {
+    fprintf(stderr, "DEBUG: dispatch_call called with YIELD MARKER as proc! proc=%p argc=%d\n",
+            (void*)proc, argc);
+    fflush(stderr);
+  }
+
   /* Handle non-procedure callable objects (e.g., parameters) via object-apply.
    * Same as VM: transform (obj arg...) -> (object-apply obj arg...)
    */
@@ -1751,6 +1846,7 @@ SgJitCompiledCode Sg_JitCompile(SgCodeBuilder *cb)
       {
 	if (pc + 1 >= cb->size) goto fail;
 	SgObject id = SG_OBJ(cb->code[pc + 1]);
+	id = resolve_identifier_at_compile_time(cb, pc, id);
 	if (!Sg__JitEmit_GREF(&ctx, id)) goto fail;
 	pc += 2;
       }
@@ -1760,6 +1856,7 @@ SgJitCompiledCode Sg_JitCompile(SgCodeBuilder *cb)
       {
 	if (pc + 1 >= cb->size) goto fail;
 	SgObject id = SG_OBJ(cb->code[pc + 1]);
+	id = resolve_identifier_at_compile_time(cb, pc, id);
 	if (!Sg__JitEmit_GREF_PUSH(&ctx, id)) goto fail;
 	pc += 2;
       }
@@ -1850,6 +1947,7 @@ SgJitCompiledCode Sg_JitCompile(SgCodeBuilder *cb)
       {
 	if (pc + 1 >= cb->size) goto fail;
 	SgObject id = SG_OBJ(cb->code[pc + 1]);
+	id = resolve_identifier_at_compile_time(cb, pc, id);
 	if (!Sg__JitEmit_GREF_CAR(&ctx, id)) goto fail;
 	pc += 2;
       }
@@ -1859,6 +1957,7 @@ SgJitCompiledCode Sg_JitCompile(SgCodeBuilder *cb)
       {
 	if (pc + 1 >= cb->size) goto fail;
 	SgObject id = SG_OBJ(cb->code[pc + 1]);
+	id = resolve_identifier_at_compile_time(cb, pc, id);
 	if (!Sg__JitEmit_GREF_CDR(&ctx, id)) goto fail;
 	pc += 2;
       }
@@ -1888,6 +1987,7 @@ SgJitCompiledCode Sg_JitCompile(SgCodeBuilder *cb)
       {
 	if (pc + 1 >= cb->size) goto fail;
 	SgObject id = SG_OBJ(cb->code[pc + 1]);
+	id = resolve_identifier_at_compile_time(cb, pc, id);
 	if (!Sg__JitEmit_GREF_CAR_PUSH(&ctx, id)) goto fail;
 	pc += 2;
       }
@@ -1897,6 +1997,7 @@ SgJitCompiledCode Sg_JitCompile(SgCodeBuilder *cb)
       {
 	if (pc + 1 >= cb->size) goto fail;
 	SgObject id = SG_OBJ(cb->code[pc + 1]);
+	id = resolve_identifier_at_compile_time(cb, pc, id);
 	if (!Sg__JitEmit_GREF_CDR_PUSH(&ctx, id)) goto fail;
 	pc += 2;
       }
@@ -2035,9 +2136,13 @@ SgJitCompiledCode Sg_JitCompile(SgCodeBuilder *cb)
 
     case GREF_CALL:
       {
-	/* GREF_CALL: val1 = argc, next word = identifier */
+	/* GREF_CALL: val1 = argc, next word = identifier/gloc */
 	if (pc + 1 >= cb->size) goto fail;
 	SgObject id = SG_OBJ(cb->code[pc + 1]);
+
+	/* Resolve identifier to GLOC at compile time */
+	id = resolve_identifier_at_compile_time(cb, pc, id);
+
 	/* Check for self-recursion optimization */
 	SgObject proc = resolve_gref(Sg_VM(), id);
 	if (SG_CLOSUREP(proc) && SG_CODE_BUILDER(SG_CLOSURE(proc)->code) == cb) {
@@ -2059,9 +2164,13 @@ SgJitCompiledCode Sg_JitCompile(SgCodeBuilder *cb)
 
     case GREF_TAIL_CALL:
       {
-	/* GREF_TAIL_CALL: val1 = argc, next word = identifier */
+	/* GREF_TAIL_CALL: val1 = argc, next word = identifier/gloc */
 	if (pc + 1 >= cb->size) goto fail;
 	SgObject id = SG_OBJ(cb->code[pc + 1]);
+
+	/* Resolve identifier to GLOC at compile time */
+	id = resolve_identifier_at_compile_time(cb, pc, id);
+
 	/* Check for self-recursion optimization - tail calls are safe */
 	SgObject proc = resolve_gref(Sg_VM(), id);
 	if (SG_CLOSUREP(proc) && SG_CODE_BUILDER(SG_CLOSURE(proc)->code) == cb) {

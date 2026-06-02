@@ -2082,25 +2082,29 @@ int Sg__JitEmit_SET_CDR(SgJitContext *ctx)
 
 /*
  * BOX - Create a box for mutable variable
+ * 
+ * VM semantics: INDEX(SP, val1) = make_box(INDEX(SP, val1))
+ * where INDEX(SP, n) = SP[-(n+1)] (relative to current SP)
  */
 SG_EXTERN SgObject Sg__JitMakeBox(SgObject value);
 
 int Sg__JitEmit_BOX(SgJitContext *ctx, int index)
 {
   Arm64Asm *a = GET_ASM(ctx);
-  int32_t offset = index * sizeof(SgObject);
+  /* INDEX(SP, n) = SP[-(n+1)] - negative offset from SP */
+  int32_t offset = -(index + 1) * (int32_t)sizeof(SgObject);
 
   /* Save LR */
   arm64_str_r64_mem_pre(a, ARM64_LR, ARM64_SP, -16);
 
-  /* Load value from stack at FP+index */
-  arm64_ldr_r64_mem(a, ARM64_X0, JIT_REG_SCHFP, offset);
+  /* Load value from stack at SP[-(index+1)] */
+  arm64_ldr_r64_mem(a, ARM64_X0, JIT_REG_SCHSP, offset);
 
   /* Call Sg__JitMakeBox(value) */
   arm64_bl(a, Sg__JitMakeBox);
 
-  /* Store box back to stack */
-  arm64_str_r64_mem(a, ARM64_X0, JIT_REG_SCHFP, offset);
+  /* Store box back to stack at SP[-(index+1)] */
+  arm64_str_r64_mem(a, ARM64_X0, JIT_REG_SCHSP, offset);
 
   /* Restore LR */
   arm64_ldr_r64_mem(a, ARM64_LR, ARM64_SP, 0);
@@ -2595,11 +2599,50 @@ int Sg__JitEmit_SELF_CALL(SgJitContext *ctx, int argc)
  * When inside a SELF_CALL (depth > 0), vm->cont points to continuation
  * frames that we would corrupt. In that case, we fall back to the
  * C helper (same as GREF_TAIL_CALL).
+ *
+ * Also, if the closure has optional arguments (rest args), we must
+ * fall back to the C helper because optargs handling requires folding
+ * args into a list, which we can't do efficiently in JIT code.
  */
 int Sg__JitEmit_SELF_TAIL_CALL(SgJitContext *ctx, int argc, SgObject id)
 {
   Arm64Asm *a = GET_ASM(ctx);
   Arm64CodeGen *gen = GET_GEN(ctx);
+  
+  /*
+   * If the closure has optional arguments, we CANNOT use the optimized
+   * direct branch because we need to fold args into a list. Fall back
+   * to C helper unconditionally.
+   */
+  if (ctx->cb->optional) {
+    /* Sync VM state before call */
+    arm64_str_r64_mem(a, JIT_REG_SCHSP, JIT_REG_VM, VM_OFFSET_SP);
+    arm64_str_r64_mem(a, JIT_REG_SCHFP, JIT_REG_VM, VM_OFFSET_FP);
+    arm64_str_r64_mem(a, JIT_REG_CL, JIT_REG_VM, VM_OFFSET_CL);
+
+    /* Call Sg__JitGrefTailCall(vm, argc, id) */
+    arm64_mov_r64_r64(a, ARM64_X0, JIT_REG_VM);
+    arm64_mov_r64_imm(a, ARM64_X1, argc);
+    arm64_mov_r64_imm(a, ARM64_X2, (intptr_t)id);
+
+    arm64_bl(a, Sg__JitGrefTailCall);
+
+    /* Result is in X0, move to AC */
+    arm64_mov_r64_r64(a, JIT_REG_TEMP1, ARM64_X0);
+
+    /* Check for yield marker and go to yieldEpilogue */
+    arm64_mov_r64_imm(a, JIT_REG_TEMP2, (uintptr_t)SG_JIT_YIELD_MARKER);
+    arm64_cmp_r64_r64(a, JIT_REG_TEMP1, JIT_REG_TEMP2);
+    arm64_b_cond(a, ARM64_EQ, gen->labels[ctx->yieldEpilogueLabel]);
+
+    /* Reload VM state after call (if not yielding) */
+    emit_reload_vm_state(a);
+
+    /* Branch to epilogue to return result */
+    arm64_b(a, gen->labels[ctx->epilogueLabel]);
+    
+    return 1;
+  }
 
   /*
    * Runtime check: if depth > 0, use helper (can't optimize safely).
@@ -2801,47 +2844,12 @@ int Sg__JitEmit_LOCAL_TAIL_CALL(SgJitContext *ctx, int argc)
 /* Helper to create closure - takes frees pointer from JIT's SP register */
 static SgObject jit_make_closure(SgObject cb, int selfPos, SgObject *frees)
 {
-  int freec = SG_CODE_BUILDER_FREEC(cb);
-  SgObject name = SG_CODE_BUILDER_NAME(cb);
-  
-  /* Trace closures with 4 free vars (like loop in load-from-port/prompt) */
-  if (Sg_JitVerbose() && freec >= 3) {
-    SgVM *vm = Sg_VM();
-    SgObject cl = vm->cl;
-    Sg_Printf(Sg_StandardErrorPort(),
-              UC("JIT_CLOSURE: name=%A freec=%d frees=%p vm->sp=%p\n"),
-              name, freec, frees, vm->sp);
-    Sg_Printf(Sg_StandardErrorPort(),
-              UC("  current vm->cl=%A cl_freec=%d\n"),
-              SG_CLOSUREP(cl) ? SG_PROCEDURE_NAME(cl) : cl,
-              SG_CLOSUREP(cl) ? SG_CODE_BUILDER_FREEC(SG_CLOSURE(cl)->code) : -1);
-    if (SG_CLOSUREP(cl)) {
-      int clfreec = SG_CODE_BUILDER_FREEC(SG_CLOSURE(cl)->code);
-      for (int i = 0; i < clfreec; i++) {
-        Sg_Printf(Sg_StandardErrorPort(),
-                  UC("  cl->frees[%d]=%A\n"), i, SG_CLOSURE(cl)->frees[i]);
-      }
-    }
-    for (int i = 0; i < freec; i++) {
-      Sg_Printf(Sg_StandardErrorPort(),
-                UC("  frees[%d]=%A\n"), i, frees[i]);
-    }
-    Sg_FlushPort(Sg_StandardErrorPort());
-  }
   return Sg_VMMakeClosure(cb, selfPos, frees);
 }
 
 int Sg__JitEmit_CLOSURE(SgJitContext *ctx, int selfPos, SgObject cb, int freec)
 {
   Arm64Asm *a = GET_ASM(ctx);
-
-  /* DEBUG: Print that we're emitting this CLOSURE instruction */
-  if (Sg_JitVerbose()) {
-    Sg_Printf(Sg_StandardErrorPort(),
-              UC("JIT EMIT: CLOSURE selfPos=%d cb=%A freec=%d\n"),
-              selfPos, cb, freec);
-    Sg_FlushPort(Sg_StandardErrorPort());
-  }
 
   /* Save LR first */
   arm64_str_r64_mem_pre(a, ARM64_LR, ARM64_SP, -16);
@@ -2872,6 +2880,15 @@ int Sg__JitEmit_CLOSURE(SgJitContext *ctx, int selfPos, SgObject cb, int freec)
   arm64_mov_r64_r64(a, JIT_REG_TEMP1, ARM64_X0);  /* AC = result closure */
   arm64_ldr_r64_mem(a, ARM64_LR, ARM64_SP, 0);
   arm64_add_r64_r64_imm(a, ARM64_SP, ARM64_SP, 16);
+
+  /* Pop the free variables from the Scheme stack.
+   * The VM does: SP(vm) -= freec before calling Sg_VMMakeClosure.
+   * We must do the same to keep JIT_REG_SCHSP in sync.
+   */
+  if (freec > 0) {
+    int32_t freeBytes = freec * (int32_t)sizeof(SgObject);
+    arm64_sub_r64_r64_imm(a, JIT_REG_SCHSP, JIT_REG_SCHSP, freeBytes);
+  }
 
   return 1;
 }

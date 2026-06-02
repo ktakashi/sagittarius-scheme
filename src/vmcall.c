@@ -181,58 +181,9 @@
     SgClosure * cl = SG_CLOSURE(AC(vm));
     SgCodeBuilder *cb = SG_CODE_BUILDER(cl->code);
 #ifdef HAVE_JIT
-    /* DEBUG: Validate cb pointer */
-    if (!SG_CODE_BUILDERP(cl->code)) {
-      Sg_Printf(Sg_StandardErrorPort(),
-                UC("VM: ERROR - cl->code is not a code builder! cl=%p code=%p tag=%x\n"),
-                cl, cl->code, SG_INTP(cl->code) ? -1 : SG_HTAG(cl->code));
-    }
-    /* DEBUG: Early check for VM pointer in cb->src at CLOSURE entry */
-    if (!SG_FALSEP(cb->src)) {
-      SgObject p;
-      int found_early = 0;
-      SG_FOR_EACH(p, cb->src) {
-        if (SG_PAIRP(p)) {
-          SgObject src = SG_CDR(SG_CAR(p));
-          if (src == (SgObject)vm) {
-            found_early = 1;
-            break;
-          }
-          /* Also check if src is a pair containing VM */
-          if (SG_PAIRP(src)) {
-            SgObject q;
-            SG_FOR_EACH(q, src) {
-              if (q == (SgObject)vm || (SG_PAIRP(q) && SG_CAR(q) == (SgObject)vm)) {
-                found_early = 1;
-                break;
-              }
-            }
-          }
-        }
-        if (found_early) break;
-      }
-      if (found_early) {
-        Sg_Printf(Sg_StandardErrorPort(),
-                  UC("CLOSURE-ENTRY: VM pointer in cb->src!\n"));
-        Sg_Printf(Sg_StandardErrorPort(),
-                  UC("  cl=%A cb=%p callCount=%d size=%d\n"),
-                  cl, cb, cb->callCount, cb->size);
-        Sg_Printf(Sg_StandardErrorPort(),
-                  UC("  cb->code=%p, cb->src=%S\n"),
-                  cb->code, cb->src);
-        /* Print first few bytecodes */
-        Sg_Printf(Sg_StandardErrorPort(), UC("  bytecode: "));
-        for (int i = 0; i < cb->size && i < 5; i++) {
-          Sg_Printf(Sg_StandardErrorPort(), UC("%lx "), (unsigned long)cb->code[i]);
-        }
-        Sg_Printf(Sg_StandardErrorPort(), UC("\n"));
-        Sg_FlushPort(Sg_StandardErrorPort());
-      }
-    }
-#endif
     CHECK_STACK(cb->maxStack, vm);
     ADJUST_ARGUMENT_FRAME(cl, argc);
-#ifdef HAVE_JIT
+    
     /* JIT execution path */
     if (Sg_JitVerbose()) {
       Sg_Printf(Sg_StandardErrorPort(),
@@ -251,27 +202,6 @@
 		  SG_CODE_BUILDER_NAME(cb), FP(vm), FP(vm)[0]);
       }
       jitResult = jitFunc(vm, cl);
-      /* DEBUG: Check for corruption after JIT execution */
-      if (CL(vm) == (SgObject)vm) {
-        Sg_Printf(Sg_StandardErrorPort(),
-                  UC("VM: ERROR: CL(vm) == vm AFTER JIT execution!\n"));
-        Sg_FlushPort(Sg_StandardErrorPort());
-      }
-      /* Check continuation chain for corruption */
-      {
-        SgContFrame *cont = vm->cont;
-        int depth = 0;
-        while (cont && depth < 100) {
-          if (cont->cl == (SgObject)vm) {
-            Sg_Printf(Sg_StandardErrorPort(),
-                      UC("VM: ERROR: cont->cl == vm at depth %d after JIT!\n"),
-                      depth);
-            Sg_FlushPort(Sg_StandardErrorPort());
-          }
-          cont = cont->prev;
-          depth++;
-        }
-      }
       /* For YIELD_PRESERVE_AC, the helper already set vm->ac correctly.
        * Don't overwrite it. For other cases, store the result to AC. */
       if (!SG_JIT_YIELD_PRESERVE_AC_P(jitResult)) {
@@ -332,30 +262,7 @@
 		      UC("VM: AUTO-JIT compiling %A\n"),
 		      SG_CODE_BUILDER_NAME(cb));
 	  }
-	  /* DEBUG: Check vm state before compilation */
-	  if (CL(vm) == (SgObject)vm) {
-	    Sg_Printf(Sg_StandardErrorPort(),
-		      UC("VM: ERROR: CL(vm) == vm before JitCompile!\n"));
-	    Sg_FlushPort(Sg_StandardErrorPort());
-	  }
-	  SgObject saved_cl = CL(vm);
-	  SgObject saved_ac = AC(vm);
 	  cb->jitCode = Sg_JitCompile(cb);
-	  /* DEBUG: Check vm state after compilation */
-	  if (CL(vm) == (SgObject)vm) {
-	    Sg_Printf(Sg_StandardErrorPort(),
-		      UC("VM: ERROR: CL(vm) == vm AFTER JitCompile!\n"));
-	    Sg_Printf(Sg_StandardErrorPort(),
-		      UC("VM: saved_cl=%p, now CL(vm)=%p, saved_ac=%p, AC(vm)=%p\n"),
-		      saved_cl, CL(vm), saved_ac, AC(vm));
-	    Sg_FlushPort(Sg_StandardErrorPort());
-	  }
-	  if (CL(vm) != saved_cl) {
-	    Sg_Printf(Sg_StandardErrorPort(),
-		      UC("VM: WARNING: JitCompile changed CL! saved=%p, now=%p\n"),
-		      saved_cl, CL(vm));
-	    Sg_FlushPort(Sg_StandardErrorPort());
-	  }
 	  if (cb->jitCode != NULL) {
 	    cb->jitFlags = SG_JIT_FLAG_COMPILED;
 	    /* Skip JIT execution on first compile - fall through to interpreter.
@@ -367,73 +274,11 @@
       }
     }
     /* If jitFlags has unexpected value, skip JIT and fall through to interpreter */
-    if (Sg_JitVerbose()) {
-      Sg_Printf(Sg_StandardErrorPort(),
-                UC("VM: DEBUG interpreter fallback cb=%p code=%p sp=%p fp=%p cont=%p\n"),
-                cb, cb->code, vm->sp, vm->fp, vm->cont);
-      /* Debug: check closure and frees */
-      SgObject clos = AC(vm);
-      if (SG_CLOSUREP(clos)) {
-        SgClosure *cl = SG_CLOSURE(clos);
-        Sg_Printf(Sg_StandardErrorPort(),
-                  UC("VM: DEBUG closure=%A freeCount=%d\n"),
-                  clos, SG_CODE_BUILDER(cl->code)->freec);
-        for (int i = 0; i < SG_CODE_BUILDER(cl->code)->freec && i < 3; i++) {
-          Sg_Printf(Sg_StandardErrorPort(),
-                    UC("VM: DEBUG frees[%d]=%A (addr=%p)\n"),
-                    i, cl->frees[i], cl->frees[i]);
-        }
-      }
-      /* Debug: check continuation chain */
-      if (vm->cont) {
-        SgContFrame *cont = vm->cont;
-        Sg_Printf(Sg_StandardErrorPort(),
-                  UC("VM: DEBUG cont->pc=%p cont->cl=%A cont->prev=%p\n"),
-                  cont->pc, cont->cl, cont->prev);
-      }
-    }
 #endif /* HAVE_JIT */
     /* Interpreter fallback */
     CL(vm) = AC(vm);
-    /* DEBUG: Check if CL is corrupt */
-    if (CL(vm) == (SgObject)vm) {
-      Sg_Printf(Sg_StandardErrorPort(),
-                UC("VM: ERROR: CL(vm) == vm after setting from AC(vm)! AC=%p\n"),
-                AC(vm));
-      Sg_FlushPort(Sg_StandardErrorPort());
-    }
-    /* DEBUG: Check continuation chain for corruption */
-    {
-      SgContFrame *cont = vm->cont;
-      int depth = 0;
-      while (cont && depth < 100) {
-        if (cont->cl == (SgObject)vm) {
-          Sg_Printf(Sg_StandardErrorPort(),
-                    UC("VM: ERROR: cont->cl == vm at depth %d! cont=%p pc=%p\n"),
-                    depth, cont, cont->pc);
-          Sg_FlushPort(Sg_StandardErrorPort());
-        }
-        cont = cont->prev;
-        depth++;
-      }
-    }
     PC(vm) = cb->code;
     AC(vm) = SG_UNDEF;		/* make default return value #<unspecified> */
-#ifdef HAVE_JIT
-    if (Sg_JitVerbose()) {
-      Sg_Printf(Sg_StandardErrorPort(),
-                UC("VM: DEBUG after fallback setup: pc=%p c=0x%lx cl=%A\n"),
-                PC(vm), (unsigned long)*PC(vm), CL(vm));
-      /* Force flush to see output before crash */
-      Sg_FlushPort(Sg_StandardErrorPort());
-      /* DEBUG: Check if CL is valid before executing */
-      if (CL(vm) == NULL || !SG_CLOSUREP(CL(vm))) {
-        Sg_Printf(Sg_StandardErrorPort(),
-                  UC("VM: ERROR: Invalid CL=%p before NEXT\n"), CL(vm));
-        Sg_FlushPort(Sg_StandardErrorPort());
-      }
-    }
-#endif
     SG_PROF_COUNT_CALL(vm, CL(vm));
     NEXT;
   } break;

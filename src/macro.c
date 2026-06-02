@@ -137,39 +137,10 @@ static SgObject update_vector_mark(SgObject m, SgObject mark,
 }
 
 
-/* Thread-local depth counter for debugging */
-static __thread int unwrap_depth = 0;
-static __thread SgObject unwrap_parent = SG_FALSE;
-static __thread int unwrap_index = -1;
-
 static SgObject unwrap_rec(SgObject mark, SgObject form, SgObject history)
 {
   SgObject check;
   if (!SG_PTRP(form)) return form;
-
-  /* DEBUG: Check for suspicious pointer that might be VM */
-  {
-    SgVM *vm = Sg_VM();
-    if (form == (SgObject)vm) {
-      Sg_Printf(Sg_StandardErrorPort(),
-                UC("ERROR: unwrap_rec received VM pointer as form!\n"));
-      Sg_Printf(Sg_StandardErrorPort(),
-                UC("  form=%p vm=%p depth=%d\n"), form, vm, unwrap_depth);
-      Sg_Printf(Sg_StandardErrorPort(),
-                UC("  parent=%A parent_index=%d\n"), unwrap_parent, unwrap_index);
-      /* Print history to show path */
-      SgObject cur;
-      int i = 0;
-      Sg_Printf(Sg_StandardErrorPort(), UC("  history (%d items):\n"), (int)Sg_Length(history));
-      SG_FOR_EACH(cur, history) {
-        if (i > 5) break;
-        Sg_Printf(Sg_StandardErrorPort(), UC("    [%d] car=%p cdr=%p\n"), 
-                  i, SG_CAAR(cur), SG_CDAR(cur));
-        i++;
-      }
-      Sg_FlushPort(Sg_StandardErrorPort());
-    }
-  }
 
   check = Sg_Assq(form, history);
   if (!SG_FALSEP(check)) return SG_CDR(check);
@@ -177,26 +148,11 @@ static SgObject unwrap_rec(SgObject mark, SgObject form, SgObject history)
   if (Sg_ConstantLiteralP(form)) return form;
 
   if (SG_PAIRP(form)) {
-    SgObject ca, cd;
     SgObject m = make_cycle_mark(mark, form);
     SgObject newh = Sg_Acons(form, m, history);
 
-    /* Track parent for debugging */
-    SgObject saved_parent = unwrap_parent;
-    int saved_index = unwrap_index;
-    unwrap_depth++;
-    
-    unwrap_parent = form;
-    unwrap_index = 0;  /* car */
-    ca = unwrap_rec(mark, SG_CAR(form), newh);
-    
-    unwrap_index = 1;  /* cdr */
-    cd = unwrap_rec(mark, SG_CDR(form), newh);
-    
-    unwrap_parent = saved_parent;
-    unwrap_index = saved_index;
-    unwrap_depth--;
-    
+    SgObject ca = unwrap_rec(mark, SG_CAR(form), newh);
+    SgObject cd = unwrap_rec(mark, SG_CDR(form), newh);
     if (ca == SG_CAR(form) && cd == SG_CDR(form)) {
       return form;
     } else {

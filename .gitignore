@@ -76,6 +76,7 @@ sagittarius-package
 /src/sagittarius/private/builtin-keywords.h
 /src/lib_vmdebug.c
 /src/lib_vm.c
+/src/lib_jit.c
 /src/lib_treemap.c
 /src/lib_sandbox.c
 /src/lib_sagittarius.c

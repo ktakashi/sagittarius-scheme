@@ -119,6 +119,10 @@ extern void Sg__InitComparator();
 extern void Sg__PostInitVM();
 extern void Sg__PostInitCache();
 
+#if HAVE_JIT
+extern void Sg__Init_sagittarius_jit();
+#endif
+
 #define IS_NEW_GC_VERSION (GC_VERSION_MAJOR == 7 && GC_VERSION_MINOR >= 2) \
   || GC_VERSION_MAJOR > 7
 
@@ -229,7 +233,10 @@ void Sg_Init()
   Sg__Init_sagittarius_fixnums();
   Sg__Init_sagittarius_flonums();
   Sg__Init_sagittarius_treemap();
-  
+#if HAVE_JIT
+  Sg__Init_sagittarius_jit();
+#endif
+
   /* this is scmlib.scm */
   Sg__Init_core_base();
   /* record can be here. */

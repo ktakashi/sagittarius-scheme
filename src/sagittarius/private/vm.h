@@ -507,6 +507,7 @@ SG_EXTERN SgObject Sg_CurrentExceptionHandlersMark();
 SG_EXTERN void  Sg_JitPushContMarks(SgVM *vm, SgContFrame *cont);
 SG_EXTERN void  Sg_JitSetReturnMark(SgVM *vm, void *returnAddr);
 SG_EXTERN void* Sg_JitGetReturnMark(SgVM *vm);
+SG_EXTERN void* Sg_JitGetReturnMarkForCont(SgVM *vm, SgContFrame *cont);
 SG_EXTERN void  Sg_JitPopContMarks(SgVM *vm, SgContFrame *cont);
 SG_EXTERN void  Sg__InitJitMarks(void);
 #endif
