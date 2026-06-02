@@ -29,7 +29,9 @@
  */
 #include <string.h>
 #include "sagittarius/private.h"
+#ifdef HAVE_JIT
 #include "jit/jit.h"
+#endif
 
 /* should we use _WIN32? */
 #if defined(_MSC_VER)

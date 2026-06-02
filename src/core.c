@@ -119,7 +119,7 @@ extern void Sg__InitComparator();
 extern void Sg__PostInitVM();
 extern void Sg__PostInitCache();
 
-#if HAVE_JIT
+#ifdef HAVE_JIT
 extern void Sg__Init_sagittarius_jit();
 #endif
 
@@ -233,7 +233,7 @@ void Sg_Init()
   Sg__Init_sagittarius_fixnums();
   Sg__Init_sagittarius_flonums();
   Sg__Init_sagittarius_treemap();
-#if HAVE_JIT
+#ifdef HAVE_JIT
   Sg__Init_sagittarius_jit();
 #endif
 

@@ -1073,9 +1073,8 @@ static SgObject next_eval_cc(SgObject v, void **data)
 SgObject Sg_VMEval(SgObject sexp, SgObject env)
 {
   SgVM *vm = theVM;
-  void **data;
-  
-  data = vm_new_cont(next_eval_cc, 1);
+  void **data = vm_new_cont(next_eval_cc, 1);
+
   data[0] = env;
   if (vm->state != IMPORTING) vm->state = COMPILING;
   return Sg_VMCompile(sexp, env);

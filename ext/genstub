@@ -3,14 +3,10 @@
 (add-load-path "../lib")
 (import (sagittarius cgen stub)
 	(sagittarius)
-	(sagittarius vm)          ;; For JIT control
 	(util file)
 	(shorten)
 	(srfi :26 cut)
 	(srfi :39 parameters))
-
-;; Disable JIT during stub generation to avoid crashes
-(disable-jit!)
 
 (define stub-gensym
   (let ((counter 0))

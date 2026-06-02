@@ -88,16 +88,6 @@ SgObject Sg_VMMakeClosure(SgObject code, int self_pos, SgObject *frees)
 
 SgObject Sg_MakeClosure(SgObject code, SgObject *frees)
 {
-  int freec = SG_CODE_BUILDER_FREEC(code);
-  if (freec > 0 && frees == NULL) {
-    Sg_Printf(Sg_StandardErrorPort(),
-              UC("BUG: Sg_MakeClosure called with freec=%d but frees=NULL\n"),
-              freec);
-    Sg_Printf(Sg_StandardErrorPort(),
-              UC("BUG: code=%A name=%A\n"), code,
-              SG_CODE_BUILDER(code)->name ? SG_CODE_BUILDER(code)->name : SG_FALSE);
-    Sg_FlushPort(Sg_StandardErrorPort());
-  }
   return Sg_VMMakeClosure(code, 0, frees);
 }
 

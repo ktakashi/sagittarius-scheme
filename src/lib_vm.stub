@@ -2,12 +2,11 @@
 #!compatible
 (library (sagittarius vm)
     (export :all)
-    (import (core))
+    (import :none)
   (decl-code
    (.define "LIBSAGITTARIUS_BODY")
    (.include <sagittarius/private.h>
-	     <sagittarius/private/instruction.h>
-	     "jit/jit.h"))
+	     <sagittarius/private/instruction.h>))
 
   ;; TODO duplicated definition in Scheme
   (decl-code
