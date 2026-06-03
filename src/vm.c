@@ -66,6 +66,10 @@
 #include "sagittarius/private/thread.h"
 #include "sagittarius/private/unicode.h"
 
+#ifdef HAVE_JIT
+#include "jit/jit.h"
+#endif
+
 static SgInternalMutex global_lock;
 
 static SgKernel *root = NULL;	/* main kernel */
@@ -236,6 +240,9 @@ SgVM* Sg_NewThreadVM(SgVM *proto, SgObject name)
   v->escapeReason = SG_VM_ESCAPE_NONE;
   v->escapeData[0] = NULL;
   v->escapeData[1] = NULL;
+#ifdef HAVE_JIT
+  Sg_InitJitContext(v);
+#endif
   v->cache = SG_NIL;
   v->cstack = NULL;
   v->prompts = NULL;
@@ -1067,6 +1074,7 @@ SgObject Sg_VMEval(SgObject sexp, SgObject env)
 {
   SgVM *vm = theVM;
   void **data = vm_new_cont(next_eval_cc, 1);
+
   data[0] = env;
   if (vm->state != IMPORTING) vm->state = COMPILING;
   return Sg_VMCompile(sexp, env);
@@ -1791,6 +1799,11 @@ static SgContFrame * splice_cont(SgVM *vm, SgContFrame *saved,
   return top;
 }
 
+#ifdef HAVE_JIT
+/* Forward declaration - defined later with other JIT mark functions */
+static void clear_jit_return_marks(SgVM *vm);
+#endif
+
 static SgContMarks * splice_marks(SgVM *vm, SgContMarks *marks)
 {
   /* here we need to copy the mark chain like the cont */
@@ -1992,6 +2005,13 @@ static SgObject cont_invoke_complete(ContInvokeCtx *ctx)
 {
   SgVM *vm = theVM;
 
+#ifdef HAVE_JIT
+  if (Sg_JitVerbose()) {
+    Sg_Printf(Sg_StandardErrorPort(),
+              UC("JIT: cont_invoke_complete called, op=%d\n"), ctx->op);
+  }
+#endif
+
   switch (ctx->op) {
   case CONT_OP_THROW: {
     /* Regular continuation throw completion */
@@ -2004,6 +2024,12 @@ static SgObject cont_invoke_complete(ContInvokeCtx *ctx)
       /* Composable continuation: add frames atop current continuation */
       vm->cont = splice_cont(vm, c->cont, prompt);
       vm->marks = splice_marks(vm, c->marks);
+#ifdef HAVE_JIT
+      /* Clear JIT return marks AND returnAddr since stack layout changes fundamentally.
+       * If we don't clear returnAddr, JIT might re-enter with wrong state. */
+      clear_jit_return_marks(vm);
+      vm->jitContext.returnAddr = NULL;
+#endif
       if (c->winders != vm->dynamicWinders) {
 	SgObject to_merge = capture_prompt_winders(prompt, c->winders);
 	vm->dynamicWinders = merge_winders(to_merge, vm->dynamicWinders);
@@ -2025,6 +2051,7 @@ static SgObject cont_invoke_complete(ContInvokeCtx *ctx)
     SgObject args = ctx->arg1;
 
     SgPromptNode *node = remove_prompts(vm, prompt->tag);
+        
     if (!node) {
       CONT_ERR("delimited-continuation",
 	       "Stale prompt in delimited continuation", prompt->tag);
@@ -2046,6 +2073,11 @@ static SgObject cont_invoke_complete(ContInvokeCtx *ctx)
 	save_cont(vm);
 	vm->cont = splice_cont(vm, c->cont, prompt);
 	vm->marks = splice_marks(vm, c->marks);
+#ifdef HAVE_JIT
+	/* Clear JIT return marks AND returnAddr since stack layout changes fundamentally */
+	clear_jit_return_marks(vm);
+	vm->jitContext.returnAddr = NULL;
+#endif
       }
       return throw_continuation_end(vm, args);
     }
@@ -2099,6 +2131,11 @@ static SgObject cont_invoke_complete(ContInvokeCtx *ctx)
     if (prompt && c->type == SG_COMPOSABLE_CONTINUATION) {
       vm->cont = splice_cont(vm, c->cont, prompt);
       vm->marks = splice_marks(vm, c->marks);
+#ifdef HAVE_JIT
+      /* Clear JIT return marks AND returnAddr since stack layout changes fundamentally */
+      clear_jit_return_marks(vm);
+      vm->jitContext.returnAddr = NULL;
+#endif
       if (c->winders != vm->dynamicWinders) {
 	SgObject to_merge = capture_prompt_winders(prompt, c->winders);
 	vm->dynamicWinders = merge_winders(to_merge, vm->dynamicWinders);
@@ -3010,6 +3047,123 @@ SgMarkEntry * Sg_CurrentFirstContinuationMark(SgObject promptTag, SgObject key)
   SgVM *vm = theVM;
   return first_continuation_mark(vm, vm->cont, vm->marks, promptTag, key);
 }
+
+#ifdef HAVE_JIT
+/*
+ * JIT Continuation Mark Support
+ *
+ * These functions allow JIT code to associate return addresses with
+ * continuation frames via the mark system. This ensures proper handling
+ * when continuations are captured and restored.
+ */
+
+/* Unique key for JIT return address marks */
+static SgObject jit_return_addr_key = SG_FALSE;
+
+/* Push a new mark frame for a continuation frame (called from JIT FRAME) */
+void Sg_JitPushContMarks(SgVM *vm, SgContFrame *cont)
+{
+  SgContMarks *cm = SG_NEW(SgContMarks);
+  cm->frame = cont;
+  cm->entries = NULL;
+  cm->prev = vm->marks;
+  vm->marks = cm;
+}
+
+/* Set JIT return address mark in the current mark frame */
+void Sg_JitSetReturnMark(SgVM *vm, void *returnAddr)
+{
+  if (vm->marks && returnAddr) {
+    SgMarkEntry *e = SG_NEW(SgMarkEntry);
+    e->key = jit_return_addr_key;
+    e->value = (SgObject)returnAddr;  /* Store raw pointer */
+    e->next = vm->marks->entries;
+    vm->marks->entries = e;
+  }
+}
+
+/* Get JIT return address from the mark frame for a specific continuation.
+ *
+ * IMPORTANT: We only return a mark if it belongs to the specified continuation
+ * frame. This prevents incorrectly re-entering JIT code when popping an
+ * intermediate C continuation frame (e.g., from a SUBR like `eval`) while
+ * a JIT return mark exists for a different (outer) frame.
+ *
+ * Bug fixed: Previously, this function would return ANY mark found in the chain,
+ * which caused CHECK_JIT_REENTRY_BEFORE_POP to restore VM state from the wrong
+ * continuation frame (e.g., a C frame with fp=0), leading to SIGSEGV crashes
+ * when using (load "...") with JIT enabled.
+ */
+void* Sg_JitGetReturnMarkForCont(SgVM *vm, SgContFrame *cont)
+{
+  /* Only return mark if the current mark frame matches this continuation */
+  if (vm->marks && vm->marks->frame == cont && vm->marks->entries) {
+    SgMarkEntry *entry = vm->marks->entries;
+    while (entry) {
+      if (entry->key == jit_return_addr_key) {
+        return (void*)entry->value;
+      }
+      entry = entry->next;
+    }
+  }
+  return NULL;
+}
+
+/* Convenience function: get return mark for current continuation frame.
+ * Used for debugging output in vminsn.c.
+ */
+void* Sg_JitGetReturnMark(SgVM *vm)
+{
+  return Sg_JitGetReturnMarkForCont(vm, CONT(vm));
+}
+
+/* Pop the current mark frame (called when RET pops continuation) */
+void Sg_JitPopContMarks(SgVM *vm, SgContFrame *cont)
+{
+  /* Pop mark frames until we find one that doesn't match this cont frame,
+     or until we run out of marks */
+  while (vm->marks && vm->marks->frame == cont) {
+    vm->marks = vm->marks->prev;
+  }
+}
+
+/* Clear all JIT return marks from the mark chain.
+ * Called when composable continuations are invoked because the stack layout
+ * changes fundamentally and JIT re-entry would fail.
+ */
+static void clear_jit_return_marks(SgVM *vm)
+{
+  SgContMarks *marks = vm->marks;
+  int cleared = 0;
+  while (marks) {
+    SgMarkEntry *prev = NULL;
+    SgMarkEntry *entry = marks->entries;
+    while (entry) {
+      if (entry->key == jit_return_addr_key) {
+        cleared++;
+        /* Remove this entry from the list */
+        if (prev) {
+          prev->next = entry->next;
+        } else {
+          marks->entries = entry->next;
+        }
+        /* Don't update prev, move to next */
+        entry = entry->next;
+      } else {
+        prev = entry;
+        entry = entry->next;
+      }
+    }
+    marks = marks->prev;
+  }
+}
+
+/* Initialize JIT mark key - call during VM init */
+void Sg__InitJitMarks()
+{
+  jit_return_addr_key = Sg_MakeSymbol(SG_MAKE_STRING("jit-return-address"), FALSE);
+}
+#endif /* HAVE_JIT */
 
 /* given load path must be unshifted.
    NB: we don't check the validity of given path.
@@ -4012,8 +4166,74 @@ static void process_queued_requests(SgVM *vm)
       /* no more continuation */				\
       return AC(vm);						\
     }								\
+    /* Check for JIT re-entry BEFORE popping (marks have return addr) */ \
+    CHECK_JIT_REENTRY_BEFORE_POP(vm, cont__);			\
     POP_CONT_DIRECT(cont__);					\
   } while (0)							\
+
+/* JIT re-entry check: if a JIT function yielded to interpreter,
+ * and now the callee has returned, we need to re-enter JIT code.
+ * This must be called BEFORE the marks are popped, since the return
+ * address is stored in the marks.
+ * Before re-entering, we must restore VM state from the continuation
+ * frame (sp, fp, cl) since the callee may have modified them.
+ *
+ * NOTE: If the JIT code yields again (e.g., TAIL_CALL), we must
+ * continue the VM loop instead of returning from run_loop. */
+#ifdef HAVE_JIT
+#define CHECK_JIT_REENTRY_BEFORE_POP(vm_, cont__)			\
+  do {									\
+    /* Use Sg_JitGetReturnMarkForCont to check if this specific */	\
+    /* continuation frame has a JIT return mark. This prevents */	\
+    /* incorrectly re-entering JIT when popping an intermediate */	\
+    /* C frame while a mark exists for a different frame. */		\
+    void *retAddr__ = Sg_JitGetReturnMarkForCont(vm_, cont__);		\
+    if (retAddr__ != NULL) {						\
+      SgObject result__;						\
+      /* Pop marks for this frame before re-entering */			\
+      Sg_JitPopContMarks(vm_, cont__);					\
+      /* Restore VM state from continuation frame (like POP_CONT_DIRECT). \
+       * The callee may have changed cl/fp, so we must restore. */	\
+      CL(vm_) = (cont__)->cl;						\
+      /* Pop the continuation frame itself */				\
+      CONT(vm_) = (cont__)->prev;					\
+      /* Handle stack vs heap continuation frames differently */	\
+      if (IN_STACK_P((SgObject *)(cont__), vm_)) {			\
+        /* In-stack frame: use fp directly */				\
+        FP(vm_) = (cont__)->fp;						\
+        SP(vm_) = FP(vm_) + (cont__)->size;				\
+      } else {								\
+        /* Heap frame: copy env to stack base (like POP_CONT_DIRECT) */ \
+        int size__ = (cont__)->size;					\
+        FP(vm_) = SP(vm_) = (vm_)->stack;				\
+        if (size__ > 0) {						\
+          SgObject *s__ = (cont__)->env, *d__ = SP(vm_);		\
+          SP(vm_) += size__;						\
+          while (size__-- > 0) { *d__++ = *s__++; }			\
+        }								\
+      }									\
+      /* Re-enter JIT code with the return address */			\
+      result__ = Sg__JitReenterAt(vm_, retAddr__);			\
+      /* Check if JIT yielded again (e.g., TAIL_CALL) */		\
+      if (SG_JIT_YIELD_P(result__)) {					\
+        /* JIT helper already set up VM state for callee */		\
+        /* Only clear AC if not PRESERVE_AC */				\
+        if (!SG_JIT_YIELD_PRESERVE_AC_P(result__)) {			\
+          AC(vm_) = SG_UNDEF;						\
+        }								\
+        NEXT;  /* Continue VM loop with callee's code */		\
+      }									\
+      /* JIT completed normally - need to return from caller */		\
+      /* JIT already executed from contPc to RET, so we should */	\
+      /* trigger another RET to pop the next continuation. */		\
+      AC(vm_) = result__;						\
+      PC(vm_) = PC_TO_RETURN;						\
+      NEXT;								\
+    }									\
+  } while (0)
+#else
+#define CHECK_JIT_REENTRY_BEFORE_POP(vm_, cont__) ((void)0)
+#endif
 
 /*
   print call frames
@@ -4459,6 +4679,9 @@ void Sg__InitVM()
 #endif
   sym_continuation = Sg_MakeSymbol(SG_MAKE_STRING("continuation"), FALSE);
   cont_mark_set_sym = Sg_MakeSymbol(SG_MAKE_STRING("continuation mark set"), FALSE);
+#ifdef HAVE_JIT
+  Sg__InitJitMarks();
+#endif
 #ifdef _WIN32
   SymInitialize(GetCurrentProcess(), NULL, TRUE);
 #endif

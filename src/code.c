@@ -236,6 +236,12 @@ SgCodeBuilder* Sg_MakeCodeBuilderFromCache(SgObject name, SgWord *code, int size
   cb->maxStack = maxStack;
   cb->name = name;
   cb->src = SG_NIL;
+#ifdef HAVE_JIT
+  /* Explicitly initialize JIT fields to prevent garbage */
+  cb->jitCode = NULL;
+  cb->callCount = 0;
+  cb->jitFlags = 0;
+#endif
   return cb;
 }
 

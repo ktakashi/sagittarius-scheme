@@ -148,12 +148,11 @@ static SgObject unwrap_rec(SgObject mark, SgObject form, SgObject history)
   if (Sg_ConstantLiteralP(form)) return form;
 
   if (SG_PAIRP(form)) {
-    SgObject ca, cd;
     SgObject m = make_cycle_mark(mark, form);
     SgObject newh = Sg_Acons(form, m, history);
 
-    ca = unwrap_rec(mark, SG_CAR(form), newh);
-    cd = unwrap_rec(mark, SG_CDR(form), newh);
+    SgObject ca = unwrap_rec(mark, SG_CAR(form), newh);
+    SgObject cd = unwrap_rec(mark, SG_CDR(form), newh);
     if (ca == SG_CAR(form) && cd == SG_CDR(form)) {
       return form;
     } else {

@@ -182,6 +182,100 @@
     SgCodeBuilder *cb = SG_CODE_BUILDER(cl->code);
     CHECK_STACK(cb->maxStack, vm);
     ADJUST_ARGUMENT_FRAME(cl, argc);
+
+#ifdef HAVE_JIT
+    /* JIT execution path */
+    if (Sg_JitVerbose()) {
+      Sg_Printf(Sg_StandardErrorPort(),
+		UC("VM: Calling closure %A, cb=%p jitFlags=%d, jitCode=%p\n"),
+		SG_CODE_BUILDER_NAME(cb), cb, cb->jitFlags, cb->jitCode);
+    }
+    if (Sg_JitEnabled() && cb->jitFlags == SG_JIT_FLAG_COMPILED && cb->jitCode != NULL) {
+      /* Execute JIT-compiled code */
+      SgJitCompiledCode jitFunc = (SgJitCompiledCode)cb->jitCode;
+      SgObject jitResult;
+      CL(vm) = AC(vm);
+      SG_PROF_COUNT_CALL(vm, CL(vm));
+      if (Sg_JitVerbose()) {
+	Sg_Printf(Sg_StandardErrorPort(),
+		  UC("VM: Executing JIT code for %A FP=%p FP[0]=%A\n"),
+		  SG_CODE_BUILDER_NAME(cb), FP(vm), FP(vm)[0]);
+      }
+      jitResult = jitFunc(vm, cl);
+      /* For YIELD_PRESERVE_AC, the helper already set vm->ac correctly.
+       * Don't overwrite it. For other cases, store the result to AC. */
+      if (!SG_JIT_YIELD_PRESERVE_AC_P(jitResult)) {
+        AC(vm) = jitResult;
+      }
+      if (Sg_JitVerbose()) {
+	int isYield = SG_JIT_YIELD_P(jitResult);
+	if (!isYield) {
+	  Sg_Printf(Sg_StandardErrorPort(),
+		    UC("VM: JIT code returned AC=%A (yield=0)\n"),
+		    AC(vm));
+	} else {
+	  Sg_Printf(Sg_StandardErrorPort(),
+		    UC("VM: JIT code returned (yield=%d, preserveAC=%d)\n"),
+		    isYield, SG_JIT_YIELD_PRESERVE_AC_P(jitResult));
+	}
+      }
+      /* Check for yield marker - JIT wants interpreter to continue */
+      if (SG_JIT_YIELD_P(jitResult)) {
+        if (Sg_JitVerbose()) {
+          if (SG_JIT_YIELD_PRESERVE_AC_P(jitResult)) {
+            Sg_Printf(Sg_StandardErrorPort(),
+                      UC("VM: JIT yielded to interpreter for %A (PRESERVE_AC, AC=%A)\n"),
+                      CL(vm), AC(vm));
+          } else {
+            Sg_Printf(Sg_StandardErrorPort(),
+                      UC("VM: JIT yielded to interpreter for %A\n"),
+                      CL(vm));
+          }
+        }
+        /* VM state is already set up by JIT helper, just continue.
+         * For normal yield, clear AC. For YIELD_PRESERVE_AC, AC is already set. */
+        if (!SG_JIT_YIELD_PRESERVE_AC_P(jitResult)) {
+          AC(vm) = SG_UNDEF;
+        }
+        NEXT;
+      }
+      /* JIT function completed entire closure - return to caller */
+      RET_INSN();
+      CHECK_ATTENTION;
+      NEXT;
+    } else if (Sg_JitEnabled() && cb != NULL && cb->jitFlags == 0 &&
+               vm->state != COMPILING && vm->state != IMPORTING &&
+               !SG_JIT_CONTEXT_ACTIVE(vm)) {
+      /* Track call count for hot code detection.
+       * Skip JIT when in COMPILING/IMPORTING state to prevent compiler
+       * code from being JIT compiled.
+       * Also skip when inside JIT execution to prevent JIT-during-JIT. */
+      cb->callCount++;
+      uint32_t count = cb->callCount;
+      int threshold = Sg_GetJitThreshold();
+      if ((int)count >= threshold) {
+        /* Mark as "compiling" to prevent double compilation */
+	if (cb->jitFlags == 0) {
+	  cb->jitFlags = SG_JIT_FLAG_COMPILING;
+	  if (Sg_JitVerbose()) {
+	    Sg_Printf(Sg_StandardErrorPort(),
+		      UC("VM: AUTO-JIT compiling %A\n"),
+		      SG_CODE_BUILDER_NAME(cb));
+	  }
+	  cb->jitCode = Sg_JitCompile(cb);
+	  if (cb->jitCode != NULL) {
+	    cb->jitFlags = SG_JIT_FLAG_COMPILED;
+	    /* Skip JIT execution on first compile - fall through to interpreter.
+	     * This allows the JIT code to be used on subsequent calls. */
+	  } else {
+	    cb->jitFlags = SG_JIT_FLAG_FAILED;
+	  }
+	}
+      }
+    }
+    /* If jitFlags has unexpected value, skip JIT and fall through to interpreter */
+#endif /* HAVE_JIT */
+    /* Interpreter fallback */
     CL(vm) = AC(vm);
     PC(vm) = cb->code;
     AC(vm) = SG_UNDEF;		/* make default return value #<unspecified> */

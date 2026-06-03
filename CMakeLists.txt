@@ -14,6 +14,7 @@ OPTION(INSTALL_SRFI_138 "Create symlink of SRFI-138 (compile-r7rs) script" ON)
 OPTION(USE_SSE "Try to use SSE or AVX if supported (only on POSIX)" ON)
 OPTION(SKIP_TEST_VECTOR "Skip crypto test vector test" OFF)
 OPTION(DEBUG_GENSTUB "Stub generation debugging" OFF)
+OPTION(ENABLE_JIT "Enable JIT compilation support (experimental)" OFF)
 
 IF (MSVC)
   OPTION(MAKE_XP_BINARY "create XP compatible binary" OFF)
@@ -427,9 +428,40 @@ ENDIF()
 
 SET(SHLIB_SO_SUFFIX "${CMAKE_SHARED_LIBRARY_SUFFIX}")
 
+# JIT compilation support (global - affects all modules including ext/)
+# Only enabled when ENABLE_JIT=ON and architecture is supported
+IF(ENABLE_JIT)
+  IF(${SAGITTARIUS_PROCESSOR} STREQUAL "arm64")
+    SET(JIT_ARCH "arm64")
+    SET(HAVE_JIT ON)
+  ELSEIF(${SAGITTARIUS_PROCESSOR} STREQUAL "x86_64")
+    SET(JIT_ARCH "x86_64")
+    SET(HAVE_JIT ON)
+  ELSEIF(${SAGITTARIUS_PROCESSOR} MATCHES "^i.86" OR
+         ${SAGITTARIUS_PROCESSOR} STREQUAL "x86")
+    SET(JIT_ARCH "x86")
+    SET(HAVE_JIT ON)
+  ELSEIF(${SAGITTARIUS_PROCESSOR} MATCHES "^arm")
+    SET(JIT_ARCH "arm")
+    SET(HAVE_JIT ON)
+  ELSE()
+    SET(HAVE_JIT OFF)
+  ENDIF()
+ELSE()
+  SET(HAVE_JIT OFF)
+ENDIF()
+
 CONFIGURE_FILE(cmake/config-cmake.h.in 
   ${PROJECT_BINARY_DIR}/sagittarius/config.h)
 ADD_DEFINITIONS(-DHAVE_CONFIG_H)
+
+IF(HAVE_JIT)
+  MESSAGE(STATUS "JIT enabled for architecture: ${JIT_ARCH} (experimental)")
+ELSEIF(ENABLE_JIT)
+  MESSAGE(STATUS "JIT requested but not supported on this architecture")
+ELSE()
+  MESSAGE(STATUS "JIT disabled (use -DENABLE_JIT=ON to enable)")
+ENDIF()
 
 SET(SAGITTARIUS_EXT_FEATURES ${PROJECT_BINARY_DIR}/ext-features.inc)
 

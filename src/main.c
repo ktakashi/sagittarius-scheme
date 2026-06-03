@@ -29,6 +29,9 @@
  */
 #include <string.h>
 #include "sagittarius/private.h"
+#ifdef HAVE_JIT
+#include "jit/jit.h"
+#endif
 
 /* should we use _WIN32? */
 #if defined(_MSC_VER)
@@ -256,6 +259,9 @@ static void show_usage(int errorp)
 	  "    	trace       Shows info debug + stack frames.\n"
 	  "  -p<file>,--logport=<file>      Sets <file> as log port. This port will be\n"
 	  "                                 used for above options.\n"
+#ifdef HAVE_JIT
+	  "  -j,--jit       Enable JIT (experimental).\n"
+#endif
 #ifdef SAGITTARIUS_PROFILE
 	  "  -P<time>,--profile<time>       Run with profiler.\n"
 	  "     time        Sort by time\n"
@@ -532,6 +538,9 @@ int real_main(int argc, tchar **argv)
   int opt, optionIndex = 0, off = 0;
   int forceInteactiveP = FALSE, noMainP = FALSE, standard_given = FALSE;
   int load_base_library = TRUE;
+#ifdef HAVE_JIT
+  int jit_requested = FALSE;  /* Track user's -j request, enable after startup */
+#endif
   SgVM *vm;
   SgObject preimport = SG_NIL;
   SgObject expr = SG_FALSE, args = SG_NIL;
@@ -559,6 +568,9 @@ int real_main(int argc, tchar **argv)
     {t("toplevel-only"), 0, 0, 't'},
     {t("expr"), optional_argument, 0, 'e'},
     {t("gc-warning"), 0, 0, 'G'},
+#ifdef HAVE_JIT
+    {t("jit"), 0, 0, 'j'},
+#endif
 #ifdef SAGITTARIUS_PROFILE
     {t("profile"), optional_argument, 0, 'P'},
 #endif
@@ -570,9 +582,15 @@ int real_main(int argc, tchar **argv)
   vm = Sg_VM();
   SG_VM_SET_FLAG(vm, SG_COMPATIBLE_MODE);
   Sg_GCSetPrintWarning(FALSE);	/* default off */
+#ifdef HAVE_JIT
+  while ((opt = getopt_long(argc, argv, 
+			    t("L:A:D:Y:S:F:f:I:hE:vicdp:P:sntr:e:Gj"),
+			    long_options, &optionIndex)) != -1) {
+#else
   while ((opt = getopt_long(argc, argv, 
 			    t("L:A:D:Y:S:F:f:I:hE:vicdp:P:sntr:e:G"),
 			    long_options, &optionIndex)) != -1) {
+#endif
     switch (opt) {
     case 't': load_base_library = FALSE; break;
     case 'E':
@@ -715,6 +733,13 @@ int real_main(int argc, tchar **argv)
     case 'd':
       SG_VM_SET_FLAG(vm, SG_DISABLE_CACHE);
       break;
+#ifdef HAVE_JIT
+    case 'j':
+      /* Don't enable JIT immediately - wait until after base library loading
+       * to ensure initialization and compilation use the interpreter */
+      jit_requested = TRUE;
+      break;
+#endif
 #ifdef SAGITTARIUS_PROFILE
     case 'P':
       profiler_mode = TRUE;
@@ -784,6 +809,39 @@ int real_main(int argc, tchar **argv)
     fmt[off++] = 'i';
     args = Sg_Cons(SG_MAKE_BOOL(forceInteactiveP), args);
   }
+
+#ifdef HAVE_JIT
+  /* Enable JIT now if requested, after base library loading is complete.
+   * This ensures initialization and compilation use the interpreter.
+   * JIT can be enabled via:
+   * - Command line: -j or --jit
+   * - Environment: SAGITTARIUS_JIT=1
+   * JIT threshold:
+   * - Environment: SAGITTARIUS_JIT_THRESHOLD=N
+   * JIT verbose:
+   * - Environment: SAGITTARIUS_JIT_VERBOSE=1 */
+  if (jit_requested) {
+    Sg_SetJitEnabled(TRUE);
+  } else {
+    const char *jit_env = getenv("SAGITTARIUS_JIT");
+    if (jit_env && strcmp(jit_env, "1") == 0) {
+      Sg_SetJitEnabled(TRUE);
+    }
+  }
+  {
+    const char *threshold_env = getenv("SAGITTARIUS_JIT_THRESHOLD");
+    if (threshold_env) {
+      int threshold = atoi(threshold_env);
+      if (threshold > 0) {
+        Sg_SetJitThreshold(threshold);
+      }
+    }
+    const char *verbose_env = getenv("SAGITTARIUS_JIT_VERBOSE");
+    if (verbose_env && strcmp(verbose_env, "1") == 0) {
+      Sg_SetJitVerbose(TRUE);
+    }
+  }
+#endif
 
   Sg_Start((optind_s < argc) ? SG_STRING(make_scheme_string(argv[optind_s]))
 	   : (!isatty(0) && !forceInteactiveP) ? Sg_CurrentInputPort()

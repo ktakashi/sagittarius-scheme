@@ -313,6 +313,25 @@ struct SgVMRec
   SgVMEscapeReason escapeReason;
   void      *escapeData[2];
 
+#ifdef HAVE_JIT
+  /* JIT context for exception recovery and re-entry.
+   * When JIT code calls C helpers that might throw exceptions,
+   * we need to save the JIT register state so it can be restored
+   * after longjmp bypasses the JIT epilogue.
+   *
+   * When JIT yields for a CALL instruction, returnAddr stores the
+   * native code address to re-enter after the callee returns.
+   */
+  struct {
+    int       active;           /* Is JIT code currently executing? */
+    SgObject *savedSp;          /* Saved Scheme stack pointer */
+    SgObject *savedFp;          /* Saved Scheme frame pointer */
+    SgObject  savedCl;          /* Saved current closure */
+    intptr_t  savedDepth;       /* Saved recursion depth (64-bit for JIT asm access) */
+    void     *returnAddr;       /* JIT re-entry address after CALL yield */
+  } jitContext;
+#endif
+
   /* libraries */
   SgObject   currentLibrary;
   /* dynamic winders */
@@ -482,6 +501,17 @@ SG_EXTERN SgMarkEntry * Sg_FirstContinuationMark(SgObject k, SgObject promptTag,
 SG_EXTERN SgMarkEntry * Sg_CurrentFirstContinuationMark(SgObject promptTag,
 							SgObject key);
 SG_EXTERN SgObject Sg_CurrentExceptionHandlersMark();
+
+#ifdef HAVE_JIT
+/* JIT continuation mark support */
+SG_EXTERN void  Sg_JitPushContMarks(SgVM *vm, SgContFrame *cont);
+SG_EXTERN void  Sg_JitSetReturnMark(SgVM *vm, void *returnAddr);
+SG_EXTERN void* Sg_JitGetReturnMark(SgVM *vm);
+SG_EXTERN void* Sg_JitGetReturnMarkForCont(SgVM *vm, SgContFrame *cont);
+SG_EXTERN void  Sg_JitPopContMarks(SgVM *vm, SgContFrame *cont);
+SG_EXTERN void  Sg__InitJitMarks(void);
+#endif
+
 SG_EXTERN SgVM*    Sg_VM();	/* get vm */
 SG_EXTERN int      Sg_SetCurrentVM(SgVM *vm);
 SG_EXTERN int      Sg_AttachVM(SgVM *vm);
