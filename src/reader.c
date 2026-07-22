@@ -1936,7 +1936,7 @@ int Sg_PortCaseInsensitiveP(SgPort *port)
   return FALSE;
 }
 
-static SgInternalMutex obtable_mutax;
+static SgInternalMutex obtable_mutex;
 static SgHashTable *obtable = NULL;
 
 int Sg_ConstantLiteralP(SgObject o)
@@ -1958,7 +1958,7 @@ int Sg_ConstantLiteralP(SgObject o)
 SgObject Sg_AddConstantLiteral(SgObject o)
 {
   SgObject e;
-  Sg_LockMutex(&obtable_mutax);
+  Sg_LockMutex(&obtable_mutex);
   e = Sg_HashTableRef(obtable, o, SG_UNBOUND);
   if (SG_UNBOUNDP(e)) {
     Sg_HashTableSet(obtable, o, o, SG_HASH_NO_OVERWRITE);
@@ -1982,7 +1982,7 @@ SgObject Sg_AddConstantLiteral(SgObject o)
   } else {
     o = e;
   }
-  Sg_UnlockMutex(&obtable_mutax);
+  Sg_UnlockMutex(&obtable_mutex);
   return o;
 }
 
@@ -2391,7 +2391,7 @@ void Sg__InitReader()
   init_readtable(&r7rs_read_table, INIT_R7RS);
   init_readtable(&compat_read_table, INIT_COMPAT);
 
-  Sg_InitMutex(&obtable_mutax, TRUE);
+  Sg_InitMutex(&obtable_mutex, TRUE);
   obtable = Sg_MakeHashTableSimple(SG_HASH_EQUAL, 4096);
 
 #define SET_READER_NAME(fn, name)			\

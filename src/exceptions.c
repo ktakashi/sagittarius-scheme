@@ -899,6 +899,7 @@ static void describe_simple(SgPort *out, SgObject con)
   SgClass *klass = Sg_ClassOf(con);
   SgSlotAccessor **acc = klass->gettersNSetters;
   int count = klass->nfields;
+
   Sg_Write(klass->name, out, SG_WRITE_WRITE);
   /* a bit of ugly trick
      &compile and &trace may contain huge program. to avoid printing them

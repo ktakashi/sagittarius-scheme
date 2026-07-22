@@ -649,14 +649,19 @@ static struct {
   SgInternalMutex mutex;
 } cond_features = { SG_NIL };
 
+static void add_cond_feature(const SgChar *feature)
+{
+  cond_features.list = Sg_Cons(Sg_Intern(Sg_String(feature)),
+			       cond_features.list);
+}
+
 void Sg_AddCondFeature(const SgChar *feature)
 {
   if (!Sg_MainThreadP()) {
     Sg_Error(UC("child thread can not add cond-feature"));
   }
   Sg_LockMutex(&cond_features.mutex);
-  cond_features.list = Sg_Cons(Sg_Intern(Sg_String(feature)),
-			       cond_features.list);
+  add_cond_feature(feature);
   Sg_AddConstantLiteral(cond_features.list);
   Sg_UnlockMutex(&cond_features.mutex);
 }
@@ -669,52 +674,56 @@ SgObject Sg_CondFeatures()
 static void init_cond_features()
 {
   Sg_InitMutex(&cond_features.mutex, FALSE);
-  Sg_AddCondFeature(UC("sagittarius"));
-  Sg_AddCondFeature(UC("sagittarius.os."SAGITTARIUS_PLATFORM));
+  Sg_LockMutex(&cond_features.mutex);
+
+  add_cond_feature(UC("sagittarius"));
+  add_cond_feature(UC("sagittarius.os."SAGITTARIUS_PLATFORM));
   /* R7RS appendix B */
-  Sg_AddCondFeature(UC("r7rs"));
-  Sg_AddCondFeature(UC("ratios"));
-  Sg_AddCondFeature(UC("exact-closed"));
-  Sg_AddCondFeature(UC("exact-complex"));
-  Sg_AddCondFeature(UC("ieee-float"));
-  Sg_AddCondFeature(UC("full-unicode"));
-  Sg_AddCondFeature(UC(SAGITTARIUS_PLATFORM));
-  Sg_AddCondFeature(UC(SAGITTARIUS_PROCESSOR));
+  add_cond_feature(UC("r7rs"));
+  add_cond_feature(UC("ratios"));
+  add_cond_feature(UC("exact-closed"));
+  add_cond_feature(UC("exact-complex"));
+  add_cond_feature(UC("ieee-float"));
+  add_cond_feature(UC("full-unicode"));
+  add_cond_feature(UC(SAGITTARIUS_PLATFORM));
+  add_cond_feature(UC(SAGITTARIUS_PROCESSOR));
   /* it's useful for FFI */
 #if SIZEOF_VOIDP == 8
-  Sg_AddCondFeature(UC("64bit"));
+  add_cond_feature(UC("64bit"));
 #else
-  Sg_AddCondFeature(UC("32bit"));
+  add_cond_feature(UC("32bit"));
 #endif
 
 #ifdef WORDS_BIGENDIAN
-  Sg_AddCondFeature(UC("big-endian"));
+  add_cond_feature(UC("big-endian"));
 #else
-  Sg_AddCondFeature(UC("little-endian"));
+  add_cond_feature(UC("little-endian"));
 #endif
-  Sg_AddCondFeature(UC("sagittarius-"SAGITTARIUS_VERSION));
+  add_cond_feature(UC("sagittarius-"SAGITTARIUS_VERSION));
   /* maybe it's useful */
-  Sg_AddCondFeature(UC(SAGITTARIUS_TRIPLE));
+  add_cond_feature(UC(SAGITTARIUS_TRIPLE));
   /* regexp (SRFI-115) 
      I don't like the name regexp but that's how it is on the SRFI.
    */
-  Sg_AddCondFeature(UC("regexp-non-greedy"));
-  Sg_AddCondFeature(UC("regexp-look-around"));
-  Sg_AddCondFeature(UC("regexp-backrefs"));
-  Sg_AddCondFeature(UC("regexp-unicode"));
+  add_cond_feature(UC("regexp-non-greedy"));
+  add_cond_feature(UC("regexp-look-around"));
+  add_cond_feature(UC("regexp-backrefs"));
+  add_cond_feature(UC("regexp-unicode"));
 
   /* version clause */
-  Sg_AddCondFeature(UC("cond-expand.version"));
+  add_cond_feature(UC("cond-expand.version"));
 
 #define EXT_FEATURE(name)					\
   do {								\
-    Sg_AddCondFeature(UC(name));				\
-    Sg_AddCondFeature(UC("sagittarius." name));			\
+    add_cond_feature(UC(name));				\
+    add_cond_feature(UC("sagittarius." name));			\
   } while (0)
 
   /* extlib features */
   #include <ext-features.inc>
 #undef EXT_FEATURE
+
+  Sg_UnlockMutex(&cond_features.mutex);
 }
 
 static SgObject start_cc(SgObject tag, void **data)
