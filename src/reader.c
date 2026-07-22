@@ -1955,13 +1955,13 @@ int Sg_ConstantLiteralP(SgObject o)
   return e == o;
 }
 
-SgObject Sg_AddConstantLiteral(SgObject o)
+static SgObject add_constant_literal(SgObject o)
 {
-  SgObject e;
-  Sg_LockMutex(&obtable_mutex);
-  e = Sg_HashTableRef(obtable, o, SG_UNBOUND);
-  if (SG_UNBOUNDP(e)) {
-    Sg_HashTableSet(obtable, o, o, SG_HASH_NO_OVERWRITE);
+  SgHashEntry *e = Sg_HashCoreSearch(SG_HASHTABLE_CORE(obtable),
+				     (intptr_t)o,
+				     SG_DICT_CREATE, 0);
+  if (!e->value) {
+    e->value = (intptr_t)o;
     /* TODO after CLOS, we should not use header bits */
     if (SG_VECTORP(o)) {
       SG_VECTOR_SET_LITERAL(o);
@@ -1973,15 +1973,20 @@ SgObject Sg_AddConstantLiteral(SgObject o)
       /* do the cdr parts. */
       Sg_SetPairAnnotation(o, SYM_CONST, SG_TRUE);
       if (SG_PAIRP(SG_CAR(o))) {
-	SG_SET_CAR(o, Sg_AddConstantLiteral(SG_CAR(o)));
+	SG_SET_CAR(o, add_constant_literal(SG_CAR(o)));
       }
       if (SG_PAIRP(SG_CDR(o))) {
-	SG_SET_CDR(o, Sg_AddConstantLiteral(SG_CDR(o)));
+	SG_SET_CDR(o, add_constant_literal(SG_CDR(o)));
       }
     }
-  } else {
-    o = e;
   }
+  return SG_OBJ(e->value);
+}
+
+SgObject Sg_AddConstantLiteral(SgObject o)
+{
+  Sg_LockMutex(&obtable_mutex);
+  o = add_constant_literal(o);
   Sg_UnlockMutex(&obtable_mutex);
   return o;
 }

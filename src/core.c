@@ -722,6 +722,7 @@ static void init_cond_features()
   /* extlib features */
   #include <ext-features.inc>
 #undef EXT_FEATURE
+  Sg_AddConstantLiteral(cond_features.list);
 
   Sg_UnlockMutex(&cond_features.mutex);
 }
