@@ -712,7 +712,6 @@ static void init_cond_features()
 
   /* version clause */
   add_cond_feature(UC("cond-expand.version"));
-
 #define EXT_FEATURE(name)					\
   do {								\
     add_cond_feature(UC(name));				\
@@ -722,6 +721,7 @@ static void init_cond_features()
   /* extlib features */
   #include <ext-features.inc>
 #undef EXT_FEATURE
+
   Sg_AddConstantLiteral(cond_features.list);
 
   Sg_UnlockMutex(&cond_features.mutex);

@@ -794,26 +794,27 @@ static SgObject find(SgObject b)
 static SgObject union_find(SgHashTable *ht, SgObject x, SgObject y,
 			   struct equal_context *ctx)
 {
-  SgObject bx = Sg_HashTableRef(ht, x, SG_FALSE);
-  SgObject by = Sg_HashTableRef(ht, y, SG_FALSE);
-  if (SG_FALSEP(bx)) {
-    if (SG_FALSEP(by)) {
+#define search(ht, k)							\
+  Sg_HashCoreSearch(SG_HASHTABLE_CORE(ht), (intptr_t)k, SG_DICT_CREATE, 0)
+  SgHashEntry *bx = search(ht, x);
+  SgHashEntry *by = search(ht, y);
+
+  if (!bx->value) {
+    if (!by->value) {
       SgObject b = make_box(SG_MAKE_INT(1));
-      Sg_HashTableSet(ht, x, b, 0);
-      Sg_HashTableSet(ht, y, b, 0);
+      bx->value = (intptr_t)b;
+      by->value = (intptr_t)b;
       return SG_FALSE;
     } else {
-      SgObject ry = find(by);
-      Sg_HashTableSet(ht, x, ry, 0);
+      bx->value = (intptr_t)find(SG_OBJ(by->value));
       return SG_FALSE;
     }
-  } else if (SG_FALSEP(by)) {
-    SgObject rx = find(bx);
-    Sg_HashTableSet(ht, y, rx, 0);
+  } else if (!by->value) {
+    by->value = (intptr_t)find(SG_OBJ(bx->value));
     return SG_FALSE;
   } else {
-    SgObject rx = find(bx);
-    SgObject ry = find(by);
+    SgObject rx = find(SG_OBJ(bx->value));
+    SgObject ry = find(SG_OBJ(by->value));
     SgObject nx, ny;
     if (rx == ry) {
       return SG_TRUE;
@@ -832,13 +833,14 @@ static SgObject union_find(SgHashTable *ht, SgObject x, SgObject y,
       return SG_FALSE;
     }
   }
+#undef search
 }
 
 static SgObject call_union_find(SgHashTable **pht, SgObject x,
 				SgObject y, struct equal_context *ctx)
 {
   if (*pht == NULL) {
-    *pht = Sg_MakeHashTableSimple(SG_HASH_EQ, 0);
+    *pht = Sg_MakeHashTableSimple(SG_HASH_EQ, 1024);
   }
   return union_find(*pht, x, y, ctx);
 }
