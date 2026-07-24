@@ -134,7 +134,7 @@
 
   (define json-write/pretty
     (case-lambda
-     ((x) (json-write/normalized x (current-output-port)))
+     ((x) (json-write/pretty x (current-output-port)))
      ((x port) (%json-write x port "," ": " 0))))
     
   (define json-write/normalized
