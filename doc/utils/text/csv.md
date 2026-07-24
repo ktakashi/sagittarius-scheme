@@ -55,12 +55,12 @@ the first line as header line.
 
 The returning alist is following format;
 
-``````````scheme
+```scheme
 alist  := (header{0,1} record*)
 header := (:header value*)
 record := (:record value*)
 value  := string
-``````````
+```
 
 Note: the value returning from `csv-records` or `csv-header` do not
 have meta values `:record` and `:header`.

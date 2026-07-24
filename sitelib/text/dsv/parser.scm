@@ -33,7 +33,12 @@
 #!nounbound
 (library (text dsv parser)
     (export dsv-parser-options-builder
-	    make-dsv-parser)
+	    dsv-parser-options?
+	    make-dsv-parser
+
+	    ;; low level API
+	    make-item-reader
+	    make-line-reader)
     (import (rnrs)
 	    (srfi :1 lists) ;; for reverse!
 	    (srfi :14 char-sets)
