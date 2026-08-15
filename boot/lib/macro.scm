@@ -525,7 +525,21 @@
 (define (match-pattern? expr pat lites seen)
   (define (compare pat expr)
     (define (ensure-id id env)
-      (if (identifier? id)
+      ;; Here we consider global identifier, which doesn't have env frames
+      ;; the same as symbol so that the identifier can be associated
+      ;; with the environments.
+      ;; This fixed the below issue
+      ;; ```scheme
+      ;; (assert
+      ;;  (let ((foo 0))
+      ;;    (let-syntax ((bar (lambda (x)
+      ;; 		         (syntax-case x (foo)
+      ;; 			   ((_ foo) #'#f)
+      ;; 			   ((_ _)   #'#t)))))
+      ;;      (let ((foo 1))
+      ;;        (bar foo)))))
+      ;; ```
+      (if (and (identifier? id) (not (null? (id-envs id))))
 	  id
 	  (make-identifier id (p1env-frames env) (p1env-library env))))
     ;; pat is pattern variable so it's always identifier

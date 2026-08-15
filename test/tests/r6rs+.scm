@@ -614,4 +614,22 @@
 	      (fxcopy-bit-field #xffffffff 0 0 32))
   )
 
+;; syntax literal
+(test-assert "foo must not match (syntax-case)"
+	      (let ((foo 0))
+		(let-syntax ((bar (lambda (x)
+				    (syntax-case x (foo)
+				      ((_ foo) #'#f)
+				      ((_ _)   #'#t)))))
+		  (let ((foo 1))
+		    (bar foo)))))
+(test-assert "foo must not match (syntax-rules)"
+	      (let ((foo 0))
+		(let-syntax ((bar (syntax-rules (foo)
+				    ((_ foo) #f)
+				    ((_ _)   #t))))
+		  (let ((foo 1))
+		    (bar foo)))))
+
+
 (test-end)
