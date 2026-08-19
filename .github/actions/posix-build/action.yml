@@ -11,28 +11,26 @@ runs:
   steps:
     - name: Install dependencies
       run: |
-        bash "${{ inputs.checkout-path }}/${{ inputs.setup-script }}" "sudo"
+        bash "${{ inputs.setup-script }}" "sudo"
         mkdir current_sagittarius
       shell: bash
 
     - name: Install current sagittarius
       working-directory: current_sagittarius
-      run: bash ../.ci/build-current.sh 'yes'
+      run: |
+        bash ../.ci/build-current.sh 'yes'
       shell: bash
 
     - name: Pre-build
-      working-directory: ${{ inputs.checkout-path }}
       run: |
         ./dist.sh gen
         cmake . -DBUILD_TYPE=Debug
       shell: bash
 
     - name: Build
-      working-directory: ${{ inputs.checkout-path }}
       run: make
       shell: bash
 
     - name: Test
-      working-directory: ${{ inputs.checkout-path }}
       run: ctest --output-on-failure -j8
       shell: bash

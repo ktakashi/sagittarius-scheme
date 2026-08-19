@@ -10,7 +10,6 @@ runs:
   using: composite
   steps:
     - name: Install current sagittarius
-      working-directory: ${{ inputs.checkout-path }}
       run: .\.ci\install-current.ps1
       shell: powershell
 
@@ -20,21 +19,17 @@ runs:
         arch: ${{ inputs.arch }}
 
     - name: Pre build
-      working-directory: ${{ inputs.checkout-path }}
       run: dist.bat gen
       shell: cmd
 
     - name: CMake
-      working-directory: ${{ inputs.checkout-path }}
       run: cmake . -G "Ninja" -DSKIP_TEST_VECTOR=ON -DDEBUG_GENSTUB=ON
       shell: cmd
 
     - name: Build
-      working-directory: ${{ inputs.checkout-path }}
       run: ninja -j8
       shell: cmd
 
     - name: Test
-      working-directory: ${{ inputs.checkout-path }}
       run: ctest --output-on-failure -LE json
       shell: cmd
