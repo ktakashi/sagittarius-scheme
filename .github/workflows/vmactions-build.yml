@@ -15,6 +15,9 @@ jobs:
           - { name: 'freebsd', setup: '.ci/setup-freebsd.sh' }
           - { name: 'openbsd', setup: '.ci/setup-openbsd.sh' }
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Build and test
         uses: ./.github/actions/vmactions-build
         with:

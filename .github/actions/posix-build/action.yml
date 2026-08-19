@@ -5,19 +5,10 @@ inputs:
   setup-script:
     description: Setup script path inside repository
     required: true
-  checkout-path:
-    description: Repository checkout path
-    required: false
-    default: target
 
 runs:
   using: composite
   steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        path: ${{ inputs.checkout-path }}
-
     - name: Install dependencies
       run: |
         bash "${{ inputs.checkout-path }}/${{ inputs.setup-script }}" "sudo"

@@ -5,19 +5,10 @@ inputs:
   arch:
     description: MSVC target architecture
     required: true
-  checkout-path:
-    description: Repository checkout path
-    required: false
-    default: target
 
 runs:
   using: composite
   steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        path: ${{ inputs.checkout-path }}
-
     - name: Install current sagittarius
       working-directory: ${{ inputs.checkout-path }}
       run: .\.ci\install-current.ps1

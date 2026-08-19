@@ -15,5 +15,4 @@ jobs:
       - name: Build and test
         uses: ./.github/actions/posix-build
         with:
-          checkout-path: target
           setup-script: ${{ matrix.config.setup }}
