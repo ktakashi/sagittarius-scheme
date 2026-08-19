@@ -17,7 +17,7 @@ runs:
 
     - name: Install current sagittarius
       working-directory: current_sagittarius
-      run: bash ../target/.ci/build-current.sh 'yes'
+      run: bash ../.ci/build-current.sh 'yes'
       shell: bash
 
     - name: Pre-build

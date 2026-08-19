@@ -12,6 +12,9 @@ jobs:
           - { name: 'Linux', os: 'ubuntu-latest', setup: '.ci/setup-ubuntu.sh' }
           - { name: 'macOS', os: 'macos-latest',  setup: '.ci/setup-macos.sh' }
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Build and test
         uses: ./.github/actions/posix-build
         with:
