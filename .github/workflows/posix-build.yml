@@ -12,26 +12,8 @@ jobs:
           - { name: 'Linux', os: 'ubuntu-latest', setup: '.ci/setup-ubuntu.sh' }
           - { name: 'macOS', os: 'macos-latest',  setup: '.ci/setup-macos.sh' }
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Build and test
+        uses: ./.github/actions/posix-build
         with:
-          path: target
-      - name: Install dependencies
-        run: |
-          bash "target/${{ matrix.config.setup }}" "sudo"
-          mkdir current_sagittarius
-      - name: Install current sagittarius
-        working-directory: current_sagittarius
-        run: |
-          bash ../target/.ci/build-current.sh 'yes'
-      - name: Pre-build
-        working-directory: target
-        run: |
-          ./dist.sh gen
-          cmake . -DBUILD_TYPE=Debug
-      - name: Build
-        working-directory: target
-        run: make
-      - name: Test
-        working-directory: target
-        run: ctest --output-on-failure -j8
+          checkout-path: target
+          setup-script: ${{ matrix.config.setup }}

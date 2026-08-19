@@ -1,0 +1,49 @@
+name: Windows build
+description: Build and test Sagittarius on Windows runners
+
+inputs:
+  arch:
+    description: MSVC target architecture
+    required: true
+  checkout-path:
+    description: Repository checkout path
+    required: false
+    default: target
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        path: ${{ inputs.checkout-path }}
+
+    - name: Install current sagittarius
+      working-directory: ${{ inputs.checkout-path }}
+      run: .\.ci\install-current.ps1
+      shell: powershell
+
+    - name: Setup MSVC
+      uses: TheMrMilchmann/setup-msvc-dev@v3
+      with:
+        arch: ${{ inputs.arch }}
+
+    - name: Pre build
+      working-directory: ${{ inputs.checkout-path }}
+      run: dist.bat gen
+      shell: cmd
+
+    - name: CMake
+      working-directory: ${{ inputs.checkout-path }}
+      run: cmake . -G "Ninja" -DSKIP_TEST_VECTOR=ON -DDEBUG_GENSTUB=ON
+      shell: cmd
+
+    - name: Build
+      working-directory: ${{ inputs.checkout-path }}
+      run: ninja -j8
+      shell: cmd
+
+    - name: Test
+      working-directory: ${{ inputs.checkout-path }}
+      run: ctest --output-on-failure -LE json
+      shell: cmd

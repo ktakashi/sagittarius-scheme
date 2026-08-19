@@ -11,32 +11,8 @@ jobs:
         arch: [x64, x86]
         images: [windows-2022, windows-2025]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          path: target
-      - name: Install current sagittarius
-        working-directory: target
-        run: |
-          .\.ci\install-current.ps1
-        shell: powershell
-      - name: Setup MSVC
-        uses: TheMrMilchmann/setup-msvc-dev@v3
+      - name: Build and test
+        uses: ./.github/actions/windows-build
         with:
           arch: ${{ matrix.arch }}
-      - name: Pre build
-        working-directory: target
-        run: dist.bat gen
-        shell: cmd
-      - name: CMake
-        working-directory: target
-        run: cmake . -G "Ninja" -DSKIP_TEST_VECTOR=ON -DDEBUG_GENSTUB=ON
-        shell: cmd
-      - name: Build
-        working-directory: target
-        run: ninja -j8
-        shell: cmd
-      - name: Test
-        working-directory: target
-        run: ctest --output-on-failure -LE json
-        shell: cmd
+          checkout-path: target

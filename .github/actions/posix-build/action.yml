@@ -1,0 +1,47 @@
+name: POSIX build
+description: Build and test Sagittarius on Linux or macOS runners
+
+inputs:
+  setup-script:
+    description: Setup script path inside repository
+    required: true
+  checkout-path:
+    description: Repository checkout path
+    required: false
+    default: target
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        path: ${{ inputs.checkout-path }}
+
+    - name: Install dependencies
+      run: |
+        bash "${{ inputs.checkout-path }}/${{ inputs.setup-script }}" "sudo"
+        mkdir current_sagittarius
+      shell: bash
+
+    - name: Install current sagittarius
+      working-directory: current_sagittarius
+      run: bash ../target/.ci/build-current.sh 'yes'
+      shell: bash
+
+    - name: Pre-build
+      working-directory: ${{ inputs.checkout-path }}
+      run: |
+        ./dist.sh gen
+        cmake . -DBUILD_TYPE=Debug
+      shell: bash
+
+    - name: Build
+      working-directory: ${{ inputs.checkout-path }}
+      run: make
+      shell: bash
+
+    - name: Test
+      working-directory: ${{ inputs.checkout-path }}
+      run: ctest --output-on-failure -j8
+      shell: bash

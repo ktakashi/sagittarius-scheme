@@ -1,0 +1,63 @@
+name: VM actions build
+description: Build and test Sagittarius inside FreeBSD/OpenBSD VM actions
+
+inputs:
+  vm-name:
+    description: VM OS name used by vmactions
+    required: true
+  arch:
+    description: VM architecture
+    required: true
+  setup-script:
+    description: Setup script path inside repository
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup VM
+      uses: jenseng/dynamic-uses@v1
+      with:
+        uses: vmactions/${{ inputs.vm-name }}-vm@v1
+        with: |
+          {
+            "arch": ${{ toJSON(inputs.arch) }},
+            "sync": "nfs"
+          }
+
+    - name: Install dependencies / current
+      uses: ktakashi/dynamic-shell@v1
+      with:
+        shell: "${{ inputs.vm-name }} {0}"
+        run: |
+          cd $GITHUB_WORKSPACE;
+          sh "./${{ inputs.setup-script }}"
+          bash "./.ci/build-current.sh"
+
+    - name: Pre-build
+      uses: ktakashi/dynamic-shell@v1
+      with:
+        shell: "${{ inputs.vm-name }} {0}"
+        run: |
+          cd $GITHUB_WORKSPACE;
+          ./dist.sh gen
+          cmake .
+
+    - name: Build
+      uses: ktakashi/dynamic-shell@v1
+      with:
+        shell: "${{ inputs.vm-name }} {0}"
+        run: |
+          cd $GITHUB_WORKSPACE;
+          make
+
+    - name: Test
+      uses: ktakashi/dynamic-shell@v1
+      with:
+        shell: "${{ inputs.vm-name }} {0}"
+        run: |
+          cd $GITHUB_WORKSPACE;
+          ctest --output-on-failure -j2
