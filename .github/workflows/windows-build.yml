@@ -5,6 +5,7 @@ jobs:
   Windows-Build:
     runs-on: ${{ matrix.images }}
     name: ${{ matrix.images }} - ${{ matrix.arch }}
+    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:
@@ -16,3 +17,54 @@ jobs:
         with:
           arch: ${{ matrix.arch }}
           checkout-path: target
+      - name: Mark successful architecture
+        if: ${{ success() }}
+        shell: bash
+        run: |
+          mkdir -p result
+          echo "${{ matrix.arch }}" >> "result/${{ matrix.arch }}-${{ matrix.images }}"
+      - name: Upload success marker
+        if: ${{ success() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-success-${{ matrix.arch }}-${{ matrix.images }}
+          path: result/
+  Windows-Gate:
+    needs: Windows-Build
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Windows success markers
+        uses: actions/download-artifact@v5
+        with:
+          pattern: windows-success-*
+          path: results
+          merge-multiple: true
+      - name: Verify both architectures
+        shell: bash
+        run: |
+          echo "Successful Windows builds:"
+          find results -type f -print
+
+          x64=0
+          x86=0
+
+          if find results -type f -name 'x64-*' -print -quit | grep -q .; then
+            x64=1
+          fi
+
+          if find results -type f -name 'x86-*' -print -quit | grep -q .; then
+            x86=1
+          fi
+
+          echo "x64 success: $x64"
+          echo "x86 success: $x86"
+
+          if [ "$x64" -eq 1 ] && [ "$x86" -eq 1 ]; then
+            echo "Windows build requirement satisfied."
+            exit 0
+          fi
+
+          echo "Windows build requirement NOT satisfied."
+          echo "At least one x64 and one x86 build must succeed."
+          exit 1
