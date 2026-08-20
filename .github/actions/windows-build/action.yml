@@ -14,7 +14,7 @@ runs:
       shell: powershell
 
     - name: Setup MSVC
-      uses: TheMrMilchmann/setup-msvc-dev@v3
+      uses: TheMrMilchmann/setup-msvc-dev@v4
       with:
         arch: ${{ inputs.arch }}
 
