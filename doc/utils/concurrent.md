@@ -509,7 +509,7 @@ It signals an error if the given _thread_ is not a managed thread.
 NOTE: if the thread is terminated, then the procedure also signals an error.
 
 
-###### [!Function] `(thread-pool-current-thread-id)` 
+###### [!Function] `thread-pool-current-thread-id`
 
 Retrieves thread id of current thread. If the current thread is not
 a managed thread, then #f is returned.
@@ -777,8 +777,8 @@ comparison result of given 2 arguments. The value should be, -1, 0 or 1.
 
 _task_ must be an procedure accepts 2 argument, _input-receiver_ and
 _output-sender_. The procedures' signatures are the followings:
-###### [!Function] `input-receiver`  _:optional_ _timeout_ _timeout-val_
-###### [!Function] `output-sender`  _messge_ _:optional_ _timeout_ _timeout-val_
+###### [!Callback] `input-receiver`  _:optional_ _timeout_ _timeout-val_
+###### [!Callback] `output-sender`  _messge_ _:optional_ _timeout_ _timeout-val_
 The _input-receiver_ receives a message from outside of the actor.
 
 The _output-sender_ sends a message _message_ to outside of the actor.

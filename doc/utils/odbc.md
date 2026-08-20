@@ -63,7 +63,7 @@ Returns #t if the given _obj_ is ODBC statement object.
 
 Returns #t if the given ODBC statement is available, otherwise #f.
 
-###### [!Function] `num-prams`  _odbc-stmt_
+###### [!Function] `num-params`  _odbc-stmt_
 
 Returns number of parameters in an SQL statement.
 
@@ -80,7 +80,7 @@ Execute given ODBC statement.
 Forwarding current cursor to next and returns #t if there is data
 otherwise #f.
 
-###### [!Function] `get-data!`  _odbc-stmt_ _index_
+###### [!Function] `get-data`  _odbc-stmt_ _index_
 
 Retrieve data from statement at position _index_.
 

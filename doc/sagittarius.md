@@ -186,7 +186,7 @@ The `file-stat-mtime` returns last modified time of _filename_.
 The `file-stat-atime` returns last accesse time of _filename_.
 
 
-###### [!Function] `change-file-timestamp!`  _filename_ _atime_ _mtime_
+###### [!Function] `change-file-timestamps!`  _filename_ _atime_ _mtime_
 
 Changes given _filename_'s access time and modify time.
 

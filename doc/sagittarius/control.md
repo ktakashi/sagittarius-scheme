@@ -43,8 +43,8 @@ It is not an error if _restarg_ has more values than _var-specs_. The
 extra values are simply ignored in the first form. 
 
 
-###### [!Macro] `get-optionals`  _restargs_ _default_
-###### [!Macro] `get-optionals`  _restargs_ _default_ _test_
+###### [!Macro] `get-optional`  _restargs_ _default_
+###### [!Macro] `get-optional`  _restargs_ _default_ _test_
 
 This is a short version of `let-optionals*` where you have only one
 optional argument. Given the optional argument list _restargs_, this macro

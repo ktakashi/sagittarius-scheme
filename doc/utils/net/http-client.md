@@ -208,7 +208,7 @@ HTTP request.
 
 Provides basic auth value provider of the given _username_ and _password_.
 
-###### [!Function] `http:request-basic-bearer` _token_
+###### [!Function] `http:request-bearer-auth` _token_
 
 Provides bearer auth value provider of the given _token_.
 

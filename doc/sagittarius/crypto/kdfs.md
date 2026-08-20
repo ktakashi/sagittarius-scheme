@@ -34,7 +34,7 @@ The _opts_ will be passed to the MAC generation.
 
 HKDF
 
-###### [!Function] `pkcf12-kdf` _digest_ _pw_ _salt_ _iteration_ _dk-len_
+###### [!Function] `pkcs12-kdf` _digest_ _pw_ _salt_ _iteration_ _dk-len_
 
 PKCS12 KDF
 

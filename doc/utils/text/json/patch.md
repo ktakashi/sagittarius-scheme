@@ -1,7 +1,7 @@
 [§2] (text json patch) - JSON Patch {#text.json.patch}
 -------------
 
-###### [!Library] `(text json pointer)` 
+###### [!Library] `(text json patch)` 
 
 This library provides JSON Patch procedures.
 

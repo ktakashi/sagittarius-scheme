@@ -266,11 +266,11 @@ Creates a composite mode parameter.
 A composite parameter can hold multiple parameters.
 
 
-###### [!Record Type] `<iv-paramater>` 
+###### [!Record Type] `<iv-parameter>` 
 
 Record type for initial vector (IV) parameter.
 
-###### [!Function] `make-iv-paramater`  _iv_
+###### [!Function] `make-iv-parameter`  _iv_
 
 _iv_ must be a bytevector or #f. 
 
@@ -279,14 +279,14 @@ Creates an IV mode parameter.
 IV is required by some modes. e.g. `MODE_CBC`.
 
 
-###### [!Record Type] `<ctr-paramater>` 
+###### [!Record Type] `<ctr-parameter>` 
 
 Record type for counter mode parameter.
 
 This parameter is a subclass of `<iv-parameter>`.
 
 
-###### [!Function] `make-ctr-paramater`  _iv_ _:key_ _(rounds_ _0)_ _(mode_ _CTR_COUNTER_BIG_ENDIAN)_
+###### [!Function] `make-ctr-parameter`  _iv_ _:optional_ _(mode_ _CTR_COUNTER_BIG_ENDIAN)_
 
 Creates a counter mode parameter. This is used by `MODE_CTR`.
 
@@ -301,22 +301,22 @@ _ctr-mode_ specifies counter mode. The possible mode is blow.
 ###### [!Constant] `CTR_COUNTER_BIG_ENDIAN` 
 
 
-###### [!Record Type] `<rfc3686-paramater>` 
+###### [!Record Type] `<rfc3686-parameter>` 
 
 Record type for AES-CTR mode parameter defined in RFC 3686.
 
 This parameter is a subclass of `<ctr-parameter>`.
 
 
-###### [!Function] `make-rfc3686-paramater`  _iv_ _nonce_ _:key_ _(rounds_ _0)_ _(mode_ _CTR_COUNTER_BIG_ENDIAN)_
+###### [!Function] `make-rfc3686-parameter`  _iv_ _nonce_ _:key_ _(rounds_ _0)_ _(mode_ _CTR_COUNTER_BIG_ENDIAN)_
 
 Creates RFC3686 mode parameter.
 
-###### [!Record Type] `<padding-paramater>` 
+###### [!Record Type] `<padding-parameter>` 
 
 Record type for padding parameter.
 
-###### [!Function] `make-padding-paramater`  _padder_
+###### [!Function] `make-padding-parameter`  _padder_
 
 Creates a padding mode parameter.
 
@@ -577,75 +577,10 @@ The default value is `#vu8(#xa6 #xa6 #xa6 #xa6 #xa6 #xa6 #xa6 #xa6)`specified by
 
 ### [§3] Cryptographic conditions
 
-###### [!Condition Type] `&crypto-error` 
-###### [!Function] `crypto-error?`  _obj_
-
-Subcondition of `&error`.
-
-Base condition type of all cryptographic conditions.
-
-###### [!Condition Type] `&encrypt-error` 
-###### [!Function] `encrypt-error?`  _obj_
-###### [!Function] `condition-encrypt-mechanism`  _encrypt-error_
-
-This condition will be raised when encrypt operation is failed.
-
-###### [!Condition Type] `&decrypt-error` 
-###### [!Function] `decrypt-error?`  _obj_
-###### [!Function] `condition-decrypt-mechanism`  _decrypt-error_
-
-This condition will be raised when decrypt operation is failed.
-
-###### [!Condition Type] `&encode-error` 
-###### [!Function] `encode-error?`  _obj_
-
-This condition will be raised when encoding operation is failed.
-
-###### [!Condition Type] `&decode-error` 
-###### [!Function] `decode-error?`  _obj_
-
-This condition will be raised when decoding operation is failed.
-
-###### [!Function] `raise-encrypt-error`  _who_ _message_ _mechanism_ _:optional_ _irritants_
-
-_who_, _message_ and _irritants_ are the same as
-`assertion-violation`.
-
-_mechanism_ should be a name of cryptographic algorithm.
-
-Raises `&encrypt-error`.
-
-
-###### [!Function] `raise-decrypt-error`  _who_ _message_ _mechanism_ _:optional_ _irritants_
-
-_who_, _message_ and _irritants_ are the same as
-`assertion-violation`.
-
-_mechanism_ should be a name of cryptographic algorithm.
-
-Raises `&decrypt-error`.
-
-
-###### [!Function] `raise-encode-error`  _who_ _message_ _:optional_ _irritants_
-
-_who_, _message_ and _irritants_ are the same as
-`assertion-violation`.
-
-Raises `&encode-error`.
-
-
-###### [!Function] `raise-decode-error`  _who_ _message_ _:optional_ _irritants_
-
-_who_, _message_ and _irritants_ are the same as
-`assertion-violation`.
-
-Raises `&decode-error`.
-
-
 ###### [!Condition Type] `&integrity-error` 
 ###### [!Function] `integrity-error?`  _obj_
 
-Subcondition of `&crypto-error`This condition will be raised when key unwrap failed due to the
+Subcondition of `&error`This condition will be raised when key unwrap failed due to the
 integrity check error.
 
 
@@ -656,7 +591,7 @@ can write own cipher such as DSA. For this purpose, you might need to know how
 this library works. It will be described the bottom of this section. If you just
 want to create a new cipher, you just need to follow the example.
 
-``````````scheme
+```scheme
 (import (rnrs) (crypto) (clos user) (sagittarius))
 
 (define (sample-encrypt pt key) pt)
@@ -681,7 +616,7 @@ want to create a new cipher, you just need to follow the example.
 (let ((encrypted-message (encrypt sample-cipher message)))
   (decrypt sample-cipher encrypted-message))
 ;; -> #vu8(115 97 109 112 108 101 32 109 101 115 115 97 103 101)
-``````````
+```
 
 The sample code actually does nothing. If you want to see real working code,
 `ext/crypto/crypto/key/rsa.scm` might be a good example for you.

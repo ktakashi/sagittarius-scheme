@@ -16,7 +16,7 @@ This section uses the _hashtable_ parameter name for arguments that must be
 hashtables, and the _key_ parameter name for arguments that must be
 hashtable keys.
 
-###### [!Library] `(rnrs hashtable (6))` 
+###### [!Library] `(rnrs hashtables (6))` 
 
 [R6RS] This library exports a set of operations on hashtables.
 

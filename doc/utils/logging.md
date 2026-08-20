@@ -117,8 +117,8 @@ threshold lower than _level_.
 
 
 ###### [!Generic Function] `terminate-logger!` 
-###### [!Method] `terminate-logger`  _(logger_ _<logger>)_
-###### [!Method] `terminate-logger`  _(logger_ _<async-logger>)_
+###### [!Method] `terminate-logger!`  _(logger_ _<logger>)_
+###### [!Method] `terminate-logger!`  _(logger_ _<async-logger>)_
 
 Terminates logging of the given _logger_.
 

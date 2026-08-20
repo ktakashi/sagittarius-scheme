@@ -186,7 +186,7 @@ it's not specified, then the procedure makes an unique name.
 
 [SRFI-18] Stores the _obj_ to given _cv_'s specific slot.
 
-###### [!Function] `condition-variable-signal`  _cv_
+###### [!Function] `condition-variable-signal!`  _cv_
 
 [SRFI-18] If there are thread blocked on _cv_, the scheduler selects
 a thread and unblocks it.

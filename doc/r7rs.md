@@ -721,14 +721,14 @@ These procedures are the same as R6RS;
 Exist process without any cleanup. The optional argument _obj_is given then it's translated to proper return value of the process.
 
 
-###### [!Function] `get-enviromnent-variable`  _name_
+###### [!Function] `get-environment-variable`  _name_
 
 _name_ must be a string.
 
 Retrieves environment variable associated to _name_.
 
 
-###### [!Function] `get-enviromnent-variables` 
+###### [!Function] `get-environment-variables` 
 
 Returns alist of environment variables.
 

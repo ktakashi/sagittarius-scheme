@@ -294,7 +294,7 @@ called on a connection or a query which has already been closed.
 ###### [!Method] `dbi-commit!`  _(c_ _<foo-connection>)_
 ###### [!Method] `dbi-commit!`  _(q_ _<foo-query>)_
 ###### [!Method] `dbi-rollback!`  _(c_ _<foo-connection>)_
-###### [!Method] `dbi-rollback`  _(q_ _<foo-query>)_
+###### [!Method] `dbi-rollback!`  _(q_ _<foo-query>)_
 
 Commits/rollbacks a connection or a query.
 

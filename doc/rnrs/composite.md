@@ -43,7 +43,7 @@ On Sagittarius Scheme, these procedures can modify immutable pairs.
 
 ### [§3] Mutable strings {#rnrs.mutable-strings.6}
 
-###### [!Library] `(rnrs mutable-stringss (6))` 
+###### [!Library] `(rnrs mutable-strings (6))` 
 
 [R6RS] This library exports `string-set!` and `string-fill!`.
 

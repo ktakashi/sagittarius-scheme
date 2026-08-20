@@ -131,9 +131,9 @@ an error if the validation failed.
 
 Claims validator to validate required field of the given _claims_.
 
-###### [!Function] `jwt:iss-validator`  _iss_ _..._
-###### [!Function] `jwt:aud-validator`  _aud_ _..._
-###### [!Function] `jwt:sub-validator`  _sub_
+###### [!Function] `jwt:iss-value-validator`  _iss_ _..._
+###### [!Function] `jwt:aud-value-validator`  _aud_ _..._
+###### [!Function] `jwt:sub-value-validator`  _sub_
 
 Creates claims validator to validate `iss`, `aud` and
 `sub`, respectively.
