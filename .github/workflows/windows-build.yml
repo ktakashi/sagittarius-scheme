@@ -27,7 +27,7 @@ jobs:
           echo "${{ matrix.arch }}" >> "result/${{ matrix.arch }}-${{ matrix.images }}"
       - name: Upload success marker
         if: ${{ success() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: windows-success-${{ matrix.arch }}-${{ matrix.images }}
           path: result/
@@ -37,7 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download Windows success markers
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           pattern: windows-success-*
           path: results
