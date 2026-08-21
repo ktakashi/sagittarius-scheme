@@ -30,6 +30,7 @@
 #define SOCKET_SELECTOR_H_
 
 #include "sagittarius-socket.h"
+#include <sagittarius/private/treemap.h>
 
 /*
   Socket selector.
@@ -43,6 +44,7 @@ typedef struct
 {
   SG_HEADER;
   SgObject sockets;
+  SgTreeMap *timeout_index;    /* TreeMap: (sec,nsec,socket) -> slot */
   SgReadWriteLock rw_lock;
   int      waiting;
   int      retry;
