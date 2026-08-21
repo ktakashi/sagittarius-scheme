@@ -52,6 +52,21 @@ typedef struct win_context_rec
   HANDLE   lock;			    /* lock for closing... */
 } win_context_t;
 
+static int register_socket_context(void *context, SgObject slot)
+{
+  (void)context;
+  (void)slot;
+  /* Windows selector currently associates events during wait cycles. */
+  return TRUE;
+}
+
+static void unregister_socket_context(void *context, SgSocket *socket)
+{
+  (void)context;
+  (void)socket;
+  /* no-op: association is managed in win_selector_wait */
+}
+
 
 static void system_error(int code)
 {
