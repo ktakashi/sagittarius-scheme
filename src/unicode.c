@@ -664,17 +664,44 @@ size_t ustrlen(const SgChar *value)
 #include "../unicode/special-casing-title.inc"
 #include "../unicode/decompose.inc"
 
-#define DECLARE_SIMPLE_CASE(name, how)				\
-  static SgChar name (SgChar ch)				\
-  {								\
-    const int size = array_sizeof(SG_CPP_CAT(s_, name));	\
-    int i;							\
-    for (i = 0; i < size; i++) {				\
-      if (SG_CPP_CAT(s_, name)[i].in == ch) {			\
-	return (SgChar)(SG_CPP_CAT(s_, name)[i].out);		\
-      }								\
-    }								\
-    return how? ch: 0;						\
+#define BSEARCH_THRESHOLD 100
+
+#define UNICODE_BSEARCH(array, size, ch, pos)			  \
+  do {                                                            \
+    size_t u_lb_lo = 0, u_lb_hi = (size);                         \
+    while (u_lb_lo < u_lb_hi) {                                   \
+      size_t u_lb_mid = u_lb_lo + (u_lb_hi - u_lb_lo) / 2;        \
+      if ((array)[u_lb_mid].in < (ch)) {                          \
+        u_lb_lo = u_lb_mid + 1;                                   \
+      } else {                                                    \
+        u_lb_hi = u_lb_mid;                                       \
+      }                                                           \
+    }                                                             \
+    (pos) = u_lb_lo;                                              \
+  } while (0)
+
+/*
+  simple case entries are always more than 100, so always binary search
+*/
+#define DECLARE_SIMPLE_CASE(name, how)					\
+  static SgChar name (SgChar ch)					\
+  {									\
+    const size_t size = array_sizeof(SG_CPP_CAT(s_, name));		\
+    if (size >= BSEARCH_THRESHOLD) {					\
+      size_t lo;							\
+      UNICODE_BSEARCH(SG_CPP_CAT(s_, name), size, ch, lo);		\
+      if (lo < size && SG_CPP_CAT(s_, name)[lo].in == ch) {		\
+	return (SgChar)(SG_CPP_CAT(s_, name)[lo].out);			\
+      }									\
+    } else {								\
+      size_t i;								\
+      for (i = 0; i < size; i++) {					\
+	if (SG_CPP_CAT(s_, name)[i].in == ch) {				\
+	  return (SgChar)(SG_CPP_CAT(s_, name)[i].out);			\
+	}								\
+      }									\
+    }									\
+    return how? ch: 0;							\
   }
 
 DECLARE_SIMPLE_CASE(simple_uppercase, TRUE);
@@ -683,36 +710,57 @@ DECLARE_SIMPLE_CASE(simple_titlecase, TRUE);
 DECLARE_SIMPLE_CASE(canonical_class, FALSE);
 DECLARE_SIMPLE_CASE(compose, FALSE);
 
-#define DECLARE_BOOL_CASE(name)					\
-  static int name (SgChar ch)					\
-  {								\
-    const int size = array_sizeof(SG_CPP_CAT(s_, name));	\
-    int i;							\
-    for (i = 0; i < size; i++) {				\
-      if (SG_CPP_CAT(s_, name)[i].in == ch) {			\
-	return TRUE;						\
-      }								\
-    }								\
-    return FALSE;						\
-  }
-
-DECLARE_BOOL_CASE(compatibility);
-
-#define DECLARE_OTHER_CASE_PRED(name, lo, hi)				\
-  static int SG_CPP_CAT(name, _property_p) (SgChar ch)			\
+/* compatibility contains more than 3000 */
+#define DECLARE_BOOL_CASE(name)						\
+  static int name (SgChar ch)						\
   {									\
-    if ((lo) <= ch && ch <= (hi)) {					\
-      const int size = array_sizeof(SG_CPP_CAT(s_, name));		\
-      int i;								\
+    const size_t size = array_sizeof(SG_CPP_CAT(s_, name));		\
+    if (size >= BSEARCH_THRESHOLD) {					\
+      size_t lo;							\
+      UNICODE_BSEARCH(SG_CPP_CAT(s_, name), size, ch, lo);		\
+      return (lo < size && SG_CPP_CAT(s_, name)[lo].in == ch)? TRUE: FALSE; \
+    } else {								\
+      size_t i;								\
       for (i = 0; i < size; i++) {					\
-	if (SG_CPP_CAT(s_, name)[i].in <= ch &&				\
-	    SG_CPP_CAT(s_, name)[i].out <= ch) {			\
+	if (SG_CPP_CAT(s_, name)[i].in == ch) {				\
 	  return TRUE;							\
 	}								\
       }									\
     }									\
     return FALSE;							\
   }
+
+DECLARE_BOOL_CASE(compatibility);
+
+/* other lower and upper don't have may entries */
+#define DECLARE_OTHER_CASE_PRED(name, lo, hi)				\
+  static int SG_CPP_CAT(name, _property_p) (SgChar ch)			\
+  {									\
+    if ((lo) <= ch && ch <= (hi)) {					\
+      const size_t size = array_sizeof(SG_CPP_CAT(s_, name));		\
+      if (size >= BSEARCH_THRESHOLD) {					\
+	size_t left;							\
+	UNICODE_BSEARCH(SG_CPP_CAT(s_, name), size, ch, left);		\
+	if (left > 0) {							\
+	  size_t i = left - 1;						\
+	  if (ch <= SG_CPP_CAT(s_, name)[i].out) {			\
+	    return TRUE;						\
+	  }								\
+	}								\
+      } else {								\
+	size_t i;							\
+	for (i = 0; i < size; i++) {					\
+	  if (SG_CPP_CAT(s_, name)[i].in > ch) break;			\
+	  if (SG_CPP_CAT(s_, name)[i].in <= ch &&			\
+	      ch <= SG_CPP_CAT(s_, name)[i].out) {			\
+	    return TRUE;						\
+	  }								\
+	}								\
+      }									\
+    }									\
+    return FALSE;							\
+  }
+
 DECLARE_OTHER_CASE_PRED(other_alphabetic, 0x345, 0x10A0F);
 /* since unicode 6.1.0, 0xAA is categorised in Lo */
 DECLARE_OTHER_CASE_PRED(other_lowercase, 0xAA, 0x24E9);
@@ -928,18 +976,49 @@ SgObject Sg_CategroyToSymbol(SgGeneralCategory cate)
   return SG_INTERN("Cn");
 }
 
-#define DECLARE_SPECIAL_CASING(name)				\
-  static int name (SgChar ch)					\
-  {								\
-    const int size = array_sizeof(SG_CPP_CAT(s_, name));	\
-    int i;							\
-    if (ch < SG_CPP_CAT(s_, name)[0].in) return -1;		\
-    if (ch > SG_CPP_CAT(s_, name)[size-1].in) return -1;	\
-    /* TODO maybe binary search? */				\
-    for (i = 0; i < size; i++) {				\
-      if (SG_CPP_CAT(s_, name)[i].in == ch) return i;		\
-    }								\
-    return -1;							\
+/* dummy */
+typedef struct
+{
+  int32_t in;
+} unicode_map_t;
+
+/*
+(define s 
+  (list->string (map integer->char 
+		     '(#x1234 #x1234 #x1234 #x1234 #x1234 #x1234))))
+
+(let-values (((out e) (open-string-output-port)))
+  (time (do ((i 0 (+ i 1))) ((= i 1000000))
+	  (put-string out (string-foldcase s))))
+  (e))
+  The above million order script showed the improvemnet
+
+  Before
+  ;;  (do ((i 0 (+ i 1))) ((= i 1000000)) (put-string out (string-foldcase s)))
+  ;;  3.674095 real    3.695388 user    0.165364 sys
+  After
+  ;;  (do ((i 0 (+ i 1))) ((= i 1000000)) (put-string out (string-foldcase s)))
+  ;;  0.603544 real    0.641675 user    0.154124 sys
+
+  So, better than nothing. Though extremely limited case.
+*/
+/* upper, title and case folding would match this */
+#define DECLARE_SPECIAL_CASING(name)					\
+  static int name (SgChar ch)						\
+  {									\
+    const size_t size = array_sizeof(SG_CPP_CAT(s_, name));		\
+    if (ch < SG_CPP_CAT(s_, name)[0].in) return -1;			\
+    if (ch > SG_CPP_CAT(s_, name)[size-1].in) return -1;		\
+    if (size >= BSEARCH_THRESHOLD) {					\
+      size_t lo;							\
+      UNICODE_BSEARCH(SG_CPP_CAT(s_, name), size, ch, lo);		\
+      return (lo < size && SG_CPP_CAT(s_, name)[lo].in == ch) ? lo : -1; \
+    } else {								\
+      for (int i = 0; i < size; i++) {					\
+	if (SG_CPP_CAT(s_, name)[i].in == ch) return i;			\
+      }									\
+    }									\
+    return -1;								\
   }
 
 DECLARE_SPECIAL_CASING(special_casing_upper);
