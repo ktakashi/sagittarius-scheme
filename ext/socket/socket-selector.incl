@@ -8,6 +8,22 @@ static int duplicate_socket(SgSocket *socket, SgObject sockets)
   return FALSE;
 }
 
+static int register_socket_context(void *context, SgObject slot);
+static void unregister_socket_context(void *context, SgSocket *socket);
+
+static int register_socket(SgSocketSelector *selector, SgObject slot)
+{
+  if (selector->context == NULL) return FALSE;
+  return register_socket_context(selector->context, slot);
+}
+
+static void unregister_socket(SgSocketSelector *selector, SgSocket *socket)
+{
+  if (selector->context != NULL) {
+    unregister_socket_context(selector->context, socket);
+  }
+}
+
 static int strip_sockets(SgSocketSelector *selector, SgObject slots)
 {
   int i = 0;
@@ -19,6 +35,8 @@ static int strip_sockets(SgSocketSelector *selector, SgObject slots)
 	Sg_SocketOpenP(SG_SOCKET(SG_CAR(slot)))) {
       SG_APPEND1(h, t, slot);
       i++;
+    } else {
+      unregister_socket(selector, SG_SOCKET(SG_CAR(slot)));
     }
   }
   selector->sockets = h;
@@ -91,6 +109,10 @@ SgObject Sg_SocketSelectorClear(SgSocketSelector *selector)
 
   strip_sockets(selector, SG_NIL);	/* strip closed ones */
   cp = selector->sockets;
+  SG_FOR_EACH(cp, selector->sockets) {
+    unregister_socket(selector, SG_SOCKET(SG_CAAR(cp)));
+  }
+  cp = selector->sockets;
   selector->sockets = SG_NIL;
 
   Sg_ReleaseWriteLock(&selector->rw_lock);
@@ -132,6 +154,12 @@ SgObject Sg_SocketSelectorAdd(SgSocketSelector *selector,
 
       Sg_AcquireWriteLock(&selector->rw_lock);
       selector->sockets = Sg_Cons(slot, selector->sockets);
+      if (!register_socket(selector, slot)) {
+    	selector->sockets = SG_CDR(selector->sockets);
+    	Sg_ReleaseWriteLock(&selector->rw_lock);
+    	Sg_Error(UC("Failed to register socket to selector: %A"), socket);
+  return SG_UNDEF;
+      }
       /* will be stripped anyway */
       /* strip_sockets(selector, SG_NIL); */
 

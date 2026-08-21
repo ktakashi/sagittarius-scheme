@@ -40,22 +40,37 @@ static int make_selector()
   return epoll_create1(0);
 }
 
-static void add_socket_ctx(unix_context_t *ctx, SgObject slot)
+static int register_socket_context(void *context, SgObject slot)
 {
+  unix_context_t *ctx = (unix_context_t *)context;
   struct epoll_event ev;
   SgSocket *socket = SG_SOCKET(SG_CAR(slot));
+
   ev.events = EPOLLIN;
   ev.data.ptr = slot;
-  epoll_ctl(ctx->fd, EPOLL_CTL_ADD, socket->socket, &ev);
+  if (epoll_ctl(ctx->fd, EPOLL_CTL_ADD, socket->socket, &ev) != 0) {
+    if (errno == EEXIST) return TRUE;
+    return FALSE;
+  }
+  return TRUE;
 }
 
-static void remove_socket_ctx(unix_context_t *ctx, SgSocket *socket)
+static void unregister_socket_context(void *context, SgSocket *socket)
 {
+  unix_context_t *ctx = (unix_context_t *)context;
   /* BUG on kernel < 2.6.9 */
   struct epoll_event ev;
   ev.events = EPOLLIN;
   ev.data.ptr = NULL;
-  epoll_ctl(ctx->fd, EPOLL_CTL_DEL, socket->socket, &ev);
+  if (epoll_ctl(ctx->fd, EPOLL_CTL_DEL, socket->socket, &ev) != 0) {
+    switch (errno) {
+    case EBADF:
+    case ENOENT:
+      break;
+    default:
+      break;
+    }
+  }
 }
 
 static SgObject wait_selector(unix_context_t *ctx, int nsock,
@@ -63,8 +78,10 @@ static SgObject wait_selector(unix_context_t *ctx, int nsock,
 			      int *err)
 {
   int n = nsock + 1, i, c;
-  SgObject r = SG_NIL, cp;
+  SgObject r = SG_NIL;
   struct epoll_event *evm, ev;
+
+  (void)sockets;
 
 #ifndef HAVE_EPOLL_PWAIT2
   long millis = -1;
@@ -74,9 +91,6 @@ static SgObject wait_selector(unix_context_t *ctx, int nsock,
   }
 #endif
 
-  SG_FOR_EACH(cp, sockets) {
-    add_socket_ctx(ctx, SG_CAR(cp));
-  }
   ev.events = EPOLLIN | EPOLLRDHUP;
   ev.data.ptr = SG_FALSE;
   epoll_ctl(ctx->fd, EPOLL_CTL_ADD, ctx->stop_fd, &ev);
@@ -111,9 +125,6 @@ static SgObject wait_selector(unix_context_t *ctx, int nsock,
   ev.events = EPOLLIN;
   ev.data.ptr = NULL;
   epoll_ctl(ctx->fd, EPOLL_CTL_DEL, ctx->stop_fd, &ev);
-  SG_FOR_EACH(cp, sockets) {
-    remove_socket_ctx(ctx, SG_SOCKET(SG_CAAR(cp)));
-  }
   
   return r;
 }
