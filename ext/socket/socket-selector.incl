@@ -72,38 +72,22 @@ static SgObject timeout_index_earliest(SgSocketSelector *selector,
                                        SgObject *timedout)
 {
   SgTreeMap *tm = selector->timeout_index;
-  SgTreeIter iter;
-  SgTreeEntry *entry;
-  SgObject earliest = SG_FALSE;
-  SgObject expired_keys = SG_NIL;  /* keys to delete after iteration */
   
-  if (tm->entryCount == 0) return SG_FALSE;
-  
-  /* Iterate from smallest (earliest timeout) */
-  Sg_TreeIterInit(&iter, tm, NULL);
-  while ((entry = Sg_TreeIterNext(&iter)) != NULL) {
+  while(tm->entryCount) {
+    SgTreeEntry *entry = Sg_TreeMapFirstEntry(tm);
     SgTime *key = SG_TIME(entry->key);
     SgObject slot = SG_OBJ(entry->value);
-    
-    /* Check if this timeout has expired */
     if (SG_CLASS_TIME->compare(key, now, FALSE) <= 0) {
       /* Expired - add to timedout list */
       *timedout = Sg_Cons(slot, *timedout);
-      expired_keys = Sg_Cons(SG_OBJ(key), expired_keys);
+      Sg_TreeMapDelete(tm, key);
     } else {
       /* First non-expired entry is the earliest timeout */
-      earliest = SG_CADR(slot);  /* the SgTime* */
-      break;
+      return key;
     }
+    
   }
-  
-  /* Remove expired entries from TreeMap */
-  SgObject cp;
-  SG_FOR_EACH(cp, expired_keys) {
-    Sg_TreeMapDelete(tm, SG_CAR(cp));
-  }
-  
-  return earliest;
+  return SG_FALSE;
 }
 
 static int strip_sockets(SgSocketSelector *selector, SgObject slots)
