@@ -54,7 +54,7 @@ out))
 				   (file-options no-truncate)
 				   'block
 				   (native-transcoder)))
-	 (datum (read in)))
+	 (datum (list-sort (lambda (a b) (< (car a) (car b))) (read in))))
     (close-port in)
     (let ((ofile (output-file-path file)))
       (when (file-exists? ofile) (delete-file ofile))
