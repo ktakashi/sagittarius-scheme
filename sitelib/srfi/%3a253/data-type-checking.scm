@@ -1,3 +1,4 @@
+#!nounbound
 ;; SPDX-FileCopyrightText: 2024 Artyom Bologov
 ;; SPDX-License-Identifier: MIT
 
