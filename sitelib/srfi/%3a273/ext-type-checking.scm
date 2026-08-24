@@ -28,7 +28,7 @@
           define-values-checked
           declare-checked)
   (import (rnrs))
-  (import (srfi :253))
+  (import (srfi :253 data-type-checking))
 
   (define-syntax define-check
     (syntax-rules ()
