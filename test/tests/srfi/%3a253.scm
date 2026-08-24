@@ -207,7 +207,7 @@
 (define-checked (c (b string?)) #t)
 (test-assert (c "hello"))
 (test-error (c 3))
-(test-assert (define-checked (c b . d) #t))
+(define-checked (c b . d) #t)
 (test-error (c))
 (test-assert (c 1))
 (test-assert (c 1 2))
