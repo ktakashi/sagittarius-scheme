@@ -29,11 +29,5 @@
 ;;;
 
 (library (srfi :145 assumptions)
-    (export assume)
-    (import (rnrs))
-
-(define-syntax assume
-  (syntax-rules ()
-    ((_ obj message ...)
-     (or obj (assertion-violation #f message ... 'obj)))))
-)
+    (export :all)
+    (import (srfi :145 assume)))
