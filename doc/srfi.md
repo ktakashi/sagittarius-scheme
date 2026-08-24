@@ -80,7 +80,7 @@ For now, I just put pointer to [the SRFI's web site](http://srfi.schemers.org/)
 | [SRFI-142](http://srfi.schemers.org/srfi-142/srfi-142.html) | (srfi :142 bitwise)[^longname]                      |
 | [SRFI-143](http://srfi.schemers.org/srfi-143/srfi-143.html) | (srfi :143 fixnums)[^longname]                      |
 | [SRFI-144](http://srfi.schemers.org/srfi-144/srfi-144.html) | (srfi :144 flonums)[^longname]                      |
-| [SRFI-145](http://srfi.schemers.org/srfi-145/srfi-145.html) | (srfi :145 assumptions)[^longname]                  |
+| [SRFI-145](http://srfi.schemers.org/srfi-145/srfi-145.html) | (srfi :145 assume)[^SRFI-145]                       |
 | [SRFI-146](http://srfi.schemers.org/srfi-146/srfi-146.html) | (srfi :146 mapping)[^longname] and (srfi :146 hash) |
 | [SRFI-151](http://srfi.schemers.org/srfi-151/srfi-151.html) | (srfi :151 bitwise-operations)[^longname]           |
 | [SRFI-152](http://srfi.schemers.org/srfi-152/srfi-152.html) | (srfi :152 strings)                                 |
@@ -132,6 +132,8 @@ For now, I just put pointer to [the SRFI's web site](http://srfi.schemers.org/)
              #!sweet
              ``````````
              The order doesn't matter, Sagittarius just ignores the latter style.
+
+[^SRFI-145]: Unofficial library name `(srfi :145 assumptions)` is kept for backward compatibility
 
 [^SRFI-152]: This library doesn't extend comparisons, thus it behaves as the SRFI specifies.
              (e.g. Passing 0 or 1 argument to `string=?` raises an error)
