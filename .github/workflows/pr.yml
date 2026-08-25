@@ -8,3 +8,7 @@ jobs:
     uses: ./.github/workflows/posix-build.yml
   Windows-Build:
     uses: ./.github/workflows/windows-build.yml
+  VMActions-Build:
+    needs: POSIX-Build
+    uses: ./.github/workflows/vmactions-build.yml
+
