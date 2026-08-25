@@ -11,6 +11,9 @@ inputs:
   setup-script:
     description: Setup script path inside repository
     required: true
+  cc:
+    description: Setup compiler environment variable script
+    required: false
 
 runs:
   using: composite
@@ -41,6 +44,10 @@ runs:
         run: |
           cd $GITHUB_WORKSPACE;
           ./dist.sh gen
+	  setup_cc=${{ inputs.cc }}
+	  if [ "$setup_cc" != "" ]; then
+	    sh "./$setup_cc"
+	  fi
           cmake .
 
     - name: Build
