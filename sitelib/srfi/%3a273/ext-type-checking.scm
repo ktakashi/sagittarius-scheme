@@ -27,8 +27,8 @@
   (export define-check
           define-values-checked
           declare-checked)
-  (import (rnrs))
-  (import (srfi :253 data-type-checking))
+  (import (rnrs)
+          (srfi :253 data-type-checking))
 
   (define-syntax define-check
     (syntax-rules ()
