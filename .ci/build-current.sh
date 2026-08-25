@@ -40,8 +40,9 @@ fi
 # NetBSD fix
 os=$(uname)
 if [ "$os" == "NetBSD" ]; then
-    export CC=/usr/pkg/gcc15/bin/gcc
-    export CXX=/usr/pkg/gcc15/bin/g++
+    gcc=$(pkgin list | grep gcc | sed -n 's/^\(gcc[0-9][0-9]*\)-.*/\1/p' | sort -n | tail -1)
+    export CC=/usr/pkg/$gcc/bin/gcc
+    export CXX=/usr/pkg/$gcc/bin/g++
 fi
 
 cmake . -DCMAKE_C_FLAGS="$flags" -DCMAKE_CXX_FLAGS="$flags"
