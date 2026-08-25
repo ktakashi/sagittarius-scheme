@@ -34,6 +34,11 @@ ADD_EXECUTABLE(test-sem test-sem.c)
 # for process-kill
 ADD_EXECUTABLE(test-kill test-kill.c)
 
+IF (CMAKE_SYSTEM_NAME STREQUAL "NetBSD")
+  TARGET_LINK_LIBRARIES(test-shm rt)
+  TARGET_LINK_LIBRARIES(test-sem rt)
+ENDIF()
+
 SET_TARGET_PROPERTIES(test-proc PROPERTIES SUFFIX ".bin")
 SET_TARGET_PROPERTIES(test-shm PROPERTIES SUFFIX ".bin")
 SET_TARGET_PROPERTIES(test-sem PROPERTIES SUFFIX ".bin")
