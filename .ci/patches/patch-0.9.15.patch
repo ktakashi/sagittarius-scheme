@@ -1,0 +1,28 @@
+diff -ru sagittarius-0.9.15/ext/process/CMakeLists.txt sagittarius-0.9.15-new/ext/process/CMakeLists.txt
+--- sagittarius-0.9.15/ext/process/CMakeLists.txt	2026-08-20 10:47:07.000000000 +0200
++++ sagittarius-0.9.15-new/ext/process/CMakeLists.txt	2026-08-25 17:11:05.779298403 +0200
+@@ -34,6 +34,11 @@
+ # for process-kill
+ ADD_EXECUTABLE(test-kill test-kill.c)
+ 
++IF (CMAKE_SYSTEM_NAME STREQUAL "NetBSD")
++  TARGET_LINK_LIBRARIES(test-shm rt)
++  TARGET_LINK_LIBRARIES(test-sem rt)
++ENDIF()
++
+ SET_TARGET_PROPERTIES(test-proc PROPERTIES SUFFIX ".bin")
+ SET_TARGET_PROPERTIES(test-shm PROPERTIES SUFFIX ".bin")
+ SET_TARGET_PROPERTIES(test-sem PROPERTIES SUFFIX ".bin")
+diff -ru sagittarius-0.9.15/src/CMakeLists.txt sagittarius-0.9.15-new/src/CMakeLists.txt
+--- sagittarius-0.9.15/src/CMakeLists.txt	2026-08-20 10:47:07.000000000 +0200
++++ sagittarius-0.9.15-new/src/CMakeLists.txt	2026-08-25 15:47:00.386084699 +0200
+@@ -166,6 +166,9 @@
+   IF (CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
+     TARGET_LINK_LIBRARIES(sagittarius util)
+   ENDIF()
++  IF (CMAKE_SYSTEM_NAME STREQUAL "NetBSD")
++    TARGET_LINK_LIBRARIES(sagittarius util)
++  ENDIF()
+   IF (HAVE_PAM_APPL_H)
+     TARGET_LINK_LIBRARIES(sagittarius pam)
+   ENDIF()
