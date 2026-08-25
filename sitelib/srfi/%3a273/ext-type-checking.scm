@@ -1,4 +1,3 @@
-#!nounbound
 ;; SPDX-FileCopyrightText: 2026 Artyom Bologov
 ;; SPDX-License-Identifier: MIT
 
@@ -23,6 +22,7 @@
 ;;; FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 ;;; OTHER DEALINGS IN THE SOFTWARE.
 
+#!nounbound
 (library (srfi :273 ext-type-checking)
   (export define-check
           define-values-checked
