@@ -37,6 +37,12 @@ if [ "$processor" == "aarch64" ]; then
     flags="-fPIC"
 fi
 
+# NetBSD fix
+os=$(uname)
+if [ "$os" == "NetBSD" ]; then
+    . "$CUR_DIR/cc-netbsd.sh"
+fi
+
 cmake . -DCMAKE_C_FLAGS="$flags" -DCMAKE_CXX_FLAGS="$flags"
 make -j8 sash
 make

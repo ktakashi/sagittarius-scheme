@@ -2697,7 +2697,21 @@ static SgObject expt_body(SgObject x, SgObject y)
 	  double mag = exp(n * log(-m));
 	  return Sg_MakeComplex(Sg_MakeFlonum(mag * cos_pi(n)),
 				Sg_MakeFlonum(mag * sin_pi(n)));
-	} else return Sg_MakeFlonum(pow(m, n));
+	} else {
+	  /* To avoid libm difference, when m is nagative 0,
+	     we flip to positive.
+	     i.e. NetBSD uses different strategy. 
+	     
+	     NOTE: this makes (expt -0.0 -3.1) returns +inf.0
+	           while (expt -0.0 -3) returns -inf.0.
+		   if we want to respect sign, then we might
+		   need to return -inf.0 in case the x is -0.0. 
+		   though, this diverse from other implementations
+		   which simply uses pow for flonums
+	  */
+	  if (m == -0.0) m = fabs(m);
+	  return Sg_MakeFlonum(pow(m, n));
+	}
       }
       else return Sg_Exp(Sg_Mul(y, Sg_Log(x)));
     } else {
