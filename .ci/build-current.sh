@@ -40,7 +40,7 @@ fi
 # NetBSD fix
 os=$(uname)
 if [ "$os" == "NetBSD" ]; then
-    sh ./cc-netbsd.sh
+    . "$CUR_DIR/cc-netbsd.sh"
 fi
 
 cmake . -DCMAKE_C_FLAGS="$flags" -DCMAKE_CXX_FLAGS="$flags"

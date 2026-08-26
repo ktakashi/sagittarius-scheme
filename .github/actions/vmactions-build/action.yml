@@ -46,7 +46,7 @@ runs:
           ./dist.sh gen
           setup_cc=${{ inputs.cc }}
           if [ "$setup_cc" != "" ]; then
-            sh "./$setup_cc"
+            . "./$setup_cc"
           fi
           cmake .
 
