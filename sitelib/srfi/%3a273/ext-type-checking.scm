@@ -28,6 +28,7 @@
           define-values-checked
           declare-checked)
   (import (rnrs)
+          (sagittarius control)
           (srfi :253 data-type-checking))
 
   (define-syntax define-check
