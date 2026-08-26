@@ -270,10 +270,11 @@ Experimentally, we support other build tools. Below are the supported ones:
 
 | OS      | x86 | amd64 | ARM64 | ARM | ppc64le |
 |---------|-----|-------|-------|-----|---------|
-| Linux   |     | ✅✔️ | ☑️✔️  | ✔️  | ✔️     |
+| Linux   |     | ✅✔️  | ☑️✔️  | ✔️  | ✔️      |
 | macOS   |     |       | ✅    |     |         |
 | FreeBSD |     | ✅    | ☑️    |     |         |
 | OpenBSD |     | ✅    | ☑️    |     |         |
+| NetBSD  |     | ✅    | ☑️    |     |         |
 | Windows | ✅  | ✅    | ☑️    |     |         |
 
 - ✅ Tested with CI
