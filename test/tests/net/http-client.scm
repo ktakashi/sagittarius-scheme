@@ -107,7 +107,7 @@
    (else
     ;; seems OpenBSD doesn't send if the certificate is expired
     ;; LibreSSL thing?
-    (run-test "https://mtls.certauth.dev/" "401" '(json "/ssl" . #f)))
+    (run-test "https://mtls.certauth.dev/" "401" '(json "/ssl" . #f))))
   (run-test "https://client.badssl.com/" "200")
   (http:client-shutdown! client)
   )
