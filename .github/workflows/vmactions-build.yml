@@ -25,3 +25,4 @@ jobs:
           vm-name: ${{ matrix.config.name }}
           arch: ${{ matrix.arch }}
           setup-script: ${{ matrix.config.setup }}
+          cc: ${{ matrix.config.cc }}
