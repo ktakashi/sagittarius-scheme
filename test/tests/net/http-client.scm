@@ -100,7 +100,14 @@
 		  (follow-redirects (http:redirect normal))))
 
   (test-assert (http:client? client))
-  (run-test "https://mtls.certauth.dev/" "403" '(json "/ssl" . #t))
+  ;; NOTE certautth.dev TLS certificate is expired
+  (cond-expand
+   ((not openbsd)
+    (run-test "https://mtls.certauth.dev/" "403" '(json "/ssl" . #t)))
+   (else
+    ;; seems OpenBSD doesn't send if the certificate is expired
+    ;; LibreSSL thing?
+    (run-test "https://mtls.certauth.dev/" "401" '(json "/ssl" . #f)))
   (run-test "https://client.badssl.com/" "200")
   (http:client-shutdown! client)
   )
