@@ -8,6 +8,7 @@ on:
         required: true
 
 permissions:
+  actions: read
   contents: read
   pages: write
   id-token: write
@@ -16,6 +17,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     permissions:
+      actions: read
       contents: read
       pages: write
       id-token: write
@@ -27,6 +29,7 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           run-id: ${{ inputs.buildId }}
+          github-token: ${{ github.token }}
           pattern: sagittarius-doc-*
           path: _docs
       - name: Setup pages
