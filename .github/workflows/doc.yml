@@ -22,22 +22,22 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-  steps:
-    - name: Download document artifact
-      uses: actions/download-artifact@v8
-      with:
-        run-id: ${{ inputs.buildId }}
-        pattern: sagittarius-doc-*
-        path: _docs
-    - name: Setup pages
-      uses: actions/configure-pages@v6
-    - name: Debug
-      run: |
-        ls -lt _docs
-    - name: Upload pages artifact
-      uses: actions/upload-pages-artifact@5
-      with:
-        path: _docs
-    - name:
-      id: deployment
-      uses: actions/deploy-pages@v5
+    steps:
+      - name: Download document artifact
+        uses: actions/download-artifact@v8
+        with:
+          run-id: ${{ inputs.buildId }}
+          pattern: sagittarius-doc-*
+          path: _docs
+      - name: Setup pages
+        uses: actions/configure-pages@v6
+      - name: Debug
+        run: |
+          ls -lt _docs
+      - name: Upload pages artifact
+        uses: actions/upload-pages-artifact@5
+        with:
+          path: _docs
+      - name:
+        id: deployment
+        uses: actions/deploy-pages@v5
