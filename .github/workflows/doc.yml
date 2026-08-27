@@ -7,7 +7,7 @@ on:
         description: "Release build ID"
         required: true
 
-premissions:
+permissions:
   contents: read
   pages: write
   id-token: write
