@@ -63,6 +63,7 @@
 * @[[utils/security/keystore.md](utils/security/keystore.md)]
 * @[[utils/security/password.md](utils/security/password.md)]
 * @[[utils/text/csv.md](utils/text/csv.md)]
+* @[[utils/text/dsv/parser.md](utils/text/dsv/parser.md)]
 * @[[utils/text/html-lite.md](utils/text/html-lite.md)]
 * @[[utils/text/json.md](utils/text/json.md)]
 * @[[utils/text/json/jmespath.md](utils/text/json/jmespath.md)]
