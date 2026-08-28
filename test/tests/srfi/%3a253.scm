@@ -22,9 +22,9 @@
 ;;; FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 ;;; OTHER DEALINGS IN THE SOFTWARE.
 
-(import (rnrs))
-(import (srfi :64))
-(import (srfi :253))
+(import (rnrs)
+        (srfi :64)
+        (srfi :253))
 
 (define-syntax check-arg-true
   (syntax-rules ()
