@@ -12,6 +12,12 @@ jobs:
     needs: POSIX-Build
     uses: ./.github/workflows/vmactions-build.yml
 
+  POSIX-Build-generic:
+    needs: POSIX-Build
+    uses: ./.github/workflows/posix-build.yml
+    with:
+      options: -DENFORCE_GENERIC_SELECTOR=ON
+
   Windows-Build:
     uses: ./.github/workflows/windows-build.yml
 

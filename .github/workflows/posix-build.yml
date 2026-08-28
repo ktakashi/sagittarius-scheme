@@ -1,5 +1,11 @@
 name: POSIX Build 
-on: workflow_call
+on: 
+  workflow_call:
+    inputs:
+      options:
+        required: false
+        description: CMake options
+        type: string
 
 jobs:
   POSIX-Build:
@@ -19,3 +25,4 @@ jobs:
         uses: ./.github/actions/posix-build
         with:
           setup-script: ${{ matrix.config.setup }}
+          options: ${{ inputs.options }}

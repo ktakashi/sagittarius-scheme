@@ -5,6 +5,10 @@ inputs:
   setup-script:
     description: Setup script path inside repository
     required: true
+  options:
+    description: CMake options
+    required: false
+    type: string
 
 runs:
   using: composite
@@ -24,7 +28,7 @@ runs:
     - name: Pre-build
       run: |
         ./dist.sh gen
-        cmake . -DBUILD_TYPE=Debug
+        cmake . -DBUILD_TYPE=Debug ${{ inputs.options }}
       shell: bash
 
     - name: Build
