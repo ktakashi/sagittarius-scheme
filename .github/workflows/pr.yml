@@ -10,4 +10,9 @@ jobs:
     uses: ./.github/workflows/windows-build.yml
   VMActions-Build:
     uses: ./.github/workflows/vmactions-build.yml
+  POSIX-Build-generic:
+    uses: ./.github/workflows/posix-build.yml
+    with:
+      options: -DENFORCE_GENERIC_SELECTOR=ON
+
 
