@@ -49,18 +49,18 @@
 (test-end "define-check")
 
 (test-begin "define-values-checked")
-(test-assert (begin
-               (define-values-checked (quot rem) (integer? integer?)
-                 (truncate/ 1 2))
-               #t))
-(test-assert (begin
-               (define-values-checked (a) (real?) 3)
-               #t))
-(test-error (begin
-              (define-values-checked (quot rem) (integer? string?)
-                (truncate/ 1 2))
-              #t))
-(test-error (define-values-checked (a) (string?) 3))
+(define-values-checked (quot rem) (integer? integer?)
+  (truncate/ 1 2))
+(test-assert quot)
+(test-assert rem)
+(define-values-checked (a) (real?) 3)
+(test-assert a)
+;; FIXME: Impossible to test because define-* forms belong to top level only
+;; (test-error (begin
+;;               (define-values-checked (quot rem) (integer? string?)
+;;                 (truncate/ 1 2))
+;;               #t))
+;; (test-error (define-values-checked (a) (string?) 3))
 ;; Ensure that symbols are not bound on type mismatch
 (define-values-checked (x y) (integer? string?)
   (truncate/ 1 2))
