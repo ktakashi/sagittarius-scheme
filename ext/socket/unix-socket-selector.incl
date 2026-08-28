@@ -157,7 +157,10 @@ void Sg_CloseSocketSelector(SgSocketSelector *selector)
 
     Sg_AcquireWriteLock(&selector->rw_lock);
     if (is_stop_initialised(ctx)) close_unix_stop(ctx);
-    close(ctx->fd);
+    if (ctx->fd > 0) {
+      close(ctx->fd);
+      ctx->fd = 0;
+    }
     Sg_ReleaseWriteLock(&selector->rw_lock);
 
     Sg_DestroyReadWriteLock(&selector->rw_lock);
