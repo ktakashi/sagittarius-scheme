@@ -36,7 +36,9 @@
 #include <float.h>
 #include <sagittarius/config.h>
 
-#include "roundeven.inc"
+#ifndef HAVE_ROUNDEVEN
+# include "roundeven.inc"
+#endif
 
 #if (__STDC_VERSION__ < 199901L) && !defined(__GNUC__)
 # if defined(_MSC_VER)

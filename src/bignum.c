@@ -1954,24 +1954,10 @@ static SgObject small_bignum_to_string(SgBignum *b, int radix, int use_upper)
   return rs;
 }
 
-/* FIXME this is also in number.c */
-static SG_INLINE double roundeven(double v)
-{
-  double r;
-  double frac = modf(v, &r);
-  if (v > 0.0) {
-    if (frac > 0.5) r += 1.0;
-    else if (frac == 0.5) {
-      if (fmod(r, 2.0) != 0.0) r += 1.0;
-    }
-  } else {
-    if (frac < -0.5) r -= 1.0;
-    else if (frac == -0.5) {
-      if (fmod(r, 2.0) != 0.0) r -= 1.0;
-    }
-  }
-  return r;
-}
+#ifndef HAVE_ROUNDEVEN
+# include "roundeven.inc"
+#endif
+
 /* this is used here */
 static SgBignum * bignum_expt(SgBignum *b, long exponent);
 

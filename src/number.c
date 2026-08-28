@@ -102,7 +102,9 @@ enum { /* used in the exactness flag */
 static const int64_t iexpt_2n52 = 0x10000000000000LL; // 2^(53-1)
 static const int64_t iexpt_2n53 = 0x20000000000000LL; // 2^53
 
-#include "roundeven.inc"
+#ifndef HAVE_ROUNDEVEN
+# include "roundeven.inc"
+#endif
 
 /* classes */
 static SgClass *numeric_cpl[] = {
