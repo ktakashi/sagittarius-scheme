@@ -50,7 +50,7 @@
 
 (test-begin "define-values-checked")
 (define-values-checked (quot rem) (integer? integer?)
-  (truncate/ 1 2))
+  (div-and-mod 1 2))
 (test-assert quot)
 (test-assert rem)
 (define-values-checked (a) (real?) 3)
@@ -63,7 +63,7 @@
 ;; (test-error (define-values-checked (a) (string?) 3))
 ;; Ensure that symbols are not bound on type mismatch
 (define-values-checked (x y) (integer? string?)
-  (truncate/ 1 2))
+  (div-and-mod 1 2))
 (test-error (eval 'x (interaction-environment)))
 (test-error (eval 'y (interaction-environment)))
 ;; Test modifications, on implementations supporting that
