@@ -30,12 +30,8 @@
           case-lambda-checked
           define-record-type-checked)
   (import (except (rnrs) define-record-type)
-          (srfi :9 records))
-
-  (define-syntax assume
-    (syntax-rules ()
-      ((_ expr rest ...)
-       (begin (assert expr) #t))))
+          (srfi :9 records)
+          (srfi :145 assumptions))
 
   (define-syntax check-arg
     (syntax-rules ()
