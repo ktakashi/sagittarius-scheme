@@ -1,6 +1,8 @@
 # Sagittarius extensions -*- CMake -*-
 # 
 # Build file for socket
+OPTION(ENFORCE_GENERIC_SELECTOR "use poll socket selector for POSIX" OFF)
+
 INCLUDE(${CMAKE_ROOT}/Modules/CheckIncludeFiles.cmake)
 
 IF(WIN32 OR USE_SCHANNEL)
@@ -13,7 +15,11 @@ ENDIF()
 # Linux         - epoll
 # *BSD or macOS - kqueue
 # Windows       - WSAPoll
-IF (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+IF (NOT WIN32 AND ENFORCE_GENERIC_SELECTOR)
+  MESSAGE(STATUS "Using generic selector implementation")
+  SET(SELECTOR_SOURCE selector-poll.c)
+ELSEIF (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  MESSAGE(STATUS "Using epoll selector implementation")
   SET(SELECTOR_SOURCE selector-epoll.c)
   CHECK_FUNCTION_EXISTS(epoll_pwait2 HAVE_EPOLL_PWAIT2)
   IF (HAVE_EPOLL_PWAIT2)
@@ -21,15 +27,17 @@ IF (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     ADD_DEFINITIONS(-DHAVE_EPOLL_PWAIT2)
   ENDIF()
 ELSEIF(WIN32)
+  MESSAGE(STATUS "Using Windows selector implementation")
   SET(SELECTOR_SOURCE selector-win.c)
 ELSE()
   # Assume *BSD or macOS,
   CHECK_INCLUDE_FILES("stdint.h;sys/types.h;sys/event.h"  HAVE_SYS_EVENT_H)
   IF (HAVE_SYS_EVENT_H)
+    MESSAGE(STATUS "Using kqueue selector implementation")
     SET(SELECTOR_SOURCE selector-kqueue.c)
   ELSE()
-    # TODO should we make dummy here?
-    MESSAGE(FATAL_ERROR "Socket selector is not supported on this platform")
+    MESSAGE(STATUS "Using generic selector implementation")
+    SET(SELECTOR_SOURCE selector-poll.c)
   ENDIF()
 ENDIF()
 

@@ -346,11 +346,11 @@
 		  (thread-start! (make-thread (echo sock))))
 		(loop)))))))))
   (define count (get-socket-count 100))
+  (define server-port
+    (number->string (socket-info-port (socket-info server-sock))))
   (define (run-socket-selector hard-timeout soft-timeout)
     (define result (make-shared-queue))
     (define counter (make-atomic-fixnum 0))
-    (define server-port
-      (number->string (socket-info-port (socket-info server-sock))))
     (define ((caller selector) i)
       (define (push-result sock e reuse)
 	(atomic-fixnum-inc! counter)

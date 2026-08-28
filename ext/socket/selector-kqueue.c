@@ -36,9 +36,10 @@
 
 #include "unix-socket-selector.incl"
 
-static int make_selector()
+static int init_selector(unix_context_t *ctx)
 {
-  return kqueue();
+  ctx->fd = kqueue();
+  return ctx->fd >= 0;
 }
 
 static int register_socket_context(void *context, SgObject slot)

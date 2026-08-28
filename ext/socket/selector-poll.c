@@ -1,6 +1,6 @@
-/* selector-epoll.c                                -*- mode:c; coding:utf-8; -*-
+/* selector-poll.c                                 -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2023-2025  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2026  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -30,102 +30,82 @@
 #define LIBSAGITTARIUS_EXT_BODY
 #include <sagittarius/extend.h>
 #include "socket-selector.h"
+#include <errno.h>
 #include <string.h>
-#include <sys/epoll.h>
+#include <poll.h>
 
 #include "unix-socket-selector.incl"
 
 static int init_selector(unix_context_t *ctx)
 {
-  ctx->fd = epoll_create1(0);
-  return ctx->fd >= 0;
+  /* set fd = -1, so destroy_selector won't close it */
+  ctx->fd = -1;
+  return TRUE;
 }
 
+/* Do nothing here */
 static int register_socket_context(void *context, SgObject slot)
 {
-  unix_context_t *ctx = (unix_context_t *)context;
-  struct epoll_event ev;
-  SgSocket *socket = SG_SOCKET(SG_CAR(slot));
-
-  ev.events = EPOLLIN;
-  ev.data.ptr = slot;
-  if (epoll_ctl(ctx->fd, EPOLL_CTL_ADD, socket->socket, &ev) != 0) {
-    if (errno == EEXIST) return TRUE;
-    return FALSE;
-  }
+  (void)context;
+  (void)slot;
   return TRUE;
 }
 
 static void unregister_socket_context(void *context, SgSocket *socket)
 {
-  unix_context_t *ctx = (unix_context_t *)context;
-  /* BUG on kernel < 2.6.9 */
-  struct epoll_event ev;
-  ev.events = EPOLLIN;
-  ev.data.ptr = NULL;
-  if (epoll_ctl(ctx->fd, EPOLL_CTL_DEL, socket->socket, &ev) != 0) {
-    switch (errno) {
-    case EBADF:
-    case ENOENT:
-      break;
-    default:
-      break;
-    }
-  }
+  (void)context;
+  (void)socket;
 }
+
+typedef struct pollfd pollfd_t;
 
 static SgObject wait_selector(unix_context_t *ctx, int nsock,
 			      SgObject sockets, struct timespec *sp,
 			      int *err)
 {
-  int n = nsock + 1, i, c;
-  SgObject r = SG_NIL;
-  struct epoll_event *evm, ev;
+  int n = nsock + 1;
+  pollfd_t *pfds = SG_NEW_ATOMIC2(pollfd_t *, n * sizeof(pollfd_t));
 
-  (void)sockets;
+  pfds[0].fd = ctx->stop_fd;
+  pfds[0].events = POLLIN;
+  pfds[0].revents = 0;
 
-#ifndef HAVE_EPOLL_PWAIT2
-  long millis = -1;
-  if (sp) {
-    millis = sp->tv_sec * 1000;
-    millis += sp->tv_nsec / 1000000;
+  SgObject cp;
+  int i = 1;
+  SG_FOR_EACH(cp, sockets) {
+    SgObject slot = SG_CAR(cp);
+    SgSocket *socket = SG_SOCKET(SG_CAR(slot));
+    pfds[i].fd = socket->socket;
+    pfds[i].events = POLLIN;
+    pfds[i].revents = 0;
+    i++;
   }
-#endif
 
-  ev.events = EPOLLIN | EPOLLRDHUP;
-  ev.data.ptr = SG_FALSE;
-  epoll_ctl(ctx->fd, EPOLL_CTL_ADD, ctx->stop_fd, &ev);
+  int timeout = -1;
+  if (sp) {
+    timeout = sp->tv_sec * 1000;
+    timeout += sp->tv_nsec / 1000000;
+  }
 
-  evm = SG_NEW_ATOMIC2(struct epoll_event *, n * sizeof(struct epoll_event));
-#ifndef HAVE_EPOLL_PWAIT2
-  c = epoll_wait(ctx->fd, evm, n, millis);
-#else
-  c = epoll_pwait2(ctx->fd, evm, n, sp, NULL);
-#endif
+  int c = poll(pfds, (nfds_t)n, timeout);
 
-  /*
-    EINTR  The call was interrupted by a signal handler before either
-    (1) any of the requested events occurred or (2) the
-    timeout expired; see signal(7).
-
-    So, timeout is also EINTR which we do expect.
-  */
-  if (c < 0 && errno != EINTR) {
+  if (c < 0) {
+    if (errno == EINTR) return SG_NIL;
     *err = errno;
     return SG_FALSE;
   }
+  /* check interrupt */
+  if (pfds[0].revents & (POLLIN | POLLERR | POLLHUP)) {
+    interrupted_unix_stop(ctx);
+  }
 
-  for (i = 0; i < c; i++) {
-    if (SG_FALSEP(evm[i].data.ptr)) {
-      interrupted_unix_stop(ctx);
-    } else if (evm[i].events & EPOLLIN) {
-      SgObject slot = SG_OBJ(evm[i].data.ptr);
+  i = 1;
+  SgObject r = SG_NIL;
+  SG_FOR_EACH(cp, sockets) {
+    if (pfds[i++].revents & POLLIN) {
+      SgObject slot = SG_CAR(cp);
       r = Sg_Cons(slot, r);
     }
   }
-  ev.events = EPOLLIN;
-  ev.data.ptr = NULL;
-  epoll_ctl(ctx->fd, EPOLL_CTL_DEL, ctx->stop_fd, &ev);
-  
   return r;
 }
