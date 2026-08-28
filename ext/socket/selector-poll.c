@@ -36,10 +36,11 @@
 
 #include "unix-socket-selector.incl"
 
-static int make_selector()
+static int init_selector(unix_context_t *ctx)
 {
-  /* 0 is not an error, but won't be closed :) */
-  return 0;
+  /* set fd = -1, so destroy_selector won't close it */
+  ctx->fd = -1;
+  return TRUE;
 }
 
 /* Do nothing here */

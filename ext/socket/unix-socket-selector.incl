@@ -121,7 +121,7 @@ static SgObject system_error(int e, int fd)
   return SG_UNDEF;		/* dummy */
 }
 
-static int make_selector();
+static int init_selector(unix_context_t *ctx);
 static SgObject wait_selector(unix_context_t *ctx, int n,
 			      SgObject sockets, struct timespec *timeout,
 			      int *err);
@@ -131,13 +131,21 @@ static SgObject wait_selector(unix_context_t *ctx, int n,
 static void * make_selector_context()
 {
   unix_context_t *ctx = SG_NEW(unix_context_t);
-  if ((ctx->fd = make_selector()) < 0) goto err;
+  if (!init_selector(ctx)) goto err;
   if (setup_stop(ctx) == NULL) goto err;
   return ctx;
 
  err:
   system_error(errno, ctx->fd);
   return NULL;
+}
+
+static void destroy_selector(unix_context_t *ctx)
+{
+  if (ctx->fd >= 0) {
+    close(ctx->fd);
+    ctx->fd = -1;
+  }
 }
 
 void Sg_CloseSocketSelector(SgSocketSelector *selector)
@@ -157,10 +165,7 @@ void Sg_CloseSocketSelector(SgSocketSelector *selector)
 
     Sg_AcquireWriteLock(&selector->rw_lock);
     if (is_stop_initialised(ctx)) close_unix_stop(ctx);
-    if (ctx->fd > 0) {
-      close(ctx->fd);
-      ctx->fd = 0;
-    }
+    destroy_selector(ctx);
     Sg_ReleaseWriteLock(&selector->rw_lock);
 
     Sg_DestroyReadWriteLock(&selector->rw_lock);

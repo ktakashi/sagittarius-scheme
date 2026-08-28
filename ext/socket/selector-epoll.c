@@ -35,9 +35,10 @@
 
 #include "unix-socket-selector.incl"
 
-static int make_selector()
+static int init_selector(unix_context_t *ctx)
 {
-  return epoll_create1(0);
+  ctx->fd = epoll_create1(0);
+  return ctx->fd >= 0;
 }
 
 static int register_socket_context(void *context, SgObject slot)
