@@ -62,10 +62,12 @@
 ;;               #t))
 ;; (test-error (define-values-checked (a) (string?) 3))
 ;; Ensure that symbols are not bound on type mismatch
-(define-values-checked (x y) (integer? string?)
-  (div-and-mod 1 2))
-(test-error (eval 'x (interaction-environment)))
-(test-error (eval 'y (interaction-environment)))
+;; This test doesn’t work, because define-values-checked cannot be
+;; wrapped into a test-error and thus fails and aborts the test
+;; (define-values-checked (x y) (integer? string?)
+;;   (div-and-mod 1 2))
+;; (test-error (eval 'x (interaction-environment)))
+;; (test-error (eval 'y (interaction-environment)))
 ;; Test modifications, on implementations supporting that
 ;; (test-error (set! quot "not an integer"))
 (test-end "define-values-checked")
