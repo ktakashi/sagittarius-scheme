@@ -22,10 +22,10 @@
 ;;; FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 ;;; OTHER DEALINGS IN THE SOFTWARE.
 
-(import (rnrs))
-(import (srfi :64))
-(import (srfi :253))
-(import (srfi :273))
+(import (rnrs)
+	(srfi :64)
+	(srfi :253)
+	(srfi :273))
 
 (define-check email? string?)
 (define-check positive-integer?
@@ -55,19 +55,20 @@
 (test-assert rem)
 (define-values-checked (a) (real?) 3)
 (test-assert a)
-;; FIXME: Impossible to test because define-* forms belong to top level only
-;; (test-error (begin
-;;               (define-values-checked (quot rem) (integer? string?)
-;;                 (truncate/ 1 2))
-;;               #t))
-;; (test-error (define-values-checked (a) (string?) 3))
+(test-error (let ()
+              (define-values-checked (quot rem) (integer? string?)
+                (truncate/ 1 2))
+              #t))
+(test-error (let () (define-values-checked (a) (string?) 3)))
 ;; Ensure that symbols are not bound on type mismatch
 ;; This test doesn’t work, because define-values-checked cannot be
 ;; wrapped into a test-error and thus fails and aborts the test
-;; (define-values-checked (x y) (integer? string?)
-;;   (div-and-mod 1 2))
-;; (test-error (eval 'x (interaction-environment)))
-;; (test-error (eval 'y (interaction-environment)))
+(let ((expr '(define-values-checked (x y) (integer? string?)
+	       (div-and-mod 1 2)))
+      (env (environment '(srfi :273))))
+  (test-error (eval expr env))
+  (test-error (eval 'x env))
+  (test-error (eval 'y env)))
 ;; Test modifications, on implementations supporting that
 ;; (test-error (set! quot "not an integer"))
 (test-end "define-values-checked")
