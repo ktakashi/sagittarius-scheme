@@ -95,6 +95,8 @@ For now, I just put pointer to [the SRFI's web site](http://srfi.schemers.org/)
 | [SRFI-210](http://srfi.schemers.org/srfi-210/srfi-210.html) | (srfi :210 multiple-values)[^longname]              |
 | [SRFI-219](http://srfi.schemers.org/srfi-219/srfi-219.html) | (srfi :219 define)[^longname][^builtin]             |
 | [SRFI-230](http://srfi.schemers.org/srfi-230/srfi-230.html) | (srfi :230 atomic)                                  |
+| [SRFI-253](http://srfi.schemers.org/srfi-253/srfi-253.html) | (srfi :253 data-type-checking)                      |
+| [SRFI-253](http://srfi.schemers.org/srfi-253/srfi-253.html) | (srfi :253 ext-type-checking)                       |
 
 
 [^SRFI-4]: This SRFI also contains reader macro described below this section.
