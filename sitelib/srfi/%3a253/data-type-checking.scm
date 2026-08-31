@@ -31,7 +31,7 @@
           define-record-type-checked)
   (import (except (rnrs) define-record-type)
           (srfi :9 records)
-          (srfi :145 assumptions))
+          (srfi :145 assume))
 
   (define-syntax check-arg
     (syntax-rules ()
