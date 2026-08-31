@@ -227,6 +227,7 @@
 				     :secure? #t
 				     :use-ipv6? #t
 				     :exception-handler print
+				     :private-key (key-pair-private keypair)
 				     :certificates (list cert)))
   (define temporary_credential
     #*"oauth_callback_confirmed=true&oauth_token=oauth_toke&oauth_token_secret=oauth_token_secret")

@@ -174,7 +174,7 @@
     (define handler (~ server 'handler))
     (define detached (~ server 'detached))
     (define config (~ server 'config))
-    (define close-socket? (~ config 'non-blocking?))
+    (define close-socket? (not (~ config 'non-blocking?)))
     (define option (config->socket-option config))
 
     (define (handle-exception e socket)
