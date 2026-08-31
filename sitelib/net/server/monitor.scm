@@ -30,7 +30,7 @@
 
 #!nounbound
 (library (net server monitor)
-    (export make-non-blocking-server-monitor
+    (export obtain-server-status
 	    server-status?
 	    report-server-status
 
@@ -54,11 +54,10 @@
 (define-record-type thread-status
   (fields thread-id thread-info active-socket-count))
 
-(define (make-non-blocking-server-monitor server fork-join-pool selector)
-  (lambda ()
-    (make-server-status server
-			(fork-join-pool-thread-count fork-join-pool)
-			'())))
+(define (obtain-server-status server fork-join-pool selector)
+  (make-server-status server
+		      (fork-join-pool-thread-count fork-join-pool)
+		      '()))
 
 (define (report-server-status status :optional (to-port (current-error-port)))
   (let-values (((out extract) (open-string-output-port)))

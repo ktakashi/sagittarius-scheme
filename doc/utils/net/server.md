@@ -8,7 +8,7 @@ This library provides simple server framework.
 Following example describes how to write a simple echo server with the APIs
 this library provides.
 
-``````````scheme
+```scheme
 (import (net server) (sagittarius socket))
 
 (define (handler server socket)
@@ -20,14 +20,14 @@ this library provides.
 (define server (make-simple-server "5000" handler))
 
 (server-start! server)
-``````````
+```
 
 Above example creates only one thread and if there are more than one
 connection, then the latter one needs to wait until first one is done.
 The library also provides mult threading server. Following example describes
 how to make multi threading server.
 
-``````````scheme
+```scheme
 (import (net server) (sagittarius socket))
 
 ;; specifies maximum thread number
@@ -41,7 +41,7 @@ how to make multi threading server.
 (define server (make-simple-server "5000" handler :config server-config))
 
 (server-start! server)
-``````````
+```
 
 If the server gets more than 5 connection simultaneously, then it tries to
 wait until one of the connection's task finishes. If it doesn't finish in
@@ -51,7 +51,7 @@ If clients keep the connection but server wants to handle requests more than
 configured thread number, then specify _non-blocking?_ keyword argument
 with #t.
 
-``````````scheme
+```scheme
 (import (net server) (sagittarius socket))
 
 ;; specifies maximum thread number
@@ -67,7 +67,7 @@ with #t.
 (define server (make-simple-server "5000" handler :config server-config))
 
 (server-start! server)
-``````````
+```
 
 Above server example creates 5 threads and accept all requests. The requests
 are dispatched to the least busy thread. There are couple of restrictions
@@ -196,16 +196,10 @@ _exception-handler_
 _max-thread_
 : Specifying max thread count. Default value is 1.
 
-_max-retry_
-: Specifying max retry count. When connection reached _max-thread_,
-  then the server waits if the one of the connections finishes. The
-  waiting period is half second (500 ms) and this value specifies
-  how many times server waits.
-  Default value is 10.
-
 _non-blocking?_
 : Creating non blocking server.
-  If the server is non blocking server, then the server _handler_    must follow the following rules:
+  If the server is non blocking server, then the server _handler_
+  must follow the following rules:
   - the _handler_ process must not block/stop even if the
             given socket is active.
   - the _handler_ process must close the socket when it's
@@ -214,7 +208,7 @@ _non-blocking?_
   then the given socket won't be closed. So _exception-handler_ needs
   to decide whether the exception is continuable or not. Otherwise, server
   closes the socket.
-  Specifying this keyword argument makes server ignore _max-retry_.
+  The name is kept for backword compatibility
 
 _use-ipv6?_
 : Specifying whether or not the server uses IPv6.
@@ -231,6 +225,9 @@ _private-key_
   specify this keyword argument, otherwise key exchange is done
   anonymously, means no signature is sent.
 
+_grace-period_
+: When the server is requested to stop, then the working pool and
+  wait for this period of time. Default 100 (milliseconds)
 
 
 ### [§3] Socket detaching
@@ -246,8 +243,5 @@ Detaches the given _socket_.
 
 If the socket is detached, then all resource managements, including closing
 socket, become users' responsibility.
-
-This procedure is only available on non blocking server and can be called
-inside of server handler. If the condition is not met, then `&assertion`is signaled.
 
 

@@ -96,15 +96,14 @@
      (secure?       :init-keyword :secure?       :init-value #f)
      (certificates  :init-keyword :certificates  :init-value '())
      (private-key   :init-keyword :private-key   :init-value #f)
-     ;; non blocking (not used)
+     ;; non blocking
+     ;; the name is kept for backword compatibility
      (non-blocking? :init-keyword :non-blocking? :init-value #f)
      ;; default give 100ms for client socket to finish when server
      ;; stop is called
      (grace-period :init-keyword :grace-period :init-value 100)))
   (define (server-config? o) (is-a? o <server-config>))
   
-  (define (default-server-monitor)
-    (error 'server-monitor "not supported"))
   (define-class <simple-server> ()
     ((server-sockets :init-keyword :server-sockets :init-value #f)
      (handler        :init-keyword :handler :init-keyword #f)
@@ -122,17 +121,19 @@
      (shutdown-port  :init-value #f :reader server-shutdown-port)
      (context        :init-keyword :context :init-value #f
 		     :reader server-context)
-     (monitor        :reader server-monitor
-		     :init-value default-server-monitor)))
+     (detached       :init-form (make-shared-queue))))
 
-  (define (server-status server) ((server-monitor server)))
+  (define (server-status server)
+    (obtain-server-status server
+			  (~ server 'fork-join-pool)
+			  (~ server 'socket-selector)))
   (define (server? o) (is-a? o <simple-server>))
   (define (server-stopped? server) (future-done? (~ server 'server-stopped)))
 
   (define (make-server-config . opt) (apply make <server-config> opt))
 
   (define (server-detach-socket! server socket)
-    )
+    (shared-queue-put! (~ server 'detached) socket))
   
   (define (stop-server server)
     (define terminate (~ server 'selector-terminate))
@@ -168,11 +169,14 @@
 
   (define (initialise-server! server)
     (define selector (~ server 'socket-selector))
-    (define config (~ server 'config))
     (define port (~ server 'port))
     (define pool (~ server 'fork-join-pool))
-    (define option (config->socket-option config))
     (define handler (~ server 'handler))
+    (define detached (~ server 'detached))
+    (define config (~ server 'config))
+    (define close-socket? (~ config 'non-blocking?))
+    (define option (config->socket-option config))
+
     (define (handle-exception e socket)
       (cond ((~ config 'exception-handler) =>
 	     (lambda (eh) (eh server socket e)))
@@ -185,7 +189,10 @@
 	    (lambda ()
 	      (guard (e (else (handle-exception e socket)))
 		(handler server socket)
-		(retry))))))
+		(unless (shared-queue-remove! detached socket)
+		  (if close-socket?
+		      (close-socket socket)
+		      (retry))))))))
 
     (define (socket-dispatch sock e retry)
       (unless (~ server 'stop-request)
@@ -226,9 +233,6 @@
 		     (socket-info-port (socket-info stop-socket)))
 		    shutdown-port))
 	  (selector stop-socket stop-process)))
-
-      (set! (~ server 'monitor)
-	    (make-non-blocking-server-monitor server pool selector))
       server))
   
   (define (config->socket-option config)
