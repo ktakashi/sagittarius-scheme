@@ -1,11 +1,11 @@
 (import (rnrs)
 	(net server)
+	(net socket)
 	(sagittarius)
-	(sagittarius socket)
+	(sagittarius crypto keys)
 	(util concurrent)
 	(rfc tls)
 	(rfc x509)
-	(crypto)
 	(srfi :18)
 	(srfi :19)
 	(srfi :64))
@@ -80,7 +80,13 @@
 )
 
 (let ()
-  (define keypair (generate-key-pair RSA))
+  (define (shutdown-handler server socket)
+    ;; some heavy authentication process here
+    (let ((bv (socket-recv socket 5)))
+      (test-equal #vu8(1 2 3 4 5) bv)
+      (thread-sleep! 1)
+      #t))
+  (define keypair (generate-key-pair *key:rsa*))
   (define cert (make-x509-basic-certificate keypair 1
 					    (make-x509-issuer '((C . "NL")))
 					    (make-validity (current-date)
@@ -91,7 +97,8 @@
 				     :secure? #t
 				     :use-ipv6? #t
 				     :certificates (list cert)
-				     :private-key (keypair-private keypair)))
+				     :private-key (key-pair-private keypair)
+				     :shutdown-handler shutdown-handler))
   (define (handler server socket)
     (let ((bv (socket-recv socket 255)))
       (socket-send socket bv)))
@@ -112,8 +119,8 @@
   (test AF_INET6)
 
   ;; stop server by accessing shutdown port
-  (make-client-socket "localhost" +shutdown-port+)
-
+  (let ((s (make-client-socket "localhost" +shutdown-port+)))
+    (socket-send s #vu8(1 2 3 4 5)))
   (test-assert "finish simple server (2)" (wait-server-stop! server))
   (test-assert "finish simple server (3)" (wait-server-stop! server))
   )

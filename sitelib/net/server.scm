@@ -211,10 +211,12 @@
       (cond ((socket-accept sock) =>
 	     (lambda (client-sock)
 	       (guard (e (else #t))
-		 (when ((~ config 'shutdown-handler) server sock)))
-	       (stop-server server)
-	       (close-socket client-sock)
-	       (close-socket sock)))
+		 (cond (((~ config 'shutdown-handler) server client-sock)
+			(stop-server server)
+			(close-socket client-sock)
+			(close-socket sock))
+		       (else (close-socket client-sock)
+			     (retry))))))
 	    (else (retry))))
 
     (let ((sockets (if (tls-socket-options? option)
@@ -275,5 +277,5 @@
 
   (define (wait-server-stop! server :optional (timeout #f))
     (or (server-stopped? server)
-	(future-get (~ server 'server-stopped))))
+	(future-get (~ server 'server-stopped) timeout)))
 )
