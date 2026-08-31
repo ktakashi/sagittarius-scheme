@@ -176,7 +176,9 @@
     (let* ((box (make-shared-box))
 	   (f (make-future #f box)))
       (values f
-	      (lambda (v) (shared-box-put! box v) f)
+	      (lambda (v) 
+		(future-state-set! f 'done)
+		(shared-box-put! box v) f)
 	      (lambda (e)
 		(future-canceller-set! f #t)
 		(shared-box-put! box e)
@@ -270,7 +272,8 @@
 	(c future)
 	(future-canceller-set! future #f))))
 
-  (define (future-done? future) (memq (future-state future) '(done finished)))
+  (define (future-done? future)
+    (and (memq (future-state future) '(done finished)) #t))
   (define (future-cancelled? future) (eq? (future-state future) 'terminated))
 
   )
