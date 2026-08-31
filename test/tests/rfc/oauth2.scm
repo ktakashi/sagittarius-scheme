@@ -4,6 +4,7 @@
 	(sagittarius)
 	(sagittarius regex)
 	(sagittarius socket)
+	(sagittarius crypto keys)
 	(rfc oauth2)
 	(rfc http-connections)
 	(rfc x509)
@@ -11,7 +12,6 @@
 	(rfc tls)
 	(clos user)
 	(net server)
-	(crypto)
 	(prefix (binary io) binary:)
 	(text json)
 	(srfi :18)
@@ -86,7 +86,7 @@
        \"example_parameter\":\"example_value\"
      }"))
   (define +shutdown-port+ "17500")
-  (define keypair (generate-key-pair RSA :size 1024))
+  (define keypair (generate-key-pair *key:rsa* :size 1024))
   (define cert (make-x509-basic-certificate keypair 1
 					    (make-x509-issuer '((C . "NL")))
 					    (make-validity (current-date)

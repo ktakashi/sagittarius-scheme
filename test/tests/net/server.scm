@@ -74,7 +74,6 @@
   ;; test both sockets
   (test AF_INET6)
   (test AF_INET)
-
   (test-assert "stop server" (server-stop! server))
   (test-assert "server-stopped?" (server-stopped? server))
 )
@@ -120,7 +119,8 @@
 
   ;; stop server by accessing shutdown port
   (let ((s (make-client-socket "localhost" +shutdown-port+)))
-    (socket-send s #vu8(1 2 3 4 5)))
+    (socket-send s #vu8(1 2 3 4 5))
+    (socket-close s))
   (test-assert "finish simple server (2)" (wait-server-stop! server))
   (test-assert "finish simple server (3)" (wait-server-stop! server))
   )

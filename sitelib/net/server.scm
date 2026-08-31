@@ -86,6 +86,7 @@
      (exception-handler :init-keyword :exception-handler
 			:init-value #f)
      (max-thread    :init-keyword :max-thread    :init-value 1)
+     ;; not used
      (max-retry     :init-keyword :max-retry     :init-value 10)
      ;; enabling this creates 2 server socket for both IPv4 and IPv6
      ;; if EADDRINUSE is raised then only IPv6 is created.
@@ -95,7 +96,7 @@
      (secure?       :init-keyword :secure?       :init-value #f)
      (certificates  :init-keyword :certificates  :init-value '())
      (private-key   :init-keyword :private-key   :init-value #f)
-     ;; non blocking (default #f for backward compatibility)
+     ;; non blocking (not used)
      (non-blocking? :init-keyword :non-blocking? :init-value #f)
      ;; default give 100ms for client socket to finish when server
      ;; stop is called
@@ -106,6 +107,7 @@
     (error 'server-monitor "not supported"))
   (define-class <simple-server> ()
     ((server-sockets :init-keyword :server-sockets :init-value #f)
+     (handler        :init-keyword :handler :init-keyword #f)
      (fork-join-pool :init-keyword :fork-join-pool)
      (stopper-socket :init-keyword :stopper-socket :init-value #f)
      (socket-selector :init-keyword :socket-selector :init-value #f)
@@ -118,7 +120,6 @@
      (port           :init-keyword :port)
      (running-port   :init-keyword :running-port :reader server-port)
      (shutdown-port  :init-value #f :reader server-shutdown-port)
-     (dispatch       :init-keyword :dispatch)
      (context        :init-keyword :context :init-value #f
 		     :reader server-context)
      (monitor        :reader server-monitor
@@ -132,27 +133,6 @@
 
   (define (server-detach-socket! server socket)
     )
-  
-  (define (make-non-blocking-process server handler config selector)
-    (define pool (~ server 'fork-join-pool))
-    (define ((make-task server) socket e retry)
-      (define (handle-exception e)
-	(cond ((~ config 'exception-handler) =>
-	       (lambda (eh) (eh server socket e)))
-	      (else (close-socket socket))))
-      (if e
-	  (handle-exception e)
-	  (guard (e (else (handle-exception e)))
-	    (fork-join-pool-push-task! pool
-	     (lambda ()
-	       (handler server socket)
-	       (retry))))))
-
-    (set! (~ server 'monitor)
-	  (make-non-blocking-server-monitor server pool selector))
-    ;; process
-    (lambda (server socket)
-      (selector socket (make-task server))))
   
   (define (stop-server server)
     (define terminate (~ server 'selector-terminate))
@@ -175,37 +155,43 @@
     (define num-threads (~ config 'max-thread))
     (define fork-join-pool (make-fork-join-pool num-threads))
 
-    (define server (apply make server-class :config config :port port
-			  :fork-join-pool fork-join-pool
-			  :socket-selector selector
-			  :selector-terminate terminate
-			  :running-port port
-			  :server-stopped future
-			  :server-stopped-put put!
-			  rest))
-    (set! (~ server 'dispatch)
-	  (make-non-blocking-process server handler config selector))
-    server)
+    (apply make server-class
+	   :config config :port port
+	   :handler handler
+	   :fork-join-pool fork-join-pool
+	   :socket-selector selector
+	   :selector-terminate terminate
+	   :running-port port
+	   :server-stopped future
+	   :server-stopped-put put!
+	   rest))
 
   (define (initialise-server! server)
     (define selector (~ server 'socket-selector))
     (define config (~ server 'config))
-    (define dispatch (~ server 'dispatch))
     (define port (~ server 'port))
-    (define option
-      (let ((ai-family (if (~ config 'use-ipv6?) AF_UNSPEC AF_INET)))
-	(if (and (~ config 'secure?) (not (null? (~ config 'certificates))))
-	    (server-tls-socket-options
-	     (ai-family ai-family)
-	     (certificates (~ config 'certificates))
-	     (private-key (~ config 'private-key)))
-	    (socket-options
-	      (ai-family ai-family)))))
+    (define pool (~ server 'fork-join-pool))
+    (define option (config->socket-option config))
+    (define handler (~ server 'handler))
+    (define (handle-exception e socket)
+      (cond ((~ config 'exception-handler) =>
+	     (lambda (eh) (eh server socket e)))
+	    (else (close-socket socket))))
+    ;; accepted socket task
+    (define (socket-task socket e retry)
+      (if e
+	  (handle-exception e socket)
+	  (fork-join-pool-push-task! pool
+	    (lambda ()
+	      (guard (e (else (handle-exception e socket)))
+		(handler server socket)
+		(retry))))))
+
     (define (socket-dispatch sock e retry)
       (unless (~ server 'stop-request)
 	(unless e
 	  (let ((client-socket (socket-accept sock)))
-	    (dispatch server client-socket)))
+	    (selector client-socket socket-task)))
 	(retry)))
     (define (stop-process sock e retry)
       (cond ((socket-accept sock) =>
@@ -240,7 +226,20 @@
 		     (socket-info-port (socket-info stop-socket)))
 		    shutdown-port))
 	  (selector stop-socket stop-process)))
+
+      (set! (~ server 'monitor)
+	    (make-non-blocking-server-monitor server pool selector))
       server))
+  
+  (define (config->socket-option config)
+    (let ((ai-family (if (~ config 'use-ipv6?) AF_UNSPEC AF_INET)))
+      (if (and (~ config 'secure?) (not (null? (~ config 'certificates))))
+	  (server-tls-socket-options
+	   (ai-family ai-family)
+	   (certificates (~ config 'certificates))
+	   (private-key (~ config 'private-key)))
+	  (socket-options
+	   (ai-family ai-family)))))
 
   ;; default do nothing
   (define-generic on-server-start!)

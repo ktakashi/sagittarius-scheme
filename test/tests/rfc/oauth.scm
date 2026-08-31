@@ -270,7 +270,8 @@
     (call-with-port (socket-port socket #f)
       (lambda (in/out)
 	(let ((line (binary:get-line in/out)))
-	  (cond ((#/(\w+)\s+([^\s]+)\s+HTTP\/([\d\.]+)/ line) =>
+	  (cond ((eof-object? line) (socket-close socket))
+		((#/(\w+)\s+([^\s]+)\s+HTTP\/([\d\.]+)/ line) =>
 		 (lambda (m)
 		   (let* ((method (utf8->string (m 1)))
 			  (path (utf8->string (m 2)))
