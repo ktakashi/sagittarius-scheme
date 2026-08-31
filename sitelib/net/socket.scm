@@ -105,6 +105,8 @@
 	    nonblocking-socket?
 
 	    make-socket-selector
+	    socket-selector? ;; this is different from (sagittarius socket)
+	    socket-selector-clear!
 
 	    socket-info?
 	    socket-peer
@@ -211,12 +213,15 @@
     (import (rnrs)
 	    (record builder)
 	    (clos core)
+	    (clos user)
 	    (sagittarius) ;; gensym, last-error-detail
 	    (sagittarius time) ;; for time
 	    (rename (except (sagittarius socket)
 			    make-client-socket
-			    make-server-socket make-server-socket*)
-		    (make-socket-selector socket:make-socket-selector))
+			    make-server-socket make-server-socket*
+			    <socket-selector> socket-selector?)
+		    (make-socket-selector socket:make-socket-selector)
+		    (socket-selector-clear! socket:socket-selector-clear!))
 	    (except (rfc tls)
 		    make-client-tls-socket
 		    make-server-tls-socket make-server-tls-socket*
@@ -403,9 +408,9 @@
     (assertion-violation 'make-server-tls-socket
 			 "Certificates are empty or non X509 certificates"
 			 certificates))
-  (unless (private-key? private-key)
-    (assertion-violation 'make-server-tls-socket
-			 "Private key is missing" private-key))
+  ;; (unless (private-key? private-key)
+  ;;   (assertion-violation 'make-server-tls-socket
+  ;; 			 "Private key is missing" private-key))
   (let ((s (make-server-socket port (socket-options-builder
 				     (from options)
 				     (read-timeout #f)
@@ -436,9 +441,9 @@
     (assertion-violation 'make-server-tls-socket*
 			 "Certificates are empty or non X509 certificates"
 			 certificates))
-  (unless (private-key? private-key)
-    (assertion-violation 'make-server-tls-socket*
-			 "Private key is missing" private-key))
+  ;; (unless (private-key? private-key)
+  ;;   (assertion-violation 'make-server-tls-socket*
+  ;; 			 "Private key is missing" private-key))
   (map (lambda (s)
 	 (setup-socket
 	  (socket->tls-socket s
@@ -467,9 +472,27 @@
 				   "Not a socket-options" option))))
 (define (default-error-reporter event e) #t)
 
+;; to make inspection available :(
+(define-class <socket-selector> ()
+  ((native-selector :init-form (socket:make-socket-selector)
+		    :reader soket-selector-native-selector)
+   (hard-timeout :init-keyword :hard-timeout :init-value #f)
+   (error-reporter :init-keyword :error-reporter 
+		   :init-value default-error-reporter)))
+
+(define-method object-apply ((s <socket-selector>) socket on-read
+			     :optional (this-timeout #f))
+  (push-socket s socket on-read (or this-timeout (slot-ref s 'hard-timeout))))
+(define (socket-selector? o) (is-a? o <socket-selector>))
+(define (socket-selector-clear! (s socket-selector?))
+  ;; return only socket
+  (map car (socket:socket-selector-clear! (slot-ref s 'native-selector))))
+
 (define (make-socket-selector
 	 :optional (hard-timeout #f) (error-reporter default-error-reporter))
-  (define selector (socket:make-socket-selector))
+  (define selector (make <socket-selector>
+		     :hard-timeout hard-timeout
+		     :error-reporter error-reporter))
   (define (on-error event e)
     (when (procedure? error-reporter)
       (guard (e (else #f)) (error-reporter event e))))
@@ -482,10 +505,12 @@
 	(list on-read socket timeout e))))
   
   (define (selector-waiter)
+    (define native-selector (slot-ref selector 'native-selector))
     (guard (e (else (on-error 'selector e) #f))
       (let loop ()
-	(unless (socket-selector-closed? selector)
-	  (let-values (((socks timedouts) (socket-selector-wait! selector)))
+	(unless (socket-selector-closed? native-selector)
+	  (let-values (((socks timedouts)
+			(socket-selector-wait! native-selector)))
 	    (unless (null? socks)
 	      (actor-send-message! on-read-actor (map ->on-read-data socks)))
 	    (unless (null? timedouts)
@@ -499,8 +524,8 @@
 	  (unless (socket-closed? sock)
 	    (on-read sock e
 		     (case-lambda
-		      (() (push-socket sock on-read timeout))
-		      ((to) (push-socket sock on-read to))))))))
+		      (() (push-socket selector sock on-read timeout))
+		      ((to) (push-socket selector sock on-read to))))))))
     (let loop ((e* (receiver)))
       (when e*
 	(for-each call-on-read e*)
@@ -512,23 +537,22 @@
     (parameterize ((*actor-thread-name-factory* on-read-name-factory))
       (make-shared-queue-channel-actor dispatch-socket)))
 
-  (define (push-socket (socket (or socket? tls-socket?))
-		       (on-read procedure?) timeout)
-    (let ((to (make-timeout timeout))
-	  (s (->socket socket)))
-      (socket-selector-add! selector s to (list on-read socket to))))
-
   (define (terminate!)
+    (define native-selector (slot-ref selector 'native-selector))
     (actor-send-message! on-read-actor #f)
     ;; occasionally, actor is faster than the caller thread
     (guard (e (else #f)) (socket-selector-interrupt! selector))
-    (close-socket-selector! selector))
+    (close-socket-selector! native-selector))
   (actor-start! on-read-actor)
-  (values (case-lambda
-	   ((socket on-read) (push-socket socket on-read hard-timeout))
-	   ((socket on-read this-timeout)
-	    (push-socket socket on-read (or this-timeout hard-timeout))))
-	  terminate!))
+  (values selector terminate!))
+
+(define (push-socket selector 
+		     (socket (or socket? tls-socket?))
+		     (on-read procedure?) timeout)
+  (define native-selector (slot-ref selector 'native-selector))
+  (let ((to (make-timeout timeout))
+	(s (->socket socket)))
+    (socket-selector-add! native-selector s to (list on-read socket to))))
 
 ;; utilities for socket selector
 (define (->socket socket)
