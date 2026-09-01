@@ -408,9 +408,9 @@
     (assertion-violation 'make-server-tls-socket
 			 "Certificates are empty or non X509 certificates"
 			 certificates))
-  ;; (unless (private-key? private-key)
-  ;;   (assertion-violation 'make-server-tls-socket
-  ;; 			 "Private key is missing" private-key))
+  (unless (private-key? private-key)
+    (assertion-violation 'make-server-tls-socket
+			 "Private key is missing" private-key))
   (let ((s (make-server-socket port (socket-options-builder
 				     (from options)
 				     (read-timeout #f)
@@ -441,9 +441,9 @@
     (assertion-violation 'make-server-tls-socket*
 			 "Certificates are empty or non X509 certificates"
 			 certificates))
-  ;; (unless (private-key? private-key)
-  ;;   (assertion-violation 'make-server-tls-socket*
-  ;; 			 "Private key is missing" private-key))
+  (unless (private-key? private-key)
+    (assertion-violation 'make-server-tls-socket*
+			 "Private key is missing" private-key))
   (map (lambda (s)
 	 (setup-socket
 	  (socket->tls-socket s

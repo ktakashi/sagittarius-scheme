@@ -2,7 +2,7 @@
 ;;;
 ;;; net/server.scm - Simple server framework.
 ;;;  
-;;;   Copyright (c) 2010-2017  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2026  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -57,19 +57,17 @@
 	    <simple-server>
 	    <server-config>)
     (import (rnrs)
-	    (util concurrent)
 	    (clos user)
 	    (sagittarius)
 	    (sagittarius control)
-	    (sagittarius socket)
 	    (sagittarius object)
-	    (sagittarius threads) ;; need thread-interrupt!
-	    (rename (srfi :1) (alist-cons acons))
-	    (srfi :26)
-	    (srfi :39)
-	    (srfi :117)
+	    (sagittarius crypto keys)
 	    (net socket)
-	    (net server monitor))
+	    (net server monitor)
+	    (rfc x509)
+	    (srfi :18)
+	    (srfi :19)
+	    (util concurrent))
 
   (define (close-socket socket)
     ;; we don't care if socket sending failed or not...
@@ -236,12 +234,24 @@
       server))
   
   (define (config->socket-option config)
+    (define (ensure-private-key config)
+      (cond ((~ config 'private-key) =>
+	     (lambda (key) (values key (~ config 'certificates))))
+	    (else
+	     (let* ((kp (generate-key-pair *key:ecdsa*))
+		    (cert (make-x509-basic-certificate kp 1
+			   (make-x509-issuer '((CN . "sagittarius")))
+			   (make-validity (current-date) (current-date))
+			   (make-x509-issuer '((CN . "sagittarius"))))))
+	       (values (key-pair-private kp) (list cert))))))
+	     
     (let ((ai-family (if (~ config 'use-ipv6?) AF_UNSPEC AF_INET)))
       (if (and (~ config 'secure?) (not (null? (~ config 'certificates))))
-	  (server-tls-socket-options
-	   (ai-family ai-family)
-	   (certificates (~ config 'certificates))
-	   (private-key (~ config 'private-key)))
+	  (let-values (((key certs) (ensure-private-key config)))
+	    (server-tls-socket-options
+	     (ai-family ai-family)
+	     (certificates certs)
+	     (private-key key)))
 	  (socket-options
 	   (ai-family ai-family)))))
 

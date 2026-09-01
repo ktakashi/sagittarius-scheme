@@ -96,7 +96,6 @@
   (define config (make-server-config :shutdown-port +shutdown-port+
 				     :secure? #t
 				     :use-ipv6? #t
-				     :private-key (key-pair-private keypair)
 				     :certificates (list cert)))
   (define (put-error out)
     (put-bytevector out #*"HTTP/1.1 401 Unauthorized\r\n")
