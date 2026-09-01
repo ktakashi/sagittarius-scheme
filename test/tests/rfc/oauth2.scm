@@ -86,7 +86,7 @@
        \"example_parameter\":\"example_value\"
      }"))
   (define +shutdown-port+ "17500")
-  (define keypair (generate-key-pair *key:rsa* :size 1024))
+  (define keypair (generate-key-pair *key:rsa*))
   (define cert (make-x509-basic-certificate keypair 1
 					    (make-x509-issuer '((C . "NL")))
 					    (make-validity (current-date)

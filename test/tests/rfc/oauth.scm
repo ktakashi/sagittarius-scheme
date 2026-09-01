@@ -214,7 +214,7 @@
   (define consumer-key "consumer-key")
   (define consumer-secret "consumer-secret")
   (define +shutdown-port+ "0")
-  (define keypair (generate-key-pair RSA :size 1024))
+  (define keypair (generate-key-pair RSA))
   (define 1y+ (time-utc->date
 	       (add-duration (current-time)
 		(make-time time-duration 0 (* 3600 24 365)))))
@@ -227,7 +227,7 @@
 				     :secure? #t
 				     :use-ipv6? #t
 				     :exception-handler print
-				     :private-key (key-pair-private keypair)
+				     :private-key (keypair-private keypair)
 				     :certificates (list cert)))
   (define temporary_credential
     #*"oauth_callback_confirmed=true&oauth_token=oauth_toke&oauth_token_secret=oauth_token_secret")
