@@ -43,7 +43,15 @@
 
 (define-c-proc socket-connect! (socket::<socket> info::<addrinfo> :optional (timeout #f))
   Sg_SocketConnect)
-(define-c-proc socket-bind! (socket::<socket> info::<addrinfo>) Sg_SocketBind)
+(define-c-proc socket-bind! (socket::<socket> info::<addrinfo> :optional (port #f))
+  (cond ((SG_FALSEP port) (result (Sg_SocketBind socket info)))
+	(else
+	 (unless (and (SG_INTP port) (> (SG_INT_VALUE port) 0))
+	   (Sg_WrongTypeOfArgumentViolation 'socket-bind! 
+					    (SG_MAKE_STRING "positive integer")
+					    port '()))
+	 (result (Sg_SocketBindPort socket info (SG_INT_VALUE port))))))
+      
 (define-c-proc socket-listen! (socket::<socket> backlog::<ifixnum>)
   Sg_SocketListen)
 
