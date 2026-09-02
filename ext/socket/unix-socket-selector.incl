@@ -148,31 +148,24 @@ static void destroy_selector(unix_context_t *ctx)
   }
 }
 
-void Sg_CloseSocketSelector(SgSocketSelector *selector)
+static void notify_stop(void *context)
 {
-  if (!Sg_SocketSelectorClosedP(selector)) {
-    unix_context_t *ctx = (unix_context_t *)selector->context;
-
-    Sg_AcquireWriteLock(&selector->rw_lock);
-    selector->context = NULL;
-    if (is_stop_initialised(ctx)) interrupt_unix_stop(ctx);
-    Sg_ReleaseWriteLock(&selector->rw_lock);
-
-    /* a bit lazy way to do it, but we need to do it... */
-    while (selector->waiting) {
-      Sg_YieldCPU();
-    }
-
-    Sg_AcquireWriteLock(&selector->rw_lock);
-    if (is_stop_initialised(ctx)) close_unix_stop(ctx);
-    destroy_selector(ctx);
-    Sg_ReleaseWriteLock(&selector->rw_lock);
-
-    Sg_DestroyReadWriteLock(&selector->rw_lock);
-    Sg_UnregisterFinalizer(selector);
-  }
+  unix_context_t *ctx = (unix_context_t *)context;
+  if (is_stop_initialised(ctx)) interrupt_unix_stop(ctx);
 }
 
+static void before_cleanup(void *context)
+{
+  /* do nothing */
+  (void)context;
+}
+
+static void cleanup_selector(void *context)
+{
+  unix_context_t *ctx = (unix_context_t *)context;
+  if (is_stop_initialised(ctx)) close_unix_stop(ctx);
+  destroy_selector(ctx);
+}
 
 SgObject Sg_SocketSelectorInterrupt(SgSocketSelector *selector)
 {

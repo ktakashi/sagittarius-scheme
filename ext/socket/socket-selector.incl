@@ -264,6 +264,8 @@ SgObject Sg_MakeSocketSelector()
   selector->waiting = FALSE;
   selector->retry = FALSE;
   selector->context = make_selector_context();
+  Sg_InitMutex(&selector->lock, TRUE);
+  Sg_InitCond(&selector->cv);
 
   Sg_InitReadWriteLock(&selector->rw_lock);
 
@@ -359,7 +361,11 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
   Sg_ReleaseWriteLock(&selector->rw_lock);
   r = selector_wait(selector, sockets, context, n, sp);
   Sg_AcquireWriteLock(&selector->rw_lock);
+
+  Sg_LockMutex(&selector->lock);
   selector->waiting = FALSE;
+  Sg_NotifyAll(&selector->cv);
+  Sg_UnlockMutex(&selector->lock);
   
   /* Save current time */
   Sg_GetTimeOfDay(&sec, &usec);
@@ -401,4 +407,36 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
 int Sg_SocketSelectorWaitingP(SgSocketSelector *selector)
 {
   return selector->waiting;
+}
+
+static void notify_stop(void *context);
+static void before_cleanup(void *context);
+static void cleanup_selector(void *context);
+
+void Sg_CloseSocketSelector(SgSocketSelector *selector)
+{
+  if (!Sg_SocketSelectorClosedP(selector)) {
+    void *ctx = selector->context;
+    Sg_AcquireWriteLock(&selector->rw_lock);
+    selector->context = NULL;
+    notify_stop(ctx);
+    Sg_ReleaseWriteLock(&selector->rw_lock);
+
+    Sg_LockMutex(&selector->lock);
+    while (selector->waiting) {
+      Sg_Wait(&selector->cv, &selector->lock);
+    }
+    Sg_UnlockMutex(&selector->lock);
+
+    before_cleanup(ctx);
+    Sg_AcquireWriteLock(&selector->rw_lock);
+
+    cleanup_selector(ctx);
+
+    Sg_ReleaseWriteLock(&selector->rw_lock);
+    Sg_DestroyMutex(&selector->lock);
+    Sg_DestroyCond(&selector->cv);
+    Sg_DestroyReadWriteLock(&selector->rw_lock);
+    Sg_UnregisterFinalizer(selector);
+  }
 }
