@@ -49,6 +49,8 @@ typedef struct
   int      waiting;
   int      retry;
   void    *context;	       /* underlying implementation context */
+  SgInternalMutex lock;
+  SgInternalCond  cv;
 } SgSocketSelector;
 
 SG_CLASS_DECL(Sg_SocketSelectorClass);

@@ -148,21 +148,21 @@ static void destroy_selector(unix_context_t *ctx)
   }
 }
 
-static void notify_stop(SgSocketSelector *selector)
+static void notify_stop(void *context)
 {
-  unix_context_t *ctx = (unix_context_t *)selector->context;
+  unix_context_t *ctx = (unix_context_t *)context;
   if (is_stop_initialised(ctx)) interrupt_unix_stop(ctx);
 }
 
-static void before_cleanup(SgSocketSelector *selector)
+static void before_cleanup(void *context)
 {
   /* do nothing */
-  (void)selector;
+  (void)context;
 }
 
-static void cleanup_selector(SgSocketSelector *selector)
+static void cleanup_selector(void *context)
 {
-  unix_context_t *ctx = (unix_context_t *)selector->context;
+  unix_context_t *ctx = (unix_context_t *)context;
   if (is_stop_initialised(ctx)) close_unix_stop(ctx);
   destroy_selector(ctx);
 }

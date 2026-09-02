@@ -98,21 +98,21 @@ static void * make_selector_context()
   return NULL;		/*  dummy */
 }
 
-static void notify_stop(SgSocketSelector *selector)
+static void notify_stop(void *context)
 {
-  win_context_t *ctx = (win_context_t *)selector->context;
+  win_context_t *ctx = (win_context_t *)context;
   WSASetEvent(ctx->event);
 }
 
-static void before_cleanup(SgSocketSelector *selector)
+static void before_cleanup(void *context)
 {
-  win_context_t *ctx = (win_context_t *)selector->context;
+  win_context_t *ctx = (win_context_t *)context;
   WaitForSingleObject(ctx->lock, INFINITE);
 }
 
-static void cleanup_selector(SgSocketSelector *selector)
+static void cleanup_selector(void *context)
 {
-  win_context_t *ctx = (win_context_t *)selector->context;
+  win_context_t *ctx = (win_context_t *)context;
   WSACloseEvent(ctx->event);
   ctx->event = INVALID_HANDLE_VALUE;
   for (int i = 0; i < WSA_MAXIMUM_WAIT_EVENTS; i++) {
