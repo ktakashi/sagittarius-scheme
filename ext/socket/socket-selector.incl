@@ -402,3 +402,27 @@ int Sg_SocketSelectorWaitingP(SgSocketSelector *selector)
 {
   return selector->waiting;
 }
+
+static void notify_stop(SgSocketSelector *selector);
+static void before_cleanup(SgSocketSelector *selector);
+static void cleanup_selector(SgSocketSelector *selector);
+
+void Sg_CloseSocketSelector(SgSocketSelector *selector)
+{
+  if (!Sg_SocketSelectorClosedP(selector)) {
+    Sg_AcquireWriteLock(&selector->rw_lock);
+    selector->context = NULL;
+    notify_stop(selector);
+    Sg_ReleaseWriteLock(&selector->rw_lock);
+
+    while (selector->waiting) Sg_YieldCPU();
+    
+    before_cleanup(selector);
+    Sg_AcquireWriteLock(&selector->rw_lock);
+
+    cleanup_selector(selector);
+    Sg_ReleaseWriteLock(&selector->rw_lock);
+    Sg_DestroyReadWriteLock(&selector->rw_lock);
+    Sg_UnregisterFinalizer(selector);
+  }
+}

@@ -98,35 +98,31 @@ static void * make_selector_context()
   return NULL;		/*  dummy */
 }
 
-void Sg_CloseSocketSelector(SgSocketSelector *selector)
+static void notify_stop(SgSocketSelector *selector)
 {
-  if (!Sg_SocketSelectorClosedP(selector)) {
-    win_context_t *ctx = (win_context_t *)selector->context;
-    HANDLE *locks = SG_NEW_ATOMIC2(HANDLE *, sizeof(HANDLE) * 2);
-
-    Sg_AcquireWriteLock(&selector->rw_lock);
-    selector->context = NULL;
-    WSASetEvent(ctx->event);
-    Sg_ReleaseWriteLock(&selector->rw_lock);
-
-    while (selector->waiting) Sg_YieldCPU();
-    
-    WaitForSingleObject(ctx->lock, INFINITE);
-    Sg_AcquireWriteLock(&selector->rw_lock);
-
-    WSACloseEvent(ctx->event);
-    ctx->event = INVALID_HANDLE_VALUE;
-    for (int i = 0; i < WSA_MAXIMUM_WAIT_EVENTS; i++) {
-      WSACloseEvent(ctx->events[i]);
-      ctx->events[i] = INVALID_HANDLE_VALUE;
-    }
-    ReleaseMutex(ctx->lock);
-    CloseHandle(ctx->lock);
-    Sg_ReleaseWriteLock(&selector->rw_lock);
-    Sg_DestroyReadWriteLock(&selector->rw_lock);
-    Sg_UnregisterFinalizer(selector);
-  }
+  win_context_t *ctx = (win_context_t *)selector->context;
+  WSASetEvent(ctx->event);
 }
+
+static void before_cleanup(SgSocketSelector *selector)
+{
+  win_context_t *ctx = (win_context_t *)selector->context;
+  WaitForSingleObject(ctx->lock, INFINITE);
+}
+
+static void cleanup_selector(SgSocketSelector *selector)
+{
+  win_context_t *ctx = (win_context_t *)selector->context;
+  WSACloseEvent(ctx->event);
+  ctx->event = INVALID_HANDLE_VALUE;
+  for (int i = 0; i < WSA_MAXIMUM_WAIT_EVENTS; i++) {
+    WSACloseEvent(ctx->events[i]);
+    ctx->events[i] = INVALID_HANDLE_VALUE;
+  }
+  ReleaseMutex(ctx->lock);
+  CloseHandle(ctx->lock);  
+}
+
 
 static SgObject win_selector_wait(win_context_t *ctx, int n,
 				  SgSocketSelector *selector,
