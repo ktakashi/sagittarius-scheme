@@ -278,6 +278,7 @@ SG_EXTERN SgObject  Sg_SocketGetopt(SgSocket *socket, int level,
 SG_EXTERN SgObject  Sg_SocketConnect(SgSocket *socket, SgAddrinfo* addrinfo,
 				     SgObject timeout);
 SG_EXTERN SgObject  Sg_SocketBind(SgSocket *socket, SgAddrinfo* addrinfo);
+SG_EXTERN SgObject  Sg_SocketBindPort(SgSocket *socket, SgAddrinfo* addrinfo, int port);
 SG_EXTERN SgObject  Sg_SocketListen(SgSocket *socket, int backlog);
 
 SG_EXTERN long      Sg_SocketReceive(SgSocket *socket, uint8_t *data,

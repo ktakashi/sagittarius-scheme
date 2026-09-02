@@ -605,12 +605,13 @@ SgObject Sg_SocketConnect(SgSocket *socket, SgAddrinfo* addrinfo,
   return SG_FALSE;
 }
 
-SgObject Sg_SocketBind(SgSocket *socket, SgAddrinfo* addrinfo)
+static SgObject socket_bind(SgSocket *socket,
+			    SgAddrinfo *addrinfo,
+			    struct sockaddr *sa,
+			    socklen_t len)
 {
-  struct addrinfo *p = addrinfo->ai;
-  if (bind(socket->socket, p->ai_addr, (int)p->ai_addrlen) == 0) {
+  if (bind(socket->socket, sa, len) == 0) {
     struct sockaddr_storage name;
-    socklen_t len = (socklen_t)p->ai_addrlen;
     int r = getsockname(socket->socket, (struct sockaddr *)&name, &len);
     if (r != 0) {
       raise_socket_error(SG_INTERN("socket-bind!"),
@@ -627,6 +628,31 @@ SgObject Sg_SocketBind(SgSocket *socket, SgAddrinfo* addrinfo)
   socket->lastError = last_error;
   return SG_FALSE;
 }
+
+SgObject Sg_SocketBind(SgSocket *socket, SgAddrinfo *addrinfo)
+{
+  struct addrinfo *p = addrinfo->ai;
+  return socket_bind(socket, addrinfo, p->ai_addr, (socklen_t)p->ai_addrlen);
+}
+
+SgObject Sg_SocketBindPort(SgSocket *socket, SgAddrinfo *addrinfo, int port)
+{
+  struct addrinfo *p = addrinfo->ai;
+  struct sockaddr_storage addr;
+  memcpy(&addr, p->ai_addr, p->ai_addrlen);
+  if (addr.ss_family == AF_INET) {
+    ((struct sockaddr_in *)&addr)->sin_port = htons(port);
+  } else if (addr.ss_family == AF_INET6) {
+    ((struct sockaddr_in6 *)&addr)->sin6_port = htons(port);
+  } else {
+    socket->lastError = EAFNOSUPPORT;
+    return SG_FALSE;
+  }
+  
+  return socket_bind(socket, addrinfo, (struct sockaddr *)&addr,
+    (socklen_t)p->ai_addrlen);
+}
+
 
 SgObject Sg_SocketListen(SgSocket *socket, int backlog)
 {
