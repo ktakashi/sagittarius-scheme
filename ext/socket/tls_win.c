@@ -375,6 +375,7 @@ typedef struct WinTLSDataRec
   uint8_t *pendingData;
   int closed;
   WinTLSContext *tlsContext;
+  SgObject configuredALPN;
   /* for reconnection */
   wchar_t *dn;
 } WinTLSData;
@@ -507,6 +508,7 @@ static SgTLSSocket * make_tls_socket(SgSocket *socket, WinTLSContext *ctx)
   r->selectedALPN = SG_FALSE;
   r->clientCertificateCallback = SG_FALSE;
   data->tlsContext = context;
+  data->configuredALPN = SG_FALSE;
   if (!ctx) {
     context->certificateCount = 0;
     context->privateKey = NULL;
@@ -835,16 +837,28 @@ static int server_init(SgTLSSocket *s)
   return TRUE;
 }
 
+static int validate_alpn_protocol_name_list(SgObject who, SgObject alpn);
+static int build_alpn_protocols_buffer(SgObject alpn,
+               unsigned char **buffer,
+               unsigned int *bufferSize);
+
 SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
 				  /* list of bytevectors */
 				  SgObject certificates,
 				  /* encoded private key */
-				  SgByteVector *privateKey)
+				  SgByteVector *privateKey,
+				  /* encoded ALPN extension payload */
+				  SgObject alpn)
 {
   SgTLSSocket *r = make_tls_socket(socket, NULL);
   WinTLSData *data = (WinTLSData *)r->data;
   int serverP = FALSE;
   DWORD result;
+  int hasALPN = validate_alpn_protocol_name_list(SG_INTERN("socket->tls-socket"), alpn);
+
+  if (hasALPN) {
+    data->configuredALPN = alpn;
+  }
 
   load_certificates(data, certificates);
 
@@ -925,6 +939,70 @@ static void send_sec_buffer(SgObject who, SgTLSSocket *tlsSocket,
     (desc)->cBuffers = (count);			\
     (desc)->pBuffers = (bufs);			\
   } while (0)
+
+static int validate_alpn_protocol_name_list(SgObject who, SgObject alpn)
+{
+  int i = 2;
+  int size;
+  uint8_t *data;
+
+  if (SG_FALSEP(alpn)) return FALSE;
+  if (!SG_BVECTORP(alpn)) {
+    Sg_AssertionViolation(who,
+                          SG_MAKE_STRING("bytevector or #f is required for ALPN"),
+                          alpn);
+  }
+
+  size = (int)SG_BVECTOR_SIZE(alpn);
+  data = SG_BVECTOR_ELEMENTS(alpn);
+  if (size < 2) {
+    Sg_AssertionViolation(who,
+                          SG_MAKE_STRING("ALPN must start with a 2-byte protocol-name-list length"),
+                          alpn);
+  }
+  if ((((int)data[0]) << 8 | (int)data[1]) != size - 2) {
+    Sg_AssertionViolation(who,
+                          SG_MAKE_STRING("ALPN protocol-name-list length doesn't match the payload size"),
+                          alpn);
+  }
+  while (i < size) {
+    int len = data[i++];
+    if (len == 0 || (i + len) > size) {
+      Sg_AssertionViolation(who,
+                            SG_MAKE_STRING("Invalid ALPN protocol-name-list format"),
+                            alpn);
+    }
+    i += len;
+  }
+  return size > 2;
+}
+
+static int build_alpn_protocols_buffer(SgObject alpn,
+				       unsigned char **buffer,
+				       unsigned int *bufferSize)
+{
+  int total_size;
+  unsigned short list_size;
+  int cur = 0;
+
+  if (!SG_BVECTORP(alpn) || SG_BVECTOR_SIZE(alpn) <= 2) return FALSE;
+
+  total_size =
+    (int)SG_BVECTOR_SIZE(alpn) + (int)sizeof(unsigned int) + (int)sizeof(unsigned int);
+  list_size = (unsigned short)SG_BVECTOR_SIZE(alpn) - 2;
+  *buffer = SG_NEW_ATOMIC2(unsigned char*, total_size);
+  *bufferSize = (unsigned int)total_size;
+
+  /* original size + sizeof(SecApplicationProtocolNegotiationExt_ALPN) */
+  *(unsigned int *)&(*buffer)[cur] = SG_BVECTOR_SIZE(alpn) + sizeof(unsigned int);
+  cur += sizeof(unsigned int);
+  *(unsigned int *)&(*buffer)[cur] = SecApplicationProtocolNegotiationExt_ALPN;
+  cur += sizeof(unsigned int);
+  *(unsigned short*)&(*buffer)[cur] = list_size;
+  cur += sizeof(unsigned short);
+  memcpy((*buffer) + cur, SG_BVECTOR_ELEMENTS(alpn) + 2, list_size);
+  return TRUE;
+}
 
 static SgObject get_certificate_chain(PCCERT_CONTEXT cc,
 				      SgTLSSocket *tlsSocket,
@@ -1011,6 +1089,8 @@ static void set_nagotiated_alpn(SgTLSSocket* tlsSocket)
   if (r == SEC_E_OK &&
       alpn.ProtoNegoStatus == SecApplicationProtocolNegotiationStatus_Success) {
     tlsSocket->selectedALPN = Sg_AsciiToString((const char *)alpn.ProtocolId, alpn.ProtocolIdSize);
+  } else {
+    tlsSocket->selectedALPN = SG_FALSE;
   }
 }
 
@@ -1101,42 +1181,18 @@ static wchar_t * client_handshake0(SgTLSSocket *tlsSocket,
   /* ALPN is a bytevector of protocol-name-list
      So first 2 bytes are length
    */
-#define PREFIX_LENGTH 2
-  if (SG_BVECTORP(alpn) && SG_BVECTOR_SIZE(alpn) > PREFIX_LENGTH) {
-    /* Damn, little endian... */
-    unsigned char default_buffer[128], *buffer;
-    int total_size = SG_BVECTOR_SIZE(alpn) + sizeof(unsigned int) + sizeof(unsigned int);
-    int cur = 0;
-    unsigned short list_size =
-      (unsigned short)SG_BVECTOR_SIZE(alpn) - PREFIX_LENGTH;
-
-    buffer = default_buffer;
-    if (total_size > array_sizeof(default_buffer)) {
-      buffer = SG_NEW_ATOMIC2(unsigned char*, total_size);
-    }
-
-    /* original size + sizeof(SecApplicationProtocolNegotiationExt_ALPN) */
-    *(unsigned int *)&buffer[cur] = SG_BVECTOR_SIZE(alpn) + sizeof(unsigned int);
-    cur += sizeof(unsigned int);
-    *(unsigned int *)&buffer[cur]
-      = SecApplicationProtocolNegotiationExt_ALPN;
-    cur += sizeof(unsigned int);
-    *(unsigned short*)&buffer[cur] = list_size;
-    cur += sizeof(unsigned short);
-    memcpy(buffer + cur, SG_BVECTOR_ELEMENTS(alpn) + PREFIX_LENGTH, list_size);
-    /*
-    for (int i = 0; i < total_size; i++) {
-      fprintf(stderr, "%x ", buffer[i]);
-    }
-    */
+  {
+    unsigned char *buffer = NULL;
+    unsigned int total_size = 0;
+    if (build_alpn_protocols_buffer(alpn, &buffer, &total_size)) {
     INIT_SEC_BUFFER(&bufsi, SECBUFFER_APPLICATION_PROTOCOLS,
-		    buffer, total_size);
+                    buffer, total_size);
     INIT_SEC_BUFFER_DESC(&sbin, &bufsi, 1);
   } else {
     INIT_SEC_BUFFER(&bufsi, SECBUFFER_EMPTY, NULL, 0);
     INIT_SEC_BUFFER_DESC(&sbin, &bufsi, 1);
   }
-#undef PREFIX_LENGTH
+  }
   INIT_SEC_BUFFER(&bufso, SECBUFFER_TOKEN, NULL, 0);
   INIT_SEC_BUFFER_DESC(&sbout, &bufso, 1);
 
@@ -1356,6 +1412,7 @@ static SgTLSSocket * to_server_socket(SgTLSSocket *parent, SgSocket *sock)
   SECURITY_STATUS ss;
 
   data->closed = FALSE;
+  data->configuredALPN = pData->configuredALPN;
   s->peerCertificateVerifier = parent->peerCertificateVerifier;
   s->peerCertificateRequiredP = parent->peerCertificateRequiredP;
   s->authorities = parent->authorities;
@@ -1402,6 +1459,11 @@ static int server_handshake(SgTLSSocket *tlsSocket)
   SecBuffer bufso[2], bufsi[2];
   int initialised = FALSE;
   DWORD sspiFlags = ASC_REQ_ALLOCATE_MEMORY;
+  unsigned char *alpnBuffer = NULL;
+  unsigned int alpnBufferSize = 0;
+  int hasALPN = build_alpn_protocols_buffer(data->configuredALPN,
+					     &alpnBuffer,
+					     &alpnBufferSize);
 
   if (tlsSocket->peerCertificateRequiredP
       || !SG_FALSEP(tlsSocket->peerCertificateVerifier)) {
@@ -1420,7 +1482,12 @@ static int server_handshake(SgTLSSocket *tlsSocket)
     if (rval < 0) return FALSE;	/* non blocking... */
 
     INIT_SEC_BUFFER(&bufsi[0], SECBUFFER_TOKEN, content, rval);
-    INIT_SEC_BUFFER(&bufsi[1], SECBUFFER_EMPTY, NULL, 0);
+    if (hasALPN) {
+      INIT_SEC_BUFFER(&bufsi[1], SECBUFFER_APPLICATION_PROTOCOLS,
+		      alpnBuffer, alpnBufferSize);
+    } else {
+      INIT_SEC_BUFFER(&bufsi[1], SECBUFFER_EMPTY, NULL, 0);
+    }
     INIT_SEC_BUFFER_DESC(&sbin, bufsi, 2);
 
     INIT_SEC_BUFFER(&bufso[0], SECBUFFER_TOKEN, NULL, 0);

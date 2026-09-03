@@ -131,34 +131,38 @@
 
 
 (define (make-server-tls-socket port certificates :key
-      			  (private-key #f)
-      			  (authorities '()) ;; trust store i guess.
-      			  (client-certificate-required? #f)
-      			  (certificate-verifier #f)
-      			  :allow-other-keys opt)
+				 (private-key #f)
+				 (authorities '()) ;; trust store i guess.
+				 (client-certificate-required? #f)
+				 (certificate-verifier #f)
+				 (hello-extensions '())
+				 :allow-other-keys opt)
   (let ((s (apply make-server-socket port opt)))
-    (socket->tls-socket s 
-     :certificates certificates
-     :private-key private-key
-     :client-socket #f
-     :authorities authorities
-     :peer-certificate-required? client-certificate-required?
-     :certificate-verifier certificate-verifier)))
+    (socket->tls-socket s
+			:certificates certificates
+			:private-key private-key
+			:client-socket #f
+			:hello-extensions hello-extensions
+			:authorities authorities
+			:peer-certificate-required? client-certificate-required?
+			:certificate-verifier certificate-verifier)))
 
 (define (make-server-tls-socket* port certificates :key
-      				 (private-key #f)
-      				 (authorities '()) ;; trust store i guess.
-      				 (client-certificate-required? #f)
-      				 (certificate-verifier #f)
-      				 :allow-other-keys opt)
+				  (private-key #f)
+				  (authorities '()) ;; trust store i guess.
+				  (client-certificate-required? #f)
+				  (certificate-verifier #f)
+				  (hello-extensions '())
+				  :allow-other-keys opt)
   (map (lambda (s)
          (socket->tls-socket s
-	  :certificates certificates
-      	  :private-key private-key
-      	  :client-socket #f
-      	  :authorities authorities
-      	  :peer-certificate-required? client-certificate-required?
-      	  :certificate-verifier certificate-verifier))
+			 :certificates certificates
+			 :private-key private-key
+			 :client-socket #f
+			 :hello-extensions hello-extensions
+			 :authorities authorities
+			 :peer-certificate-required? client-certificate-required?
+			 :certificate-verifier certificate-verifier))
        (apply make-server-socket* port opt)))
 
 (define (make-client-tls-socket server service :key
@@ -187,6 +191,32 @@
   (let1 names (map (^n (make-tls-protocol-name n)) names)
     (make-tls-extension *application-layer-protocol-negotiation*
       			(make-tls-protocol-name-list names))))
+
+(define (parse-hello-extensions hello-extensions)
+  (define (retrieve-sni snil)
+    ;; supports only one server for now...
+    (let ((lis (filter-map (lambda (s)
+                             (and (eqv? *host-name* (slot-ref s 'name-type))
+                                  (utf8->string
+                                   (slot-ref (slot-ref s 'name) 'value))))
+                           (slot-ref snil 'server-name-list))))
+      (car lis)))
+  (define (retrieve-alpn alpn)
+    (let-values (((out e) (open-bytevector-output-port)))
+      (write-tls-packet alpn out)
+      (e)))
+  (let loop ((extensions hello-extensions)
+	     (sni #f) (alpn #f))
+    (if (null? extensions)
+	(values sni alpn)
+	(let* ((e (car extensions))
+	       (t (slot-ref e 'type))
+	       (d (slot-ref e 'data)))
+	  (cond ((eqv? *server-name* t)
+		 (loop (cdr extensions) (retrieve-sni d) alpn))
+		((eqv? *application-layer-protocol-negotiation* t)
+		 (loop (cdr extensions) sni (retrieve-alpn d)))
+		(else (loop (cdr extensions) sni alpn)))))))
 
 (define 1year (make-time time-duration 0 (* 1 60 60 24 365)))
 (define system-prng (pseudo-random-generator *prng:system*))
@@ -225,47 +255,25 @@
           (values (keypair-private ks) (list cert)))))
   (let-values (((pkey certs)
       		(backward-compatiblity private-key certificates)))
-    (let ((r (tls:socket->tls-socket socket
-	      :certificates (certificates->bytevector certs)
-      	      :private-key (and pkey (export-private-key pkey)))))
-      (tls-socket-authorities-set! r
-	(map x509-certificate->bytevector authorities))
-      (tls-socket-peer-certificate-verifier-set! r
-	peer-certificate-required? certificate-verifier)
-      (if (and client-socket handshake)
-          (tls-client-handshake r :hello-extensions hello-extensions)
-          r))))
+    (let-values (((ignored-sni alpn) (parse-hello-extensions hello-extensions)))
+      (let ((r (tls:socket->tls-socket socket
+		      :certificates (certificates->bytevector certs)
+	      	      :private-key (and pkey (export-private-key pkey))
+		      :alpn alpn)))
+	(tls-socket-authorities-set! r
+	  (map x509-certificate->bytevector authorities))
+	(tls-socket-peer-certificate-verifier-set! r
+	  peer-certificate-required? certificate-verifier)
+	(if (and client-socket handshake)
+	    (tls-client-handshake r :hello-extensions hello-extensions)
+	    r)))))
 
 (define (tls-client-handshake socket :key (hello-extensions '()))
-  (define (parse-extension hello-extensions)
-    (define (retrieve-sni snil)
-      ;; supports only one server for now...
-      (let ((lis (filter-map (lambda (s)
-      			       (and (eqv? *host-name* (slot-ref s 'name-type))
-      				    (utf8->string
-      				     (slot-ref (slot-ref s 'name) 'value))))
-      			     (slot-ref snil 'server-name-list))))
-        (car lis)))
-    (define (retrieve-alpn alpn)
-      (let-values (((out e) (open-bytevector-output-port)))
-        (write-tls-packet alpn out)
-        (e)))
-    (let loop ((extensions hello-extensions)
-      	       (sni #f) (alpn #f))
-      (if (null? extensions)
-          `(,@(if sni `(:domain-name ,sni) '())
-            ,@(if alpn `(:alpn ,alpn) '()))
-          (let* ((e (car extensions))
-      		 (t (slot-ref e 'type))
-      		 (d (slot-ref e 'data)))
-            (cond ((eqv? *server-name* t)
-      		   (loop (cdr extensions) (retrieve-sni d) alpn))
-      		  ((eqv? *application-layer-protocol-negotiation* t)
-      		   (loop (cdr extensions) sni (retrieve-alpn d)))
-      		  (else (loop (cdr extensions) sni alpn)))))))
-  (let ((opts (parse-extension hello-extensions)))
-    (and (apply tls-socket-connect! socket opts)
-         socket)))
+  (let-values (((sni alpn) (parse-hello-extensions hello-extensions)))
+    (let ((opts `(,@(if sni `(:domain-name ,sni) '())
+                  ,@(if alpn `(:alpn ,alpn) '()))))
+			(and (apply tls-socket-connect! socket opts)
+	   socket))))
 
 (define (tls-socket-peer-certificate socket)
   (let ((bv (%tls-socket-peer-certificate socket)))

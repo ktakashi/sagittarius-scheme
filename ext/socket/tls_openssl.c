@@ -119,8 +119,97 @@ typedef struct OpenSSLDataRec
   SSL_CTX *ctx;
   SSL     *ssl;
   int      rootServerSocketP;
+  SgObject configuredALPN;
   SgObject peerCertificate;
 } OpenSSLData;
+
+static int validate_alpn_protocol_name_list(SgObject who, SgObject alpn)
+{
+  int i = 2;
+  int size;
+  uint8_t *data;
+
+  if (SG_FALSEP(alpn)) return FALSE;
+  if (!SG_BVECTORP(alpn)) {
+    Sg_AssertionViolation(who,
+                          SG_MAKE_STRING("bytevector or #f is required for ALPN"),
+                          alpn);
+  }
+
+  size = (int)SG_BVECTOR_SIZE(alpn);
+  data = SG_BVECTOR_ELEMENTS(alpn);
+  if (size < 2) {
+    Sg_AssertionViolation(who,
+                          SG_MAKE_STRING("ALPN must start with a 2-byte protocol-name-list length"),
+                          alpn);
+  }
+  if ((((int)data[0]) << 8 | (int)data[1]) != size - 2) {
+    Sg_AssertionViolation(who,
+                          SG_MAKE_STRING("ALPN protocol-name-list length doesn't match the payload size"),
+                          alpn);
+  }
+  while (i < size) {
+    int len = data[i++];
+    if (len == 0 || (i + len) > size) {
+      Sg_AssertionViolation(who,
+                            SG_MAKE_STRING("Invalid ALPN protocol-name-list format"),
+                            alpn);
+    }
+    i += len;
+  }
+  return size > 2;
+}
+
+#if OPENSSL_VERSION_NUMBER >= 0x10002000L
+static int alpn_select_cb(SSL *ssl,
+                          const unsigned char **out,
+                          unsigned char *outlen,
+                          const unsigned char *in,
+                          unsigned int inlen,
+                          void *arg)
+{
+  SSL_CTX *ctx = SSL_get_SSL_CTX(ssl);
+  SgTLSSocket *tlsSocket =
+    (SgTLSSocket *)SSL_CTX_get_ex_data(ctx, callback_data_index);
+  SgObject alpn;
+  uint8_t *server;
+  int serverLen;
+  int i;
+
+  (void)arg;
+  if (!tlsSocket) return SSL_TLSEXT_ERR_NOACK;
+
+  alpn = ((OpenSSLData *)tlsSocket->data)->configuredALPN;
+  if (!SG_BVECTORP(alpn) || SG_BVECTOR_SIZE(alpn) <= 2) {
+    return SSL_TLSEXT_ERR_NOACK;
+  }
+
+  server = SG_BVECTOR_ELEMENTS(alpn) + 2;
+  serverLen = (int)SG_BVECTOR_SIZE(alpn) - 2;
+  i = 0;
+  while (i < serverLen) {
+    int slen = server[i++];
+    int j = 0;
+    const unsigned char *s = server + i;
+    if (slen == 0 || i + slen > serverLen) {
+      return SSL_TLSEXT_ERR_NOACK;
+    }
+    while (j < (int)inlen) {
+      int clen = in[j++];
+      const unsigned char *c = in + j;
+      if (j + clen > (int)inlen) break;
+      if (clen == slen && memcmp(s, c, slen) == 0) {
+        *out = s;
+        *outlen = slen;
+        return SSL_TLSEXT_ERR_OK;
+      }
+      j += clen;
+    }
+    i += slen;
+  }
+  return SSL_TLSEXT_ERR_NOACK;
+}
+#endif
 
 static void tls_socket_finalizer(SgObject self, void *data)
 {
@@ -144,6 +233,7 @@ static SgTLSSocket* make_tls_socket(SgSocket *socket, SSL_CTX *ctx,
   data->ctx = ctx;
   data->rootServerSocketP = rootServerSocketP;
   data->ssl = NULL;
+  data->configuredALPN = SG_FALSE;
   data->peerCertificate = SG_FALSE;
   /* we set socket as data for convenience */
   SSL_CTX_set_ex_data(data->ctx, callback_data_index, r);
@@ -166,11 +256,14 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
 				  /* list of bytevectors */
 				  SgObject certificates,
 				  /* encoded private key, bytevector */
-				  SgByteVector *privateKey)
+          SgByteVector *privateKey,
+          /* encoded ALPN extension payload */
+          SgObject alpn)
 {
   SgObject cp;
   SSL_CTX *ctx;
   int loaded = 0, serverP = FALSE;
+  int hasALPN;
 
   ERR_clear_error();		/* clear error */
   switch(socket->type) {
@@ -192,6 +285,8 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
     return NULL;		/* dummy */
   }
   if (!ctx) goto err;
+
+  hasALPN = validate_alpn_protocol_name_list(SG_INTERN("socket->tls-socket"), alpn);
   
   SSL_CTX_set_options(ctx, SSL_OP_ALL | SSL_OP_FLAGS);
   SSL_CTX_set_mode(ctx, SSL_MODE_AUTO_RETRY | SSL_MODE_RELEASE_BUFFERS);
@@ -244,8 +339,25 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
 			  SG_MAKE_STRING("Both certificate and private key must be provided"),
 			  SG_FALSE);
   }
-  
-  return make_tls_socket(socket, ctx, serverP);
+
+  {
+    SgTLSSocket *r = make_tls_socket(socket, ctx, serverP);
+    OpenSSLData *data = (OpenSSLData *)r->data;
+    if (hasALPN) {
+      data->configuredALPN = alpn;
+    }
+#if OPENSSL_VERSION_NUMBER >= 0x10002000L
+    if (serverP && hasALPN) {
+      SSL_CTX_set_alpn_select_cb(ctx, alpn_select_cb, NULL);
+    }
+#else
+    if (serverP && hasALPN) {
+      Sg_Warn(UC("ALPN is not supported on this version of OpenSSL."));
+      Sg_Warn(UC("Please consider to update your OpenSSL runtime."));
+    }
+#endif
+    return r;
+  }
 
  err: {
     unsigned long e = ERR_get_error();
@@ -301,6 +413,8 @@ static void lookup_alpn(SgTLSSocket *tlsSocket)
 #endif // OPENSSL_VERSION_NUMBER >= 0x10002000L
   if (alpn != NULL) {
     tlsSocket->selectedALPN = Sg_AsciiToString((const char *)alpn, alpnlen);
+  } else {
+    tlsSocket->selectedALPN = SG_FALSE;
   }
 }
 
@@ -389,6 +503,7 @@ SgObject Sg_TLSSocketAccept(SgTLSSocket *tlsSocket, int handshake)
     SSL_CTX_up_ref(data->ctx);
     
     newData = (OpenSSLData *)newSock->data;
+    newData->configuredALPN = data->configuredALPN;
     newData->ssl = SSL_new(data->ctx);
     r = SSL_set_fd(newData->ssl, SG_SOCKET(sock)->socket);
     if (r <= 0) handle_accept_error(newSock, r);
