@@ -13,14 +13,19 @@
 (define-type <tls-socket> "SgTLSSocket*")
 
 (define-c-proc socket->tls-socket
-  (socket::<socket> :key (certificates #f) (private-key #f))
+  (socket::<socket> :key (certificates #f) (private-key #f) (alpn #f))
   (unless (or (SG_BVECTORP private-key) (SG_FALSEP private-key))
     (Sg_AssertionViolation 'socket->tls-socket
       (SG_MAKE_STRING "bytevector or #f is required for private key")
       private-key))
+  (unless (or (SG_BVECTORP alpn) (SG_FALSEP alpn))
+    (Sg_AssertionViolation 'socket->tls-socket
+      (SG_MAKE_STRING "bytevector or #f is required for ALPN")
+      alpn))
   (result (Sg_SocketToTLSSocket socket
 	    (?: (SG_PAIRP certificates) certificates SG_NIL)
-	    (?: (SG_BVECTORP private-key) (SG_BVECTOR private-key) NULL))))
+	    (?: (SG_BVECTORP private-key) (SG_BVECTOR private-key) NULL)
+	    alpn)))
 
 (define-c-proc tls-socket-connect!
   (o::<tls-socket> :key domain-name alpn) ::<boolean>

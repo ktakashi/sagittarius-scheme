@@ -61,7 +61,9 @@ SG_EXTERN SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
 					    /* list of bytevectors */
 					    SgObject certificates,
 					    /* encoded private key */
-					    SgByteVector *privateKey);
+					    SgByteVector *privateKey,
+					    /* encoded ALPN extension payload */
+					    SgObject alpn);
 SG_EXTERN int       Sg_TLSSocketConnect(SgTLSSocket *tlsSocket,
 					SgObject domainName,
 					SgObject alpn);

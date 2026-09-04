@@ -35,11 +35,14 @@
 				     (add-duration! (current-time) 1year) 0))
 		     (make-x509-issuer '((C . "NL")))))
 
+(define server-alpn (make-protocol-name-list '("h2" "http/1.1")))
+
 (define (server-service sock)
   (number->string (socket-info-port (socket-info sock))))
 
 (let ((s* (make-server-tls-socket* "0" (list cert)
 	   :private-key (key-pair-private keypair)
+	   :hello-extensions (list server-alpn)
 	   :authorities (list client-cert)
 	   :client-certificate-required? #f)))
   (test-assert "make-server-tls-socket*" (list? s*))
@@ -47,6 +50,7 @@
 
 (define server-socket (make-server-tls-socket "0" (list cert)
 		       :private-key (key-pair-private keypair)
+		       :hello-extensions (list server-alpn)
 		       :authorities (list client-cert)
 		       :client-certificate-required? #f
 		       ;; self signed certificate
@@ -79,6 +83,11 @@
 			     (put-string p (number->string (string-length b64)))
 			     (put-string p "\r\n")
 			     (put-string p b64)
+			     (lp2 (get-line p))))
+			  ((or (not (string? r)) (string=? r "selected-alpn"))
+			   (let ((selected (tls-socket-selected-alpn sock)))
+			     (put-string p (if selected selected ""))
+			     (put-string p "\r\n")
 			     (lp2 (get-line p))))
 			  (else
 			   (let ((res (string->utf8 (string-append r "\r\n"))))
@@ -136,6 +145,21 @@
       ))
   (test-assert "peer certificate"
 	       (x509-certificate? (tls-socket-peer-certificate client-socket)))
+  (shutdown&close client-socket))
+
+(let ((client-socket (make-client-tls-socket "localhost" (server-service server-socket)
+		       :hello-extensions
+		       (list (make-protocol-name-list '("http/1.1"))))))
+  (test-equal "selected ALPN on client"
+	      "http/1.1"
+	      (tls-socket-selected-alpn client-socket))
+  (let ((text-port (transcoded-port (tls-socket-port client-socket)
+				     (native-transcoder))))
+	(test-assert "selected ALPN on server"
+		     (let ((r (begin (put-string text-port "selected-alpn\r\n")
+				    (get-line text-port))))
+		       (string=? r "http/1.1")))
+    (put-string text-port "end\r\n"))
   (shutdown&close client-socket))
 
 ;; send certificate
