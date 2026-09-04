@@ -228,6 +228,9 @@ _private-key_
 _grace-period_
 : When the server is requested to stop, then the working pool and
   wait for this period of time. Default 100 (milliseconds)
+  
+_alpn_
+: ALPN of the server. This is only meaningful for TLS server.
 
 
 ### [§3] Socket detaching
