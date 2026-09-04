@@ -207,6 +207,41 @@
       (shutdown&close client-socket))
     (thread-join! server-thread)))
 
+(print "TLS server ALPN")
+(let ()
+  (define (shutdown&close s)
+    (tls-socket-shutdown s SHUT_RDWR)
+    (tls-socket-close s))
+
+  (define options (server-tls-socket-options
+		   (certificates (list cert))
+		   (trusted-certificates (list client-cert))
+		   (private-key (key-pair-private keypair))
+		   (certificate-verifier #t)
+		   (alpn* '("echo2" "echo"))))
+  (define server-socket (make-server-tls-socket "0" options))
+  (define port
+    (number->string (socket-info-port (socket-info server-socket))))
+  (define (server-run)
+    (guard (e (else #t))
+      (let ((addr (socket-accept server-socket)))
+	(let ((p (socket-port addr))
+	      (alpn (tls-socket-selected-alpn addr)))
+	  (call-with-port p
+	    (lambda (p)
+	      (put-bytevector p (string->utf8 alpn))))))))
+
+  (let ()
+    (define server-thread (make-thread server-run))
+    (thread-start! server-thread)
+
+    (let ((client-socket (make-client-tls-socket "localhost" port
+			   (tls-socket-options (alpn* '("echo"))))))
+      (let ((r (tls-socket-recv client-socket 4)))
+	(test-equal #*"echo" r))
+      (shutdown&close client-socket))
+    (thread-join! server-thread)))
+
 (define (get-socket-count default)
   (or (and (cond ((getenv "FILE_LIMIT") =>
 		  (lambda (v)

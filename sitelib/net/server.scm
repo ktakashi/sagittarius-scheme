@@ -99,7 +99,8 @@
      (non-blocking? :init-keyword :non-blocking? :init-value #f)
      ;; default give 100ms for client socket to finish when server
      ;; stop is called
-     (grace-period :init-keyword :grace-period :init-value 100)))
+     (grace-period :init-keyword :grace-period :init-value 100)
+     (alpn         :init-keyword :alpn         :init-value '())))
   (define (server-config? o) (is-a? o <server-config>))
   
   (define-class <simple-server> ()
@@ -251,7 +252,8 @@
 	    (server-tls-socket-options
 	     (ai-family ai-family)
 	     (certificates certs)
-	     (private-key key)))
+	     (private-key key)
+	     (alpn* (~ config 'alpn))))
 	  (socket-options
 	   (ai-family ai-family)))))
 

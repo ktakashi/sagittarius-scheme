@@ -272,7 +272,7 @@
   (let-values (((sni alpn) (parse-hello-extensions hello-extensions)))
     (let ((opts `(,@(if sni `(:domain-name ,sni) '())
                   ,@(if alpn `(:alpn ,alpn) '()))))
-			(and (apply tls-socket-connect! socket opts)
+      (and (apply tls-socket-connect! socket opts)
 	   socket))))
 
 (define (tls-socket-peer-certificate socket)

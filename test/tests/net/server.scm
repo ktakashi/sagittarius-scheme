@@ -1,3 +1,4 @@
+#!read-macro=sagittarius/bv-string
 (import (rnrs)
 	(net server)
 	(net socket)
@@ -97,20 +98,26 @@
 				     :use-ipv6? #t
 				     :certificates (list cert)
 				     :private-key (key-pair-private keypair)
-				     :shutdown-handler shutdown-handler))
+				     :shutdown-handler shutdown-handler
+				     :alpn '("s0" "s1")))
   (define (handler server socket)
-    (let ((bv (socket-recv socket 255)))
+    (let ((alpn (tls-socket-selected-alpn server))
+	  (bv (socket-recv socket 255)))
+      (socket-send socket (string->utf8 alpn))
+      (socket-send socket #*":")
       (socket-send socket bv)))
   (define server (make-simple-server "0" handler :config config))
   (define (test ai-family)
+    (define option (tls-socket-options (ai-family ai-family) (alpn* '("s1"))))
     ;; IPv6 may not be supported
     (guard (e (else #t))
       (let ((sock (make-client-tls-socket "localhost" (server-port server)
-					  ai-family)))
-	(socket-send sock (string->utf8 "hello"))
-	(test-equal "TLS echo back"
-		    (string->utf8 "hello") (socket-recv sock 255))
-	(socket-close sock))))
+					  option)))
+	(let ((alpn (tls-socket-selected-alpn sock)))
+	  (test-equal "s1" alpn)
+	  (socket-send sock #*"hello")
+	  (test-equal "TLS echo back" #*"s1:hello" (socket-recv sock 255))
+	  (socket-close sock)))))
   (server-start! server :background #t)
   (thread-sleep! 0.1)
   ;; test both socket

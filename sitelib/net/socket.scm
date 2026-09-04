@@ -343,21 +343,16 @@
 			(ai-protocol 0)
 			(certificate-verifier #t)
 			(certificates '()) ;; in case...
-			(trusted-certificates '()))))
+			(trusted-certificates '())
+			(alpn* '()))))
 
 (define (make-client-tls-socket server service
 				:optional (options (tls-socket-options-builder)))
-  (define (get-option getter default)
-    (if (tls-socket-options? options)
-	(getter options)
-	default))
+  (define get-option (socket-options-get options))
   (define sni* (get-option tls-socket-options-sni* '()))
   (define alpn* (get-option tls-socket-options-alpn* '()))
   (define extensions (get-option tls-socket-options-hello-extensions '()))
-  (define (make-extension ctr v*)
-    (if (null? v*)
-	v*
-	(list (ctr v*))))
+
   (define (maybe-handshake? socket provider? extension)
     (if provider?
 	(begin
@@ -372,11 +367,8 @@
 	;; if provider is here, we don't do handshake yet
 	(provider
 	 (get-option tls-socket-options-client-certificate-provider #f))
-	(hello-extension  `(,@extensions
-			    ,@(make-extension
-			       make-server-name-indication sni*)
-			    ,@(make-extension
-			       make-protocol-name-list alpn*))))
+	(hello-extension  (%make-hello-extension :extensions extensions
+						 :sni* sni* :alpn* alpn*)))
     (maybe-handshake? 
      (setup-socket
       (socket->tls-socket
@@ -395,8 +387,10 @@
      provider hello-extension)))
 
 (define (make-server-tls-socket port options)
+  (define get-option (socket-options-get options))
   (define certificates (tls-socket-options-certificates options))
   (define private-key (tls-socket-options-private-key options))
+  (define alpn* (get-option tls-socket-options-alpn* '()))
   (define client-cert-needed?
     (and (server-tls-socket-options? options)
 	 (server-tls-socket-options-client-certificate-required? options)))
@@ -423,12 +417,15 @@
       :client-socket #f
       :peer-certificate-required? client-cert-needed?
       :authorities '()
-      :certificate-verifier (tls-socket-options-certificate-verifier options))
+      :certificate-verifier (tls-socket-options-certificate-verifier options)
+      :hello-extensions (%make-hello-extension :alpn* alpn*))
      options)))
 
 (define (make-server-tls-socket* port options)
+  (define get-option (socket-options-get options))
   (define certificates (tls-socket-options-certificates options))
   (define private-key (tls-socket-options-private-key options))
+  (define alpn* (get-option tls-socket-options-alpn* '()))
   (define client-cert-needed?
     (and (server-tls-socket-options? options)
 	 (server-tls-socket-options-client-certificate-required? options)))
@@ -452,7 +449,8 @@
 	   :client-socket #f
 	   :peer-certificate-required? client-cert-needed?
 	   :authorities '()
-	   :certificate-verifier verifier)
+	   :certificate-verifier verifier
+	   :hello-extensions (%make-hello-extension :alpn* alpn*))
 	  options))
        (make-server-socket* port (socket-options-builder
 				  (from options)
@@ -471,6 +469,22 @@
 	(else (assertion-violation 'socket-options->client-socket
 				   "Not a socket-options" option))))
 (define (default-error-reporter event e) #t)
+
+;; hello extension utilities (private)
+(define ((socket-options-get options) getter default)
+  (if (tls-socket-options? options)
+      (getter options)
+      default))
+(define (make-extension ctr v*)
+  (if (null? v*)
+      v*
+      (list (ctr v*))))
+(define (%make-hello-extension :key (sni* '()) (alpn* '()) (extensions '()))
+  `(,@extensions
+    ,@(make-extension
+       make-server-name-indication sni*)
+    ,@(make-extension
+       make-protocol-name-list alpn*)))
 
 ;; to make inspection available :(
 (define-class <socket-selector> ()
