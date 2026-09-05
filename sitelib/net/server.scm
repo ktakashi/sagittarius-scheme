@@ -105,7 +105,7 @@
   
   (define-class <simple-server> ()
     ((server-sockets :init-keyword :server-sockets :init-value #f)
-     (handler        :init-keyword :handler :init-keyword #f)
+     (handler        :init-keyword :handler :init-value #f)
      (fork-join-pool :init-keyword :fork-join-pool)
      (stopper-socket :init-keyword :stopper-socket :init-value #f)
      (socket-selector :init-keyword :socket-selector :init-value #f)
