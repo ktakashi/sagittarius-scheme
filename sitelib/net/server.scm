@@ -251,7 +251,7 @@
 	       (values (key-pair-private kp) (list cert))))))
 	     
     (let ((ai-family (if (~ config 'use-ipv6?) AF_UNSPEC AF_INET)))
-      (if (and (~ config 'secure?) (not (null? (~ config 'certificates))))
+      (if (~ config 'secure?)
 	  (let-values (((key certs) (ensure-private-key config)))
 	    (server-tls-socket-options
 	     (ai-family ai-family)
