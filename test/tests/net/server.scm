@@ -129,6 +129,9 @@
     (socket-send s #vu8(1 2 3 4 5))
     (socket-close s))
   (test-assert "finish simple server (2)" (wait-server-stop! server))
+  ;; a bit weird location, the flag is always true after the server is
+  ;; stopped ...
+  (test-assert "server stopping?" (server-stopping? server))
   (test-assert "finish simple server (3)" (wait-server-stop! server))
   )
 

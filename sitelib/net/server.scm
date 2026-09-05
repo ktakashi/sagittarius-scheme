@@ -36,7 +36,7 @@
 	    server? server-port server-shutdown-port
 	    server-config? server-config server-context
 	    server-start! on-server-start!
-	    ;; well for multithreading?
+	    server-stopping?
 	    server-stop!  on-server-stop! 
 	    
 	    server-stopped? wait-server-stop!
@@ -128,6 +128,7 @@
 			  (~ server 'socket-selector)))
   (define (server? o) (is-a? o <simple-server>))
   (define (server-stopped? server) (future-done? (~ server 'server-stopped)))
+  (define (server-stopping? server) (~ server 'stop-request))
 
   (define (make-server-config . opt) (apply make <server-config> opt))
 
@@ -194,7 +195,7 @@
 		      (retry))))))))
 
     (define (socket-dispatch sock e retry)
-      (unless (~ server 'stop-request)
+      (unless (server-stopping? server)
 	(unless e
 	  (let ((client-socket (socket-accept sock)))
 	    (selector client-socket socket-task)))
