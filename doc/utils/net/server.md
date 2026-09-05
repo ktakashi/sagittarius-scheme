@@ -109,6 +109,14 @@ according to the configuration.
 Returns configuration object used to create given server object
 _server_.
 
+###### [!Function] `server-stopping?`  _server_
+
+Returns #t if given server started stopping.
+
+This also returns #t if the server is stopped,
+but unlike `server-stopped?` the procedure returns `#f` if the
+server never started.
+
 
 ###### [!Function] `server-stopped?`  _server_
 

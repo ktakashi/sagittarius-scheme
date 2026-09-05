@@ -127,7 +127,10 @@
 			  (~ server 'fork-join-pool)
 			  (~ server 'socket-selector)))
   (define (server? o) (is-a? o <simple-server>))
-  (define (server-stopped? server) (future-done? (~ server 'server-stopped)))
+  (define (server-stopped? server)
+    ;; server is stopped before starting
+    (or (not (~ server 'server-sockets)) 
+	(future-done? (~ server 'server-stopped))))
   (define (server-stopping? server) (~ server 'stop-request))
 
   (define (make-server-config . opt) (apply make <server-config> opt))

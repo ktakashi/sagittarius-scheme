@@ -70,6 +70,9 @@
   (test-assert "config?" (server-config? config))
   (test-assert "server-config" (eq? config (server-config server)))
 
+  (test-assert (not (server-stopping? server)))
+  (test-assert (server-stopped? server))
+  
   (server-start! server :background #t)
   (thread-sleep! 0.1)
   ;; test both sockets
