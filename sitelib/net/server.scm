@@ -62,6 +62,7 @@
 	    (sagittarius control)
 	    (sagittarius object)
 	    (sagittarius crypto keys)
+	    (sagittarius mop allocation)
 	    (net socket)
 	    (net server monitor)
 	    (rfc x509)
@@ -77,7 +78,7 @@
   ;; connecting this would shut it donw
   (define (default-shutdown-handler server socket) #t)
 
-  (define-class <server-config> ()
+  (define-class <server-config> (<allocation-mixin>)
     ((shutdown-port :init-keyword :shutdown-port :init-value #f)
      (shutdown-handler :init-keyword :shutdown-handler
 		       :init-value default-shutdown-handler)
@@ -94,9 +95,12 @@
      (secure?       :init-keyword :secure?       :init-value #f)
      (certificates  :init-keyword :certificates  :init-value '())
      (private-key   :init-keyword :private-key   :init-value #f)
-     ;; non blocking
-     ;; the name is kept for backword compatibility
-     (non-blocking? :init-keyword :non-blocking? :init-value #f)
+     (close-socket? :init-keyword :close-socket? :init-value #f)
+     ;; virtual slot for for backword compatibility
+     (non-blocking? :allocation :virtual
+		    :slot-ref (lambda (o) (not (~ o 'close-socket?)))
+		    :slot-set! (lambda (o v) (set! (~ o 'close-socket?) (not o)))
+		    :init-keyword :non-blocking? :init-value #f)
      ;; default give 100ms for client socket to finish when server
      ;; stop is called
      (grace-period :init-keyword :grace-period :init-value 100)
@@ -177,7 +181,7 @@
     (define handler (~ server 'handler))
     (define detached (~ server 'detached))
     (define config (~ server 'config))
-    (define close-socket? (not (~ config 'non-blocking?)))
+    (define close-socket? (~ config 'close-socket?))
     (define option (config->socket-option config))
 
     (define (handle-exception e socket)
