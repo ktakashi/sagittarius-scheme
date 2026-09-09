@@ -8,6 +8,7 @@
     (export http-server:protocol-driver?
             make-http-server:protocol-driver
             http-server:protocol-driver-name
+	    http-server:protocol-driver-consume!
             http-server:protocol-driver-serve!
 
             make-http-server:protocol-registry
@@ -17,13 +18,21 @@
             (net socket))
 
 (define-record-type http-server:protocol-driver
-  (fields name serve!))
+  (fields name consume serve))
 
 (define-record-type (http-server:protocol-registry
                      %make-http-server:protocol-registry
                      http-server:protocol-registry?)
   (fields (mutable drivers)
           (mutable default-driver)))
+
+(define (http-server:protocol-driver-consume! driver buffer . rest)
+  (apply (http-server:protocol-driver-consume driver) buffer rest))
+
+;; req = #f, error response
+(define (http-server:protocol-driver-serve! driver socket req result)
+  ((http-server:protocol-driver-serve driver) socket req result))
+
 
 (define (make-http-server:protocol-registry default-driver)
   (%make-http-server:protocol-registry '() default-driver))

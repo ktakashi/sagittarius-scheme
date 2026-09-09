@@ -125,6 +125,12 @@
   (apply make <http-server-config> opts))
 (define (http-server-config? o) (is-a? o <http-server-config>))
 
+(define-class <http-server> (<simple-server>)
+  ((registry :init-keyword :registry)
+   (app-handler :init-keyword :app-handler)
+   (states :init-form (make-eq-hashtable))
+   (lock :init-form (make-mutex))))
+
 (define-record-type connection-state
   (fields (mutable buffer)
           (mutable request-count)
@@ -148,109 +154,10 @@
           handler)))
 
   (define registry
-    (let* ((http1-driver
-            (make-http-server:protocol-driver
-             "http/1.1"
-             (lambda (socket req res)
-               (http-server:http1-write-response! socket req res))))
-           (r (make-http-server:protocol-registry http1-driver)))
-      (http-server:register-protocol-driver! r "http/1.1" http1-driver)
+    (let ((r (make-http-server:protocol-registry *http-server:http1-driver*)))
+      (http-server:register-protocol-driver! r 
+	"http/1.1" *http-server:http1-driver*)
       r))
-
-  (define states (make-eq-hashtable))
-  (define lock (make-mutex))
-
-  (define (close-connection! server socket)
-    (mutex-lock! lock)
-    (hashtable-delete! states socket)
-    (mutex-unlock! lock)
-    (server-detach-socket! server socket)
-    (socket-close socket))
-
-  (define (connection-open? socket)
-    (mutex-lock! lock)
-    (let ((alive (hashtable-ref states socket #f)))
-      (mutex-unlock! lock)
-      (and alive #t)))
-
-  (define (get-state server socket)
-    (mutex-lock! lock)
-    (let ((state (hashtable-ref states socket #f)))
-      (if state
-          (begin
-            (mutex-unlock! lock)
-            state)
-          (let* ((driver (http-server:select-protocol-driver registry socket))
-                 (new-state (make-connection-state #vu8() 0 driver)))
-            (hashtable-set! states socket new-state)
-            (mutex-unlock! lock)
-            new-state))))
-
-  (define (remote-info socket)
-    (guard (e (else #f))
-      (socket-info socket)))
-
-  (define (as-request req socket)
-    (make-http-server:request
-     (http-server:http1-request-method req)
-     (http-server:http1-request-target req)
-     (http-server:http1-request-path req)
-     (http-server:http1-request-query req)
-     (http-server:http1-request-version req)
-     (http-server:http1-request-headers req)
-     (http-server:http1-request-body req)
-     (remote-info socket)
-     '()))
-
-  (define (serve-state! server socket state)
-    (let loop ((served 0))
-      (let-values (((kind a b remainder)
-                    (http-server:http1-consume
-                     (connection-state-buffer state)
-                     :max-header-bytes (http-server-config-max-header-bytes config)
-                     :max-body-bytes (http-server-config-max-body-bytes config))))
-        (cond ((eq? kind 'need-more)
-               (connection-state-buffer-set! state remainder)
-               #f)
-              ((eq? kind 'error)
-               (let* ((code a)
-                      (message b)
-                      (dummy-req (make-http-server:http1-request
-                                  'GET "/" "/" #f "HTTP/1.1"
-                                  (make-http-server:headers)
-                                  #vu8()))
-                      (res (make-error-response code message)))
-                 (http-server:http1-write-response! socket dummy-req res)
-                 (close-connection! server socket)
-                 #t))
-              (else
-               (connection-state-buffer-set! state remainder)
-               (let* ((req (as-request a socket))
-                      (res (make-http-server:response))
-                      (result
-                       (guard (e (else
-                                  (let ((er (make-http-server:response 500)))
-                                    (http-server:response-text!
-                                     er
-                                     "Unhandled application error")
-                                    er)))
-                         (normalize-handler-result (app-handler req res) res)))
-                      (close? ((http-server:protocol-driver-serve!
-                                (connection-state-driver state))
-                               socket a result)))
-                 (connection-state-request-count-set!
-                  state
-                  (+ 1 (connection-state-request-count state)))
-                 (if (or close?
-                         (>= (connection-state-request-count state)
-                             (http-server-config-max-requests-per-connection config)))
-                     (begin
-                       (close-connection! server socket)
-                       #t)
-                     (if (and (< served (http-server-config-max-pipelined-requests config))
-                              (> (bytevector-length (connection-state-buffer state)) 0))
-                         (loop (+ served 1))
-                         #f))))))))
 
   (define (socket-handler server socket)
     (let ((state (get-state server socket)))
@@ -263,10 +170,107 @@
                  state
                  (bytevector-append (connection-state-buffer state) chunk))
                 (unless (serve-state! server socket state)
-                  (when (and (connection-open? socket)
+                  (when (and (connection-open? server socket)
                              (< drain-count 8)
                              (pair? (socket-read-select 20 socket)))
                     (loop (+ drain-count 1))))))))))
 
-  (make-simple-server port socket-handler :config config))
+  (make-simple-server port socket-handler
+		      :server-class <http-server>
+		      :config config
+		      :registry registry
+		      :app-handler app-handler))
+
+;; internal
+(define (get-state server socket)
+  (define lock (slot-ref server 'lock))
+  (define states (slot-ref server 'states))
+  (define registry (slot-ref server 'registry))
+
+  (mutex-lock! lock)
+  (let ((state (hashtable-ref states socket #f)))
+    (if state
+        (begin
+          (mutex-unlock! lock)
+          state)
+        (let* ((driver (http-server:select-protocol-driver registry socket))
+               (new-state (make-connection-state #vu8() 0 driver)))
+          (hashtable-set! states socket new-state)
+          (mutex-unlock! lock)
+          new-state))))
+
+(define (serve-state! server socket state)
+  (define app-handler (slot-ref server 'app-handler))
+  (define driver (connection-state-driver state))
+  (define config (slot-ref server 'config))
+  (define max-header-bytes (http-server-config-max-header-bytes config))
+  (define max-body-bytes (http-server-config-max-body-bytes config))
+  (define max-requests-per-connection
+    (http-server-config-max-requests-per-connection config))
+  (define max-pipelined-requests
+    (http-server-config-max-pipelined-requests config))
+  (let loop ((served 0))
+    (let-values (((kind req b remainder)
+                  (http-server:protocol-driver-consume! driver
+		   (connection-state-buffer state)
+                   :max-header-bytes max-header-bytes
+                   :max-body-bytes max-body-bytes)))
+      (cond ((eq? kind 'need-more)
+             (connection-state-buffer-set! state remainder)
+             #f)
+            ((eq? kind 'error)
+             (let* ((code req)
+		    (message b)
+                    (res (make-error-response code message)))
+               (http-server:protocol-driver-serve! driver socket #f res)
+               (close-connection! server socket)
+               #t))
+            (else
+             (connection-state-buffer-set! state remainder)
+	     (http-server:request-remote-set! req (remote-info socket))
+             (let* ((res (make-http-server:response))
+                    (result
+                     (guard (e (else
+                                (let ((er (make-http-server:response 500)))
+                                  (http-server:response-text!
+                                   er
+                                   "Unhandled application error")
+                                  er)))
+                       (normalize-handler-result (app-handler req res) res)))
+                    (close? (http-server:protocol-driver-serve!
+			     driver socket req result)))
+               (connection-state-request-count-set! state
+                (+ 1 (connection-state-request-count state)))
+               (if (or close?
+                       (>= (connection-state-request-count state)
+                           max-requests-per-connection))
+                   (close-connection! server socket)
+                   (if (and (< served max-pipelined-requests)
+                            (> (bytevector-length (connection-state-buffer state)) 0))
+                       (loop (+ served 1))
+                       #f))))))))
+
+(define (connection-open? server socket)
+  (define lock (slot-ref server 'lock))
+  (define states (slot-ref server 'states))
+
+  (mutex-lock! lock)
+  (let ((alive (hashtable-ref states socket #f)))
+    (mutex-unlock! lock)
+    (and alive #t)))
+
+(define (close-connection! server socket)
+  (define lock (slot-ref server 'lock))
+  (define states (slot-ref server 'states))
+
+  (mutex-lock! lock)
+  (hashtable-delete! states socket)
+  (mutex-unlock! lock)
+  (server-detach-socket! server socket)
+  (socket-close socket)
+  #t)
+
+(define (remote-info socket)
+  (guard (e (else #f))
+    (socket-info socket)))
 )

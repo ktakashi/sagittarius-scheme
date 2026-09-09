@@ -7,21 +7,13 @@
 #!read-macro=sagittarius/regex
 (library (net http-server http1)
   (export http-server:http1-request?
-	  make-http-server:http1-request
-          http-server:http1-request-method
-          http-server:http1-request-target
-          http-server:http1-request-path
-          http-server:http1-request-query
-          http-server:http1-request-version
-          http-server:http1-request-headers
-          http-server:http1-request-body
-
-          http-server:http1-consume
-          http-server:http1-write-response!)
+	  *http-server:http1-driver*)
   (import (rnrs)
           (net socket)
           (net http-server types)
+	  (net http-server request)
           (net http-server response)
+	  (net http-server protocol)
 	  (rfc :5322)
 	  (sagittarius regex)
 	  (srfi :2 and-let*)
@@ -29,7 +21,10 @@
 	  (util bytevector))
 
 (define-record-type http-server:http1-request
-  (fields method target path query version headers body))
+  (parent http-server:request)
+  (protocol (lambda (n)
+	      (lambda (method target path query version headers body)
+		((n method target path query version headers body #f '()))))))
 
 (define +crlf+ #vu8(#x0d #x0a))
 (define +crlf-crlf+ #vu8(#x0d #x0a #x0d #x0a))
@@ -145,14 +140,14 @@
       (cond ((eq? kind 'need-more)
              (values 'need-more #f #f buffer))
             ((eq? kind 'error)
-             (values 'error body next #f buffer))
+             (values 'error body next buffer))
             ((> (bytevector-length body) max-body-bytes)
-             (values 'error 413 "Request body too large" #f buffer))
+             (values 'error 413 "Request body too large" buffer))
             (else
              (values 'ok
                      (make-http1-request* method target version headers body)
-                     (make-remainder buffer next)
-                     #f)))))
+		     #f
+                     (make-remainder buffer next))))))
 
   (define (read-content method target version headers buffer cl body-start)
     (define (->content-length raw)
@@ -160,40 +155,39 @@
 	(and (integer? n) (>= n 0) n)))
     (define blen (bytevector-length buffer))
     (define len (->content-length cl))
+
     (cond ((not len)
-	   (values 'error 400 "Malformed content-length" #f buffer))
+	   (values 'error 400 "Malformed content-length" buffer))
 	  ((> len max-body-bytes)
-	   (values 'error 413 "Request body too large" #f buffer))
+	   (values 'error 413 "Request body too large" buffer))
 	  ((> (+ body-start len) blen)
-	   (values 'need-more #f #f buffer))
+	   (values 'need-more #f buffer))
 	  (else
 	   (let ((body (bv-sub buffer body-start (+ body-start len))))
              (values 'ok
                      (make-http1-request*
                       method target version headers body)
-                     (make-remainder buffer (+ body-start len))
-                     #f)))))
+                     (make-remainder buffer (+ body-start len)))))))
 
   (let ((head-end (find-bytes buffer +crlf-crlf+ 0)))
     (cond ((not head-end)
            (if (> (bytevector-length buffer) max-header-bytes)
-               (values 'error 431 "Headers too large" #f buffer)
+               (values 'error 431 "Headers too large" buffer)
                (values 'need-more #f #f buffer)))
           ((> head-end max-header-bytes)
-           (values 'error 431 "Headers too large" #f buffer))
+           (values 'error 431 "Headers too large" buffer))
           (else
 	   (let ((bin (open-bytevector-input-port buffer #f 0 head-end)))
 	     (let-values (((method target version line-error)
 			   (parse-request-line (strict-read-line bin))))
-	       
-	       (cond (line-error (values 'error 400 line-error #f buffer))
+	       (cond (line-error (values 'error 400 line-error buffer))
 		     ((not (or (string=? version "HTTP/1.1")
                                (string=? version "HTTP/1.0")))
-                      (values 'error 505 "Unsupported HTTP version" #f buffer))
+                      (values 'error 505 "Unsupported HTTP version" buffer))
 		     (else
 		      (guard (e (else
-				 (values 'error 400 (condition-message e)
-					 #f buffer)))
+				 (values 'error 400
+					 (condition-message e) buffer)))
 			(let* ((headers (parse-header bin))
 			       (te (head-ref headers "transfer-encoding" #f))
                                (cl (head-ref headers "content-length" #f))
@@ -201,7 +195,6 @@
 			  (cond ((and te cl)
                                  (values 'error 400
                                          "Both transfer-encoding and content-length are present"
-                                         #f
                                          buffer))
                                 ((and te (chunked? headers))
 				 (read-chunked method target version headers
@@ -212,8 +205,8 @@
 				 (values 'ok
                                          (make-http1-request*
 					  method target version headers #vu8())
-                                         (make-remainder buffer body-start)
-                                         #f)))))))))))))
+					 #f
+                                         (make-remainder buffer body-start))))))))))))))
 				 
 (define (body->bytevector body)
   (cond ((bytevector? body) body)
@@ -240,15 +233,10 @@
     (socket-send socket (extract))))
 
 (define (request-close? req)
-  (or (http-server:headers-contains-token?
-       (http-server:http1-request-headers req)
-       "connection"
-       "close")
-      (and (string=? (http-server:http1-request-version req) "HTTP/1.0")
-           (not (http-server:headers-contains-token?
-                 (http-server:http1-request-headers req)
-                 "connection"
-                 "keep-alive")))))
+  (let ((hdrs (http-server:request-headers req)))
+    (or (http-server:headers-contains-token? hdrs "connection" "close")
+	(and (string=? (http-server:request-http-version req) "HTTP/1.0")
+             (not (http-server:headers-contains-token? hdrs "connection" "keep-alive"))))))
 
 (define (filter-response-headers headers)
   (let loop ((rest headers) (out '()))
@@ -273,7 +261,8 @@
         (let ((err (make-http-server:response 500)))
           (http-server:response-text! err "Unsupported response body type")
           (http-server:http1-write-response! socket req err))
-        (let* ((close? (or (request-close? req)
+        (let* ((close? (or (not req)
+			   (request-close? req)
                            (http-server:headers-contains-token?
                             (http-server:response-headers res)
                             "connection"
@@ -292,7 +281,13 @@
           (unless (or (eqv? code 204)
                       (eqv? code 304)
                       (and (<= 100 code) (< code 200))
-                      (eq? (http-server:http1-request-method req) 'HEAD))
+		      (and req (eq? (http-server:request-method req) 'HEAD)))
             (socket-send socket body))
           close?))))
+
+(define *http-server:http1-driver*
+  (make-http-server:protocol-driver "http/1.1"
+				    http-server:http1-consume
+				    http-server:http1-write-response!))
+
 )

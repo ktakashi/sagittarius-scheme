@@ -5,7 +5,7 @@
 
 #!nounbound
 (library (net http-server request)
-    (export http-server:request?
+    (export http-server:request? http-server:request
             make-http-server:request
             http-server:request-method
             http-server:request-target
@@ -16,6 +16,7 @@
             http-server:request-body-bytevector
             http-server:request-body-port
             http-server:request-remote
+	    http-server:request-remote-set! ;; internal
             http-server:request-attributes
 
             http-server:request-header-ref
@@ -33,7 +34,7 @@
           http-version
           headers
           body-bytevector
-          remote
+          (mutable remote)
           (mutable attributes)))
 
 (define (http-server:request-body-port req)
