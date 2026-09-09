@@ -26,8 +26,9 @@
   (fields (mutable drivers)
           (mutable default-driver)))
 
-(define (http-server:protocol-driver-consume! driver buffer . rest)
-  (apply (http-server:protocol-driver-consume driver) buffer rest))
+;; consume returns: status, req-or-code, extra, remainder, next-state (#f => fresh)
+(define (http-server:protocol-driver-consume! driver state buffer . rest)
+  (apply (http-server:protocol-driver-consume driver) state buffer rest))
 
 ;; req = #f, error response
 (define (http-server:protocol-driver-serve! driver socket req result)

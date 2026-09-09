@@ -102,8 +102,8 @@
           (net http-server router)
           (net http-server cache)
           (net http-server cache memory)
-          (net http-server protocol)
-          (net http-server http1)
+	  (net http-server protocol)
+	  (net http-server http1)
 	  (util bytevector))
 
 (define-class <http-server-config> (<server-config>)
@@ -120,7 +120,10 @@
    (read-size :init-keyword :read-size :init-value 8192
 	      :reader http-server-config-read-size)
    (cache :init-keyword :cache :init-form (make-http-server:memory-cache)
-	  :reader http-server-config-cache)))
+	  :reader http-server-config-cache)
+   (max-drain :init-keyword :max-drain :init-value 8)
+   (select-delay :init-keyword :select-delay :init-value 1) 
+   ))
 (define (make-http-server-config . opts)
   (apply make <http-server-config>
 	 :close-socket? #f
@@ -136,6 +139,7 @@
 (define-record-type connection-state
   (fields (mutable buffer)
           (mutable request-count)
+          (mutable parse-state)
           driver))
 
 (define (make-error-response code message)
@@ -160,7 +164,8 @@
       (http-server:register-protocol-driver! r 
 	"http/1.1" *http-server:http1-driver*)
       r))
-
+  (define max-drain (slot-ref config 'max-drain))
+  (define select-delay (slot-ref config 'select-delay))
   (define (socket-handler server socket)
     (let ((state (get-state server socket)))
       (let loop ((drain-count 0))
@@ -168,13 +173,12 @@
           (if (or (not chunk) (zero? (bytevector-length chunk)))
               (close-connection! server socket)
               (begin
-                (connection-state-buffer-set!
-                 state
+                (connection-state-buffer-set! state
                  (bytevector-append (connection-state-buffer state) chunk))
                 (unless (serve-state! server socket state)
                   (when (and (connection-open? server socket)
-                             (< drain-count 8)
-                             (pair? (socket-read-select 20 socket)))
+                             (< drain-count max-drain)
+                             (pair? (socket-read-select select-delay socket)))
                     (loop (+ drain-count 1))))))))))
 
   (make-simple-server port socket-handler
@@ -195,8 +199,8 @@
         (begin
           (mutex-unlock! lock)
           state)
-        (let* ((driver (http-server:select-protocol-driver registry socket))
-               (new-state (make-connection-state #vu8() 0 driver)))
+         (let* ((driver (http-server:select-protocol-driver registry socket))
+           (new-state (make-connection-state #vu8() 0 #f driver)))
           (hashtable-set! states socket new-state)
           (mutex-unlock! lock)
           new-state))))
@@ -212,15 +216,20 @@
   (define max-pipelined-requests
     (http-server-config-max-pipelined-requests config))
   (let loop ((served 0))
-    (let-values (((kind req b remainder)
+    (let-values (((kind req b remainder next-state)
                   (http-server:protocol-driver-consume! driver
+                   (connection-state-parse-state state)
 		   (connection-state-buffer state)
                    :max-header-bytes max-header-bytes
                    :max-body-bytes max-body-bytes)))
-      (cond ((eq? kind 'need-more)
+      (cond ((or (eq? kind 'start)
+                 (eq? kind 'line)
+                 (eq? kind 'header))
              (connection-state-buffer-set! state remainder)
+             (connection-state-parse-state-set! state next-state)
              #f)
             ((eq? kind 'error)
+             (connection-state-parse-state-set! state #f)
              (let* ((code req)
 		    (message b)
                     (res (make-error-response code message)))
@@ -229,6 +238,7 @@
                #t))
             (else
              (connection-state-buffer-set! state remainder)
+	     (connection-state-parse-state-set! state #f)
 	     (http-server:request-remote-set! req (remote-info socket))
              (let* ((res (make-http-server:response))
                     (result
