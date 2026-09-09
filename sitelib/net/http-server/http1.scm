@@ -63,42 +63,42 @@
       (and (integer? n) (>= n 0) n))))
 
 (define (consume-chunked buffer body-start)
+  (define (match m) (and (regex-looking-at m) m))
   (define blen (bytevector-length buffer))
   (define u8 bytevector-u8-ref)
   (let loop ((i body-start) (chunks '()))
-    (let ()
-      (or (and-let* ((m (regex-matcher #/([0-9a-fA-F]+)\r\n/ buffer i))
-		     ( (regex-looking-at m) )
-		     (size (string->number (utf8->string (m 1)) 16)))
-	    (if (< size 0)
-		(values 'error 400 "Malformed chunk size")
-		(let* ((chunk-start (regex-group-end m 0))
-		       (chunk-end (+ chunk-start size)))
-		  (cond ((> (+ chunk-end 2) blen)
-			 (values 'need-more #f #f))
-			((= size 0)
-			 (cond ((> (+ chunk-end 2) blen)
-				;; missing \r\n
-				(values 'need-more #f #f))
-			       ((and (= (u8 buffer chunk-end) #x0d)
-				     (= (u8 buffer (+ chunk-end 1)) #x0a))
-				(values 'ok
-                                        (bv-concat (reverse chunks))
-                                        (+ chunk-end 2)))
-			       ((find-bytes buffer +crlf-crlf+ chunk-end) =>
-				(lambda (end)
-				  (values 'ok
-                                          (bv-concat (reverse chunks))
-                                          (+ end 4))))
-			       (else (values 'need-more #f #f #f))))
-			((or (not (= (u8 buffer chunk-end) #x0d))
-                             (not (= (u8 buffer (+ chunk-end 1)) #x0a)))
-                         (values 'error 400 "Malformed chunk payload"))
-			(else
-                         (loop (+ chunk-end 2)
-                               (cons (bv-sub buffer chunk-start chunk-end)
-				     chunks)))))))
-	  (values 'need-more #f #f)))))
+    (cond ((match (regex-matcher #/(.+)\r\n/ buffer i)) =>
+	   (lambda (m)
+	     (let ((size (string->number (utf8->string (m 1)) 16)))
+	       (if (or (not size) (< size 0))
+		   (values 'error 400 "Malformed chunk size")
+		   (let* ((chunk-start (regex-group-end m 0))
+			  (chunk-end (+ chunk-start size)))
+		     (cond ((> (+ chunk-end 2) blen)
+			    (values 'need-more #f #f))
+			   ((= size 0)
+			    (cond ((> (+ chunk-end 2) blen)
+				   ;; missing \r\n
+				   (values 'need-more #f #f))
+				  ((and (= (u8 buffer chunk-end) #x0d)
+					(= (u8 buffer (+ chunk-end 1)) #x0a))
+				   (values 'ok
+					   (bv-concat (reverse chunks))
+					   (+ chunk-end 2)))
+				  ((find-bytes buffer +crlf-crlf+ chunk-end) =>
+				   (lambda (end)
+				     (values 'ok
+                                             (bv-concat (reverse chunks))
+                                             (+ end 4))))
+				  (else (values 'need-more #f #f #f))))
+			   ((or (not (= (u8 buffer chunk-end) #x0d))
+				(not (= (u8 buffer (+ chunk-end 1)) #x0a)))
+			    (values 'error 400 "Malformed chunk payload"))
+			   (else
+			    (loop (+ chunk-end 2)
+				  (cons (bv-sub buffer chunk-start chunk-end)
+					chunks)))))))))
+	  (else (values 'need-more #f #f)))))
 
 
 (define (make-remainder buffer next)
