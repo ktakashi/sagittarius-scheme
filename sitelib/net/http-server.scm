@@ -122,7 +122,9 @@
    (cache :init-keyword :cache :init-form (make-http-server:memory-cache)
 	  :reader http-server-config-cache)))
 (define (make-http-server-config . opts)
-  (apply make <http-server-config> opts))
+  (apply make <http-server-config>
+	 :close-socket? #f
+	 opts))
 (define (http-server-config? o) (is-a? o <http-server-config>))
 
 (define-class <http-server> (<simple-server>)

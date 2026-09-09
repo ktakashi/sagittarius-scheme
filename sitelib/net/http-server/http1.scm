@@ -161,12 +161,12 @@
 	  ((> len max-body-bytes)
 	   (values 'error 413 "Request body too large" buffer))
 	  ((> (+ body-start len) blen)
-	   (values 'need-more #f buffer))
+	   (values 'need-more #f #f buffer))
 	  (else
 	   (let ((body (bv-sub buffer body-start (+ body-start len))))
              (values 'ok
-                     (make-http1-request*
-                      method target version headers body)
+                     (make-http1-request* method target version headers body)
+		     #f
                      (make-remainder buffer (+ body-start len)))))))
 
   (let ((head-end (find-bytes buffer +crlf-crlf+ 0)))
