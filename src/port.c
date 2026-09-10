@@ -129,6 +129,10 @@ static void port_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
     break;
   default: break;
   }
+  if (SG_WRITE_MODE(ctx) != SG_WRITE_DISPLAY) {
+    Sg_Printf(port, UC(" %p"), p);
+  }
+  
   Sg_PutcUnsafe(port, '>');
   SG_PORT_UNLOCK_WRITE(port);
 }
@@ -207,7 +211,11 @@ static void buf_port_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
   SG_PORT_LOCK_WRITE(port);
   Sg_PutuzUnsafe(port, UC("#<buffered-port"));
 
-  Sg_Printf(port, UC(" %A"), p->src);
+  if (SG_WRITE_MODE(ctx) == SG_WRITE_DISPLAY) {
+    Sg_Printf(port, UC(" %A"), p->src);
+  } else {
+    Sg_Printf(port, UC(" %S"), p->src);
+  }
   
   switch (SG_PORT(p)->closed) {
   case SG_PORT_CLOSED:
@@ -218,6 +226,11 @@ static void buf_port_print(SgObject obj, SgPort *port, SgWriteContext *ctx)
     break;
   default: break;
   }
+  if (SG_WRITE_MODE(ctx) != SG_WRITE_DISPLAY) {
+    Sg_Printf(port, UC(" %p"), p);
+  }
+
+  
   Sg_PutcUnsafe(port, '>');
   SG_PORT_UNLOCK_WRITE(port);  
 }
@@ -327,7 +340,6 @@ static struct {
 
 #define PORT_HASH(port)  \
   (((((uintptr_t)(port)>>3) * 2654435761UL)>>16) % PORT_VECTOR_SIZE)
-
 
 static void register_buffered_port(SgBufferedPort *port)
 {
@@ -843,7 +855,8 @@ static void bi_port_finalize(SgObject obj, void *data)
 
 
 SgObject Sg_MakeBufferedPort(SgPort *src, SgBufferMode mode,
-			     uint8_t *buffer, size_t size)
+			     uint8_t *buffer, size_t size,
+			     int managedP)
 {
   if (SG_BIDIRECTIONAL_PORTP(src)) {
     SgObject r;
@@ -863,19 +876,24 @@ SgObject Sg_MakeBufferedPort(SgPort *src, SgBufferMode mode,
     return r;
   } else {
     SgBufferedPort *p = SG_NEW(SgBufferedPort);
-    return Sg_InitBufferedPort(p, mode, src, buffer, size);
+    return Sg_InitBufferedPort(p, mode, src, buffer, size, managedP);
   }
 }
 
 SgObject Sg_InitBufferedPort(SgBufferedPort *bp, 
 			     SgBufferMode mode, SgPort *src, 
-			     uint8_t *buffer, size_t size)
+			     uint8_t *buffer, size_t size,
+			     int managedP)
 {
   if (SG_BIDIRECTIONAL_PORTP(src)) {
     Sg_Error(UC("[Internal] Bidirectional port can't be used"));
   }
-  return init_buffered_port(bp, mode, src, buffer, size,
-			    SG_OUTPUT_PORTP(SG_PORT(src)));
+  int registerP = FALSE;
+  int inmemoryP = SG_BYTE_PORTP(src) || SG_STRING_PORTP(src);
+  if (managedP && !inmemoryP) {
+    registerP = SG_OUTPUT_PORTP(src);
+  }
+  return init_buffered_port(bp, mode, src, buffer, size, registerP);
 }
 
 
@@ -1161,7 +1179,7 @@ static SgObject make_file_port(SgFile *file, int bufferMode,
   switch (bufferMode) {
   case SG_BUFFER_MODE_LINE:
   case SG_BUFFER_MODE_BLOCK:
-    return Sg_MakeBufferedPort(SG_PORT(z), bufferMode, NULL, 0);
+    return Sg_MakeBufferedPort(SG_PORT(z), bufferMode, NULL, 0, TRUE);
   default: return SG_OBJ(z);
   }
 }
@@ -1194,9 +1212,9 @@ SgObject Sg_InitFileBinaryPort(SgFilePort *port,
   port->file = file;
   if (bufferedPort) {
     return Sg_InitBufferedPort(bufferedPort, mode, SG_PORT(port),
-			       buffer, bufferSize);
+			       buffer, bufferSize, TRUE);
   } else if (mode != SG_BUFFER_MODE_NONE) {
-    return Sg_MakeBufferedPort(SG_PORT(port), mode, buffer, bufferSize);
+    return Sg_MakeBufferedPort(SG_PORT(port), mode, buffer, bufferSize, TRUE);
   }
   return port;
 }
