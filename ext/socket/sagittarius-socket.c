@@ -1434,6 +1434,7 @@ static int socket_ready_int(SgObject port, SgObject socket, struct timeval *tm)
 {
   int fd = SG_SOCKET(socket)->socket;
 #ifdef _WIN32
+  /* For Windows, the nfds is ignored, so no limit for one socket check */
   fd_set fds;
   
   FD_ZERO(&fds);
@@ -1452,13 +1453,17 @@ static int socket_ready_int(SgObject port, SgObject socket, struct timeval *tm)
 	   
   int state = poll(fds, 1, timeout);
 #endif
+
   if (state < 0) {
     if (last_error == EINTR) return FALSE;
     raise_socket_error(SG_INTERN("port-ready?"), 
 		       Sg_GetLastErrorMessageWithErrorCode(last_error),
-		       Sg_MakeConditionSocketPort(socket, port), SG_MAKE_INT(fd));
+		       Sg_MakeConditionSocketPort(socket, port),
+		       /* keep original FD for debug info */
+		       SG_MAKE_INT(fd));
     return FALSE;
   }
+
 #ifdef _WIN32
   return FD_ISSET(SG_SOCKET(socket)->socket, &fds);
 #else
