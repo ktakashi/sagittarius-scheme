@@ -50,6 +50,7 @@
 # include <sys/select.h>
 # include <netinet/in.h>
 # include <netinet/tcp.h>
+# include <poll.h>
 #endif
 #include <sagittarius.h>
 

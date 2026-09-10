@@ -1432,25 +1432,43 @@ static void socket_flush(SgObject self)
 
 static int socket_ready_int(SgObject port, SgObject socket, struct timeval *tm)
 {
-  fd_set fds;
-  int state;
-
-  FD_ZERO(&fds);
-  FD_SET(SG_SOCKET(socket)->socket, &fds);
-
+  int fd = SG_SOCKET(socket)->socket;
 #ifdef _WIN32
-  state = select(FD_SETSIZE, &fds, NULL, NULL, tm);
+  /* For Windows, the nfds is ignored, so no limit for one socket check */
+  fd_set fds;
+  
+  FD_ZERO(&fds);
+  FD_SET(fd, &fds);
+
+  int state = select(FD_SETSIZE, &fds, NULL, NULL, tm);
 #else
-  state = select(SG_SOCKET(socket)->socket + 1, &fds, NULL, NULL, tm);
+  /* use poll */
+  struct pollfd fds[1];
+  fds[0].fd = fd;
+  fds[0].events = POLLIN;
+  int timeout = -1;
+  if (tm) {
+    timeout = (int)(tm->tv_sec * (uint64_t)1000) + (tm->tv_usec / 1000);
+  }
+	   
+  int state = poll(fds, 1, timeout);
 #endif
+
   if (state < 0) {
     if (last_error == EINTR) return FALSE;
     raise_socket_error(SG_INTERN("port-ready?"), 
 		       Sg_GetLastErrorMessageWithErrorCode(last_error),
-		       Sg_MakeConditionSocketPort(socket, port), SG_NIL);
+		       Sg_MakeConditionSocketPort(socket, port),
+		       /* keep original FD for debug info */
+		       SG_MAKE_INT(fd));
     return FALSE;
   }
+
+#ifdef _WIN32
   return FD_ISSET(SG_SOCKET(socket)->socket, &fds);
+#else
+  return (fds[0].revents & POLLIN) == POLLIN;
+#endif
 }
 
 static int socket_open(SgObject self)
@@ -1582,6 +1600,7 @@ static int64_t socket_put_u8_array(SgObject self, uint8_t *v, int64_t size)
 static int socket_ready(SgObject self)
 {
   SgObject socket = SG_PORT_SOCKET(self);
+  if (!Sg_SocketOpenP(socket)) return FALSE;
   struct timeval tm = {0, 0};
   return socket_ready_int(self, socket, &tm);
 }
