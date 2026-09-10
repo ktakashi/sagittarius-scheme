@@ -1022,7 +1022,7 @@
 
   ;; let user handle buffer as well
   (define-c-proc buffered-port 
-    (port::<port> buffer-mode::<symbol> :key buffer::<bytevector>)
+    (port::<port> buffer-mode::<symbol> :key buffer::<bytevector> (managed?::<boolean> #t))
     (unless (SG_BINARY_PORTP port)
       (wrong-type-of-argument-violation 'buffered-port "binary port" port))
     (when (Sg_PortClosedP port)
@@ -1050,7 +1050,7 @@
 	  (assertion-violation 'buffered-port
 			       "given bytevector size is zero")))
       (Sg_PseudoClosePort port)
-      (result (Sg_MakeBufferedPort port mode buf size))))
+      (result (Sg_MakeBufferedPort port mode buf size managed?))))
 
   ;; R6RS variant interface
   ;; NOTE: we don't document this until I have absolutely confident.

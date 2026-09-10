@@ -102,7 +102,7 @@
 		   (and socket (buffered-port (socket-input-port socket)
 					      buffer-mode))
 		   (and socket (buffered-port (socket-output-port socket)
-					      buffer-mode))
+					      buffer-mode :managed? #f))
 		   data)))))
 
 (define-record-type http-logging-connection

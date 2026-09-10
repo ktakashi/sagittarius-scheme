@@ -595,10 +595,12 @@ SG_EXTERN SgObject Sg_MakeCustomPort(SgCustomPortSpec *spec);
 
 /* buffered port */
 SG_EXTERN SgObject Sg_MakeBufferedPort(SgPort *src, SgBufferMode mode,
-				       uint8_t *buffer, size_t size);
+				       uint8_t *buffer, size_t size,
+				       int managedP);
 SG_EXTERN SgObject Sg_InitBufferedPort(SgBufferedPort *port, 
 				       SgBufferMode mode, SgPort *src, 
-				       uint8_t *buffer, size_t size);
+				       uint8_t *buffer, size_t size,
+				       int managedP);
 
 SG_EXTERN uint8_t* Sg_GetByteArrayFromBinaryPort(SgBytePort *port);
 SG_EXTERN SgObject Sg_GetByteVectorFromBinaryPort(SgBytePort *port);

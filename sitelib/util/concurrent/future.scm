@@ -177,8 +177,9 @@
 	   (f (make-future #f box)))
       (values f
 	      (lambda (v) 
-		(future-state-set! f 'done)
-		(shared-box-put! box v) f)
+		(shared-box-put! box v)
+		(future-state-set! f 'finished)
+		f)
 	      (lambda (e)
 		(future-canceller-set! f #t)
 		(shared-box-put! box e)
