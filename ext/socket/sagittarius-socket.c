@@ -1600,7 +1600,7 @@ static int64_t socket_put_u8_array(SgObject self, uint8_t *v, int64_t size)
 static int socket_ready(SgObject self)
 {
   SgObject socket = SG_PORT_SOCKET(self);
-  if (!Sg_SocketOpenP(socket)) return FALSE;
+  if (!Sg_SocketOpenP(SG_SOCKET(socket))) return FALSE;
   struct timeval tm = {0, 0};
   return socket_ready_int(self, socket, &tm);
 }
