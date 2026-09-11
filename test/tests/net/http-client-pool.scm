@@ -1,0 +1,138 @@
+#!read-macro=sagittarius/bv-string
+(import (rnrs)
+	(net http-client)
+  (net server)
+	(net http-server)
+	(util concurrent)
+	(srfi :1)
+	(srfi :18)
+	(srfi :64))
+
+(test-begin "net/http-client pooling")
+
+(define (future-result f)
+  (guard (e (else e))
+    (future-get f)))
+
+(define (run-concurrent client request n)
+  (map future-result
+       (map (lambda (i) (http:client-send-async client request))
+	    (iota n))))
+
+(define (all-responses? results)
+  (for-all http:response? results))
+
+(define (all-status= results status)
+  (for-all (lambda (r)
+	     (and (http:response? r)
+      (equal? (http:response-status r) status)))
+	   results))
+
+(define (timeout-error-count results)
+  (count (lambda (r)
+	   (and (condition? r) (connection-request-timeout-error? r)))
+	 results))
+
+(define (start-echo-server port)
+  (define (app req res)
+    (http-server:response-status-set! res 200)
+    (http-server:response-bytes! res
+	(http-server:request-body-bytevector req)
+	(http-server:request-header-ref req "content-type"))
+    res)
+  (define server (make-http-server port app))
+  (server-start! server :background #t)
+  (thread-sleep! 0.2)
+  server)
+
+(define (reserve-port)
+  (define server (start-echo-server "0"))
+  (define port (server-port server))
+  (server-stop! server)
+  port)
+
+(define (make-client)
+  (define pooling-config
+    (http-pooling-connection-config-builder
+     (connection-request-timeout 100)
+     (connection-timeout 100)
+     (time-to-live 3)
+     (max-connection-per-route 4)
+     (selector-error-handler (lambda args #f))))
+  (http:client-builder
+   (version (http:version http/1.1))
+   (connection-manager (make-http-pooling-connection-manager pooling-config))))
+
+(let ()
+  (define failed-port (reserve-port))
+  (define route (format "http://localhost:~a" failed-port))
+  (define client (make-client))
+  (define bad-request
+    (http:request-builder
+     (method 'GET)
+     (timeout 300)
+     (uri route)))
+  (define failed (run-concurrent client bad-request 8))
+  (test-assert "connect failures are returned" (not (all-responses? failed)))
+  (test-equal "no cascading pool timeout on connect errors"
+	      0
+	      (timeout-error-count failed))
+  (let ((server (start-echo-server failed-port)))
+    (define request
+      (http:request-builder
+       (method 'POST)
+       (timeout 1000)
+       (uri route)
+       (content-type "text/plain")
+       (body (string->utf8 "hello"))))
+    (let ((r (http:client-send client request)))
+      (test-equal "recovered route status" "200" (http:response-status r))
+      (test-equal "recovered route body" #*"hello" (http:response-body r)))
+    (server-stop! server))
+  (http:client-shutdown! client))
+
+(let ()
+  (define server (start-echo-server "0"))
+  (define route (format "http://localhost:~a" (server-port server)))
+  (define client (make-client))
+  (define request
+    (http:request-builder
+     (method 'POST)
+     (timeout 2000)
+     (uri route)
+     (content-type "text/plain")
+     (body (string->utf8 "hello"))))
+  (let ((results (run-concurrent client request 50)))
+    (test-assert "parallel requests all returned responses" (all-responses? results))
+    (test-assert "parallel requests all 200" (all-status= results "200")))
+  (thread-sleep! 4)
+  (let ((results (run-concurrent client request 20)))
+    (test-assert "post-ttl requests all returned responses" (all-responses? results))
+    (test-assert "post-ttl requests all 200" (all-status= results "200")))
+  (server-stop! server)
+  (http:client-shutdown! client))
+
+(let ()
+  (define close-count 0)
+  (define (close-app req res)
+    (set! close-count (+ close-count 1))
+    (http-server:response-status-set! res 200)
+    (http-server:response-header-set! res "Connection" "close")
+    (http-server:response-text! res "closed")
+    res)
+  (define server (make-http-server "0" close-app))
+  (server-start! server :background #t)
+  (thread-sleep! 0.2)
+  (let* ((route (format "http://localhost:~a" (server-port server)))
+	 (client (make-client))
+	 (request (http:request-builder (method 'GET) (timeout 1000) (uri route))))
+    (let ((r1 (http:client-send client request))
+	  (r2 (http:client-send client request)))
+      (test-equal "connection close first request" "200" (http:response-status r1))
+      (test-equal "connection close second request" "200" (http:response-status r2))
+      (test-equal "handler called for both requests" 2 close-count))
+    (http:client-shutdown! client))
+  (server-stop! server)
+  )
+
+(test-end)

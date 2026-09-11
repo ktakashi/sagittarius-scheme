@@ -45,6 +45,7 @@
 	    
 	    http-connection-open?
 	    http-connection-open! http-connection-close!
+	    http-connection-reusable?
 	    http-connection-data-ready?
 	    
 	    http-connection-send-header!
@@ -194,6 +195,12 @@
 (define (http-connection-data-ready? connection)
   (define in (http-connection-input connection))
   (and in (port-ready? in)))
+
+(define (http-connection-reusable? connection)
+  (guard (e (else #f))
+    (and (http-connection-open? connection)
+	 (let ((in (http-connection-input connection)))
+	   (and in (not (port-ready? in)))))))
 
 (define (http-connection-send-header! conn request)
   ((http-connection-header-sender conn) conn request))
