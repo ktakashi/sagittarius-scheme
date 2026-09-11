@@ -36,7 +36,7 @@
 	    server? server-port server-shutdown-port
 	    server-config? server-config server-context
 	    server-start! on-server-start!
-	    server-stopping?
+	    server-running? server-stopping?
 	    server-stop!  on-server-stop! 
 	    
 	    server-stopped? wait-server-stop!
@@ -131,6 +131,7 @@
 			  (~ server 'fork-join-pool)
 			  (~ server 'socket-selector)))
   (define (server? o) (is-a? o <simple-server>))
+  (define (server-running? server) (and (~ server 'server-sockets) #t)) 
   (define (server-stopped? server)
     ;; server is stopped before starting
     (or (not (~ server 'server-sockets)) 
@@ -281,9 +282,9 @@
 	(initialise-server! server))
     ;; pass all keyword arguments
     (apply on-server-start! server opts)
-    (guard (e ((terminated-thread-exception? e) #t)
-	      (else (raise e)))
-      (unless background
+    (unless background
+      (guard (e ((terminated-thread-exception? e) #t)
+		(else (raise e)))
 	;; for backward compatibility
 	(thread-join! (current-thread)))))
 

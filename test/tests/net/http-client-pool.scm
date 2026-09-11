@@ -1,7 +1,7 @@
 #!read-macro=sagittarius/bv-string
 (import (rnrs)
 	(net http-client)
-  (net server)
+	(net server)
 	(net http-server)
 	(util concurrent)
 	(srfi :1)
@@ -36,13 +36,21 @@
 (define (start-echo-server port)
   (define (app req res)
     (http-server:response-status-set! res 200)
-    (http-server:response-bytes! res
+    (case (http-server:request-method req)
+      ((POST)
+       (http-server:response-bytes! res
 	(http-server:request-body-bytevector req)
-	(http-server:request-header-ref req "content-type"))
+	(http-server:request-header-ref req "content-type")))
+      (else
+       (http-server:response-text! res "hello")))
+    (display res) (newline)
     res)
   (define server (make-http-server port app))
   (server-start! server :background #t)
   (thread-sleep! 0.2)
+  (do ()
+      ((server-running? server))
+    (thread-sleep! 0.2))
   server)
 
 (define (reserve-port)
@@ -58,11 +66,12 @@
      (connection-timeout 100)
      (time-to-live 3)
      (max-connection-per-route 4)
-     (selector-error-handler (lambda args #f))))
+     (selector-error-handler (lambda args (print args)))))
   (http:client-builder
    (version (http:version http/1.1))
    (connection-manager (make-http-pooling-connection-manager pooling-config))))
 
+(print "connection failure")
 (let ()
   (define failed-port (reserve-port))
   (define route (format "http://localhost:~a" failed-port))
@@ -72,11 +81,13 @@
      (method 'GET)
      (timeout 300)
      (uri route)))
-  (define failed (run-concurrent client bad-request 8))
+  (define n (exact (ceiling (/ (cpu-count) 2))))
+  (define failed (run-concurrent client bad-request n))
   (test-assert "connect failures are returned" (not (all-responses? failed)))
   (test-equal "no cascading pool timeout on connect errors"
 	      0
 	      (timeout-error-count failed))
+  (print failed-port)
   (let ((server (start-echo-server failed-port)))
     (define request
       (http:request-builder
@@ -91,6 +102,7 @@
     (server-stop! server))
   (http:client-shutdown! client))
 
+(print "parallel requests")
 (let ()
   (define server (start-echo-server "0"))
   (define route (format "http://localhost:~a" (server-port server)))
@@ -112,6 +124,7 @@
   (server-stop! server)
   (http:client-shutdown! client))
 
+(print "connection close")
 (let ()
   (define close-count 0)
   (define (close-app req res)
