@@ -303,7 +303,7 @@
         ((string? body) (string->utf8 body))
         (else #f)))
 
-(define utf8-transcoder (make-transcoder (utf-8-codec)))
+(define utf8-transcoder (make-transcoder (utf-8-codec) (eol-style lf)))
 (define (write-head! socket code reason headers)
   (let-values (((out extract) (open-bytevector-output-port utf8-transcoder)))
     (display "HTTP/1.1 " out)

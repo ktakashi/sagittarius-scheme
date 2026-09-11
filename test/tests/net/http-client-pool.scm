@@ -43,7 +43,6 @@
 	(http-server:request-header-ref req "content-type")))
       (else
        (http-server:response-text! res "hello")))
-    (display res) (newline)
     res)
   (define server (make-http-server port app))
   (server-start! server :background #t)
@@ -87,7 +86,6 @@
   (test-equal "no cascading pool timeout on connect errors"
 	      0
 	      (timeout-error-count failed))
-  (print failed-port)
   (let ((server (start-echo-server failed-port)))
     (define request
       (http:request-builder
