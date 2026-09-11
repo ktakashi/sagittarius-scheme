@@ -197,8 +197,8 @@
   (and in (port-ready? in)))
 
 (define (http-connection-reusable? connection)
-	(guard (e (else #f))
-		(and (http-connection-open? connection)
+  (guard (e (else #f))
+    (and (http-connection-open? connection)
 	 (let ((in (http-connection-input connection)))
 	   (and in (not (port-ready? in)))))))
 
