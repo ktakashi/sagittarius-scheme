@@ -36,12 +36,12 @@
 	    socket->http1-connection)
     (import (rnrs)
 	    (net http-client connection)
+	    (net http-client conditions)
+	    (net http-client framing)
 	    (net http-client request)
 	    (net uri)
 	    (sagittarius regex)
 	    (rfc :5322)
-	    (srfi :13 strings)
-	    (srfi :18 multithreading)
 	    (prefix (binary io) binary:)
 	    (util bytevector))
 
@@ -51,6 +51,14 @@
   (protocol (lambda (n)
 	      (lambda ()
 		((n) (make-bytevector 4096) #f)))))
+
+(define-record-type http1-response-state
+  (fields version
+	  status
+	  headers
+	  framing
+	  framing-arg
+	  chunk-reader))
 
 (define (make-http1-connection socket socket-option node service . opts)
   (apply make-http-connection node service socket-option socket
@@ -77,16 +85,16 @@
 
 (define (http1-receive-header connection response-context)
   (define header-handler (http:response-context-header-handler response-context))
+  (define request (http:response-context-request response-context))
   (define context (http-connection-context-data connection))
   (define in (http-connection-input connection))
-  (define (check-data headers)
-    (cond ((rfc5322-header-ref headers "content-length" #f) =>
-	   (lambda (n) (not (string=? "0" n))))
-	  ((rfc5322-header-ref headers "transfer-encoding" #f) =>
-	   (lambda (n) (string=? "chunked" n)))
-	  (else 'unknown)))
+  (define (framing->has-data? framing)
+    (case framing
+      ((none) #f)
+      ((until-close) 'unknown)
+      (else #t)))
   (let*-values (((status-line) (read-one-line in))
-		((code reason) (parse-status-line status-line)))
+		((version code reason) (parse-status-line status-line)))
     (let ((headers (rfc5322-read-headers in)))
       (when (http-logging-connection? connection)
 	(http-connection-write-log connection "[Response] ~a"
@@ -96,56 +104,54 @@
 				(http-connection-write-log connection
 				  "[Response header] ~a: ~a"
 				  (car h) v)) (cdr h))) headers))
-      (http1-connection-context-state-set! context (cons code headers))
-      ;; If the server sends header and body in one go, then select
-      ;; may not return for some reason (I was expecting if the socket
-      ;; buffer contains data to read, it'd return, but that's not the
-      ;; case at least on macOS). To avoid infinite wait, we return
-      ;; 'unknown here so that header and body will be read at the same
-      ;; time.
-      (let ((has-data? (check-data headers)))
-	(header-handler response-context code headers has-data?)
-	has-data?))))
+      (let-values (((framing framing-arg)
+		    (http:response-framing code
+					   (http:request-method request)
+					   headers
+					   version)))
+	(http1-connection-context-state-set! context
+	 (make-http1-response-state version
+				    code
+				    headers
+				    framing
+				    framing-arg
+				    (and (eq? framing 'chunked)
+					 (http:make-chunk-reader))))
+	(let ((has-data? (framing->has-data? framing)))
+	  (header-handler response-context code headers has-data?)
+	  has-data?)))))
 
 (define (http1-receive-data connection response-context)
-  (define request (http:response-context-request response-context))
   (define data-handler (http:response-context-data-handler response-context))
   (define context (http-connection-context-data connection))
   (define state (http1-connection-context-state context))
-  (define status (car state))
-  (define headers (cdr state))
+	(define version (http1-response-state-version state))
+	(define headers (http1-response-state-headers state))
+	(define framing (http1-response-state-framing state))
+	(define framing-arg (http1-response-state-framing-arg state))
+	(define chunk-reader (http1-response-state-chunk-reader state))
   (define in (http-connection-input connection))
-  (define ((wrap handler) data end?) (data-handler response-context data end?))
+	(define (reusable?)
+		(http:connection-reusable-after? headers version))
+	(define (finish framing)
+		(if (or (eq? framing 'until-close) (not (reusable?)))
+	(http:response-body-state closed)
+	(http:response-body-state done)))
+	(define (emit data end?)
+		(data-handler response-context data end?))
 
-  (cond ((rfc5322-header-ref headers "content-length") =>
-	 (lambda (len)
-	   (data-handler response-context
-			 (ensure-read in (string->number len)) #t)
-	   (check-connection headers)))
-	((rfc5322-header-ref headers "transfer-encoding") =>
-	 (lambda (v)
-	   (cond ((string-contains v "chunked")
-		  (read-chunked connection (wrap data-handler) headers in))
-		 (else
-		  (data-handler response-context (get-bytevector-all in) #t)
-		  (http:response-body-state closed)))))
-	;; no body, so it's okay
-	((or (eq? 'HEAD (http:request-method request))
-	     ;; 204 (no content) 304 (not modified)
-	     (and status (memq (string->number status) '(204 304)))))
-	;; very bad behaving server...
-	(else (data-handler response-context (get-bytevector-all in) #t)
-	      (http:response-body-state closed))))
-
-(define (check-connection headers)
-  ;; TODO we need to tell connection manager how long we can
-  ;; let it alive...
-  (cond ((rfc5322-header-ref headers "connection") =>
-	 (lambda (v)
-	   (if (string-contains v "keep-alive")
-	       (http:response-body-state done)
-	       (http:response-body-state closed))))
-	(else (http:response-body-state closed))))
+	(case framing
+		((none) (finish framing))
+		((length)
+		 (emit (ensure-read in framing-arg) #t)
+		 (finish framing))
+		((chunked)
+		 (if (eq? 'done (chunk-reader in emit))
+	 (finish framing)
+	 (http:response-body-state continue)))
+		(else
+		 (emit (get-bytevector-all in) #t)
+		 (http:response-body-state closed))))
 
 (define (read-one-line in)
   (let ((v (binary:get-line in)))
@@ -155,37 +161,31 @@
 	(bytevector-trim-right v '(#x0d)))))
 (define (parse-status-line line)
   (cond ((eof-object? line)
-	 ;; TODO proper condition
-	 (error 'parse-status-line "http reply contains no data"))
-	((#/[\w\/.]+\s+(\d\d\d)\s+(.*)/ line)
-	 => (lambda (m) (values (utf8->string (m 1)) (utf8->string (m 2)))))
-	(else (error 'parse-status-line "bad reply from server" line))))
+	 (raise-http-connection-error 'parse-status-line
+				      "HTTP reply contains no data"))
+	((#/^HTTP\/(\d\.\d)\s+(\d\d\d)\s*(.*)$/ line)
+	 => (lambda (m)
+	      (values (utf8->string (m 1))
+		      (utf8->string (m 2))
+		      (utf8->string (m 3)))))
+	(else
+	 (raise-http-protocol-error 'parse-status-line
+				    "Bad reply from server"
+				    line))))
 
 (define (ensure-read in size)
   (define buf (make-bytevector size))
   (let loop ((s 0) (size size))
     (let ((r (get-bytevector-n! in buf s size)))
-      (if (= r size)
-	  buf
-	  (loop (+ s r) (- size r))))))
-
-(define (read-chunked connection data-handler headers in)
-  (let ((line (read-one-line in)))
-    (when (eof-object? line)
-      ;; TODO proper condition
-      (error 'read-chunked "Chunked body ended prematurely"))
-    (cond ((#/^([0-9a-fA-F]+)/ line) =>
-	   (lambda (m)
-	     (let ((size (string->number (utf8->string (m 1)) 16)))
-	       (if (zero? size)
-		   (data-handler #vu8() #t)
-		   (data-handler (ensure-read in size) #f))
-	       (ensure-read in 2) ;; drop \r\n
-	       (cond ((zero? size) (check-connection headers))
-		     ((http-connection-data-ready? connection)
-		      (read-chunked connection data-handler headers in))
-		     (else (http:response-body-state continue))))))
-	  (else (error 'read-chunked "bad line in chunked data" line)))))
+      ;; get-bytevector-n! returns eof when there's no data to be read
+      ;; i.e. size != 0 and r = 0.
+      ;; NOTE: If the size = 0, then r = 0 not eof.
+      (cond ((eof-object? r)
+	     (raise-http-connection-error 'ensure-read
+					  "Unexpected EOF from the server"
+					  size))
+	    ((= r size) buf)
+	    (else (loop (+ s r) (- size r)))))))
 
 (define (send-header! connection request)
   (define (send-first-line out request)

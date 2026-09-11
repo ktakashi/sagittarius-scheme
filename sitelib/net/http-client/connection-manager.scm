@@ -405,6 +405,14 @@
     (time-to-live 2 (lambda (v) (or v 2)))
     (delegate-provider make-http-ephemeral-connection-manager))))
 
+(define-syntax with-pool-lock
+  (syntax-rules ()
+    ((_ lock exp ...)
+     (dynamic-wind
+	 (lambda () (mutex-lock! lock))
+	 (lambda () exp ...)
+	 (lambda () (mutex-unlock! lock))))))
+
 (define (pooling-shutdown manager)
   (define delegate (http-pooling-connection-manager-delegate manager))
   (define available (http-pooling-connection-manager-available manager))
@@ -459,16 +467,11 @@
     (http-pooling-connection-manager-time-to-live manager))
   
   (define (ensure-queue table route max)
-    (cond ((hashtable-ref table route #f))
-	  (else
-	   (mutex-lock! lock)
-	   (let ((q (hashtable-ref table route #f)))
-	     (cond (q (mutex-unlock! lock) q)
-		   (else
-		    (let ((q (make-shared-queue max)))
-		      (hashtable-set! table route q)
-		      (mutex-unlock! lock)
-		      q)))))))
+    (with-pool-lock lock
+      (or (hashtable-ref table route #f)
+	  (let ((q (make-shared-queue max)))
+	    (hashtable-set! table route q)
+	    q))))
   (define (get-max-connection-per-route route)
     (cond ((assp (lambda (r) (equal? r route)) route-max-connections) => cadr)
 	  (else max-per-route)))
@@ -477,20 +480,29 @@
     (define (lease) (internal-lease-connection delegate request option))
     (define mpe make-pooling-entry)
 
-    (mutex-lock! lock)
-    (let* ((total (+ (shared-queue-size leased) (shared-queue-size avail)))
-	   (box (and (< total max-conn) (vector #f))))
-      (when box (shared-queue-put! leased box))
-      (mutex-unlock! lock)
+    (let ((box (with-pool-lock lock
+		 (let ((total (+ (shared-queue-size leased)
+				 (shared-queue-size avail))))
+		   (and (< total max-conn)
+			(let ((b (vector #f)))
+			  (shared-queue-put! leased b)
+			  b))))))
       (and box
-	   (let ((conn (lease)))
-	     (vector-set! box 0 (mpe ttl conn))
-	     conn))))
+	   (guard (e (else (shared-queue-remove! leased box eq?)
+			   (notifier-send-notification! notifier)
+			   (raise e)))
+	     (let ((conn (lease)))
+	       (vector-set! box 0 (mpe ttl conn))
+	       conn)))))
 
   (define (get-connection leased avail max-conn timeout)
     (define (handle-leased-connection entry leased avail max-conn timeout)
       ;; okay check if it's expired or not
       (cond ((pooling-entry-expired? entry)
+	     (http-connection-manager-release-connection delegate
+	       (pooling-entry-connection entry) #f)
+	     (get-connection leased avail max-conn timeout))
+	    ((not (http-connection-reusable? (pooling-entry-connection entry)))
 	     (http-connection-manager-release-connection delegate
 	       (pooling-entry-connection entry) #f)
 	     (get-connection leased avail max-conn timeout))
@@ -530,6 +542,7 @@
 (define (pooling-release-connection manager connection reuse?)
   (define available (http-pooling-connection-manager-available manager))
   (define leasing (http-pooling-connection-manager-leasing manager))
+	(define lock (http-pooling-connection-manager-lock manager))
   (define notifier (http-pooling-connection-manager-notifier manager))
   (define delegate (http-pooling-connection-manager-delegate manager))
 
@@ -541,30 +554,30 @@
 
   (define (release conn)
     (http-connection-manager-release-connection delegate conn #f))
-
-  (let* ((route (->route connection))
-	 (leased (hashtable-ref leasing route #f)))
-    ;; must not be #f (if so it's a bug...)
-    (cond ((and leased (remove-entry leased connection)) =>
-	   (lambda (entry)
-	     (cond ((and reuse? (hashtable-ref available route #f)) =>
-		    (lambda (avail)
-		      ;; due to the loose lock, we can't stricly manage
-		      ;; the number of leasing and available connections
-		      ;; to max connection. this means, the sum of these
-		      ;; 2 queues might overflow the max connection, so
-		      ;; we need to check it to avoid dead lock here.
-		      (if (pooling-entry-expired? entry)
-			  (release (pooling-entry-connection entry))
-			  (shared-queue-put! avail entry))))
-		   (else (release (pooling-entry-connection entry))))))
-	  (else (release connection)))
+  (define (check-release)
+    (with-pool-lock lock
+      (let* ((route (->route connection))
+	     (leased (hashtable-ref leasing route #f)))
+	;; must not be #f (if so it's a bug...)
+	(cond ((and leased (remove-entry leased connection)) =>
+	       (lambda (entry)
+		 (cond ((and reuse?
+			     (not (pooling-entry-expired? entry))
+			     (http-connection-reusable?
+			      (pooling-entry-connection entry))
+			     (hashtable-ref available route #f))
+			=> (lambda (avail) (shared-queue-put! avail entry) #f))
+		       (else (pooling-entry-connection entry)))))
+	      (else connection)))))
+  (let ((to-release (check-release)))
+    (when to-release (release to-release))
     (notifier-send-notification! notifier)))
 
 (define (pooling-detach-connection manager connection)
   (define leasing (http-pooling-connection-manager-leasing manager))
+  (define lock (http-pooling-connection-manager-lock manager))
   (define delegate (http-pooling-connection-manager-delegate manager))
-
+  
   (define (->route connection)
     (define host (http-connection-node connection))
     (define service (http-connection-service connection))
@@ -572,16 +585,20 @@
     (string-append host ":" port))
   (define (detach conn)
     (http-connection-manager-detach-connection! delegate conn))
-  (let* ((route (->route connection))
-	 (leased (hashtable-ref leasing route #f)))
-    (cond ((and leased (remove-entry leased connection)) =>
-	   (lambda (entry) (detach (pooling-entry-connection entry))))
-	  (else (detach connection)))))
+  (define (check-detaching-connection)
+    (with-pool-lock lock
+      (let* ((route (->route connection))
+	     (leased (hashtable-ref leasing route #f)))
+	(cond ((and leased (remove-entry leased connection)) =>
+	       (lambda (entry) (pooling-entry-connection entry)))
+	      (else connection)))))
+  (detach (check-detaching-connection)))
 
 (define (remove-entry sq conn)
   (define pec pooling-entry-connection)
   (define (v0 e) (vector-ref e 0))
   (define ((pred conn) e)
+    ;; #f means a reservation box still waiting for connection establishment.
     (cond ((v0 e) => (lambda (e) (eq? conn (pec e))))
 	  (else #f)))
   (let-values (((removed? v) (shared-queue-remp! sq (pred conn))))

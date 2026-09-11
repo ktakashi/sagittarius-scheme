@@ -84,6 +84,10 @@
 	    ;; connection manager related conditions
 	    dns-timeout-error? dns-timeout-node dns-timeout-service
 	    connection-request-timeout-error?
+
+	    http-client-error?
+	    http-connection-error?
+	    http-protocol-error?
 	    
 	    ;; executor parameter for DNS lookup timeout
 	    *http-connection-manager:default-executor* 
@@ -118,6 +122,7 @@
 	    http:client-send-async)
     (import (rnrs)
 	    (net http-client connection)
+	    (net http-client conditions)
 	    (net http-client connection-manager)
 	    (net http-client encoding)
 	    (net http-client http1)
@@ -207,28 +212,54 @@
     f))
 
 ;;; helpers
-(define (request/response client request data-handler success failure)
-  (define ((release/fail conn) e)
-    (release-http-connection client conn #f)
-    (failure e))
-  (define (submit-on-read conn handler fail)
-    (http-connection-manager-register-on-readable
-     (http:client-connection-manager client) conn
-     handler fail
-     (http:request-timeout request)))
-  (lease-http-connection client request
-   (lambda (conn)
-     (executor-submit! (http:client-executor client)
-      (lambda ()
-	(let ((fail (release/fail conn)))
-	  (guard (e (else (fail e) #f))
-	    (let* ((resp-handler (send-request client conn request))
-		   (handler (resp-handler client data-handler success fail)))
-	      ;; if it's already ready, just start reading it
-	      (if (http-connection-data-ready? conn)
-		  (handler conn (lambda () (submit-on-read conn handler fail)))
-		  (submit-on-read conn handler fail))))))))
-   failure))
+(define *http:idempotent-methods*
+	'(GET HEAD PUT DELETE OPTIONS TRACE))
+
+(define (condition-who* e)
+	(and (who-condition? e) (condition-who e)))
+
+(define (retryable-request-body? request)
+	(let ((body (http:request-body request)))
+		(or (not body) (bytevector? body))))
+
+(define (retryable-connection-error? e)
+	(and (http-connection-error? e)
+	 (memq (condition-who* e) '(parse-status-line))))
+
+(define (retryable-failure? request e attempt)
+	(and (= attempt 0)
+	 (memq (http:request-method request) *http:idempotent-methods*)
+	 (retryable-request-body? request)
+	 (retryable-connection-error? e)))
+
+(define request/response
+	(case-lambda
+	 ((client request data-handler success failure)
+		(request/response client request data-handler success failure 0))
+	 ((client request data-handler success failure attempt)
+		(define ((release/fail conn) e)
+			(release-http-connection client conn #f)
+			(if (retryable-failure? request e attempt)
+	  (request/response client request data-handler success failure (+ attempt 1))
+	  (failure e)))
+		(define (submit-on-read conn handler fail)
+			(http-connection-manager-register-on-readable
+			 (http:client-connection-manager client) conn
+			 handler fail
+			 (http:request-timeout request)))
+		(lease-http-connection client request
+		 (lambda (conn)
+			 (executor-submit! (http:client-executor client)
+	(lambda ()
+	  (let ((fail (release/fail conn)))
+	    (guard (e (else (fail e) #f))
+	      (let* ((resp-handler (send-request client conn request))
+		     (handler (resp-handler client data-handler success fail)))
+		;; if it's already ready, just start reading it
+		(if (http-connection-data-ready? conn)
+		    (handler conn (lambda () (submit-on-read conn handler fail)))
+		    (submit-on-read conn handler fail))))))))
+		 failure))))
 
 (define (default-executor? client)
   (eq? (http:client-executor client) *http-client:default-executor*))
@@ -374,9 +405,9 @@
 	      (headers (response-context-headers response-context))
 	      (has-data? (response-context-has-data? response-context)))
 	  ;; TODO extra handler for 1xx status, esp 103?
-	  (cond ((not has-data?)
+	  (cond ((eqv? (string-ref status 0) #\1) (loop))
+		((not has-data?)
 		 (response-context->response response-context start))
-		((eqv? (string-ref status 0) #\1) (loop))
 		((require-stream-response? headers)
 		 (http-connection-manager-detach-connection! manager conn)
 		 (success
