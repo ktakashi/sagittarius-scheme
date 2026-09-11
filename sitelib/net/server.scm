@@ -84,7 +84,7 @@
 		       :init-value default-shutdown-handler)
      (exception-handler :init-keyword :exception-handler
 			:init-value #f)
-     (max-thread    :init-keyword :max-thread    :init-value 1)
+     (max-thread    :init-keyword :max-thread    :init-form (cpu-count))
      ;; not used
      (max-retry     :init-keyword :max-retry     :init-value 10)
      ;; enabling this creates 2 server socket for both IPv4 and IPv6
