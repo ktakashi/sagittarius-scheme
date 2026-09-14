@@ -108,12 +108,12 @@
 (define-c-proc tls-socket-closed?  (o::<tls-socket>) ::<boolean>
   (result (not (Sg_TLSSocketOpenP o))))
 
+;; the same conversion as the one in socket-ready? is happening here...
 (define-c-proc tls-socket-ready?
   (o::<tls-socket> :optional (event::<symbol> 'read) (jitter 0)) ::<boolean>
-  (let ((e::SgSocketEvents 0))
+  (let ((e::SgSocketEvents SG_SOCKET_READ))
     (cond ((SG_EQ event 'write) (set! e SG_SOCKET_WRITE))
-	  ((SG_EQ event 'error) (set! e SG_SOCKET_ERROR))
-	  (else (set! e SG_SOCKET_READ)))
+	  ((SG_EQ event 'error) (set! e SG_SOCKET_ERROR)))
     (result (Sg_TLSSocketReadyP o e jitter))))
 
 (define-c-proc tls-socket-peer-certificate  (o::<tls-socket>)
