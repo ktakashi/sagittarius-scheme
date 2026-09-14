@@ -1328,12 +1328,12 @@ static int socket_ready_p(int fd, SgSocketEvents events,
   case SG_SOCKET_WRITE:
     FD_ZERO(&wfds);
     FD_SET(fd, &wfds);
-    wrfds = &wfds;
+    pwfds = &wfds;
     break;
   case SG_SOCKET_ERROR:
     FD_ZERO(&efds);
     FD_SET(fd, &efds);
-    erfds = &efds;
+    pefds = &efds;
     break;
     /* read and default are the same,
        default should never happen
@@ -1349,8 +1349,8 @@ static int socket_ready_p(int fd, SgSocketEvents events,
   int state = select(FD_SETSIZE, prfds, pwfds, pefds, tm);
   if (state < 0) goto err;
   if (prfds) return FD_ISSET(fd, prfds) != 0;
-  if (wrfds) return FD_ISSET(fd, wrfds) != 0;
-  if (erfds) return FD_ISSET(fd, erfds) != 0;
+  if (pwfds) return FD_ISSET(fd, pwfds) != 0;
+  if (pefds) return FD_ISSET(fd, pefds) != 0;
   /* should never happen, but fallback to err = -1 */
   
 #else
