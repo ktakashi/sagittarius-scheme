@@ -203,10 +203,9 @@
 
 (define-c-proc socket-ready?
   (o::<socket> :optional (event::<symbol> 'read) (jitter 0)) ::<boolean>
-  (let ((e::SgSocketEvents 0))
+  (let ((e::SgSocketEvents SG_SOCKET_READ)) ;; default read
     (cond ((SG_EQ event 'write) (set! e SG_SOCKET_WRITE))
-	  ((SG_EQ event 'error) (set! e SG_SOCKET_ERROR))
-	  (else (set! e SG_SOCKET_READ)))
+	  ((SG_EQ event 'error) (set! e SG_SOCKET_ERROR)))
     (result (Sg_SocketReadyP o e jitter))))
 
 (define-c-proc socket-fd (o::<socket>) :no-side-effect
