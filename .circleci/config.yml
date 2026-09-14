@@ -45,7 +45,7 @@ jobs:
       - run:
           name: Test
           working_directory: ~/target
-          command: ctest --output-on-failure
+          command: ctest --output-on-failure -j8
            
   windows-build:
     parameters:
