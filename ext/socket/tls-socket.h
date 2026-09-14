@@ -1,6 +1,6 @@
 /* tls-socket.h                                    -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2018  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2018-2026  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -72,6 +72,8 @@ SG_EXTERN SgObject  Sg_TLSServerSocketHandshake(SgTLSSocket *tlsSocket);
 SG_EXTERN void      Sg_TLSSocketShutdown(SgTLSSocket *tlsSocket, int how);
 SG_EXTERN void      Sg_TLSSocketClose(SgTLSSocket *tlsSocket);
 SG_EXTERN int       Sg_TLSSocketOpenP(SgTLSSocket *tlsSocket);
+SG_EXTERN int       Sg_TLSSocketReadyP(SgTLSSocket *tlsSocket,
+				       SgSocketEvents events, SgObject jitter);
 SG_EXTERN int       Sg_TLSSocketReceive(SgTLSSocket *tlsSocket, uint8_t *data,
 					int size, int flags);
 SG_EXTERN int       Sg_TLSSocketSend(SgTLSSocket *tlsSocket, uint8_t *data,

@@ -1,6 +1,6 @@
 /* sagittarius-socket.h                            -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2016  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2026  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -169,6 +169,12 @@ SG_CLASS_DECL(Sg_SocketPortClass);
 #define SG_SOCKET_PORTP(obj) SG_XTYPEP(obj, SG_CLASS_SOCKET_PORT)
 #define SG_SOCKET_PORT_SOCKET(obj) (SG_SOCKET_PORT(obj)->socket)
 
+typedef enum {
+  SG_SOCKET_READ,
+  SG_SOCKET_WRITE,
+  SG_SOCKET_ERROR,
+} SgSocketEvents;
+
 #ifdef _WIN32
 /* for abortable socket */
 # define SG_SET_SOCKET_EVENT(sock, hEvent, flags)		\
@@ -311,6 +317,9 @@ SG_EXTERN void      Sg_ShutdownPort(SgPort *port, int how);
 SG_EXTERN SgObject  Sg_MakeFdSet();
 SG_EXTERN SgObject  Sg_SocketsToFdSet(SgObject sockets);
 /* SG_EXTERN SgObject  Sg_CollectSockets(SgObject fdset, SgObject sockets); */
+
+SG_EXTERN int       Sg_SocketReadyP(SgObject socket, SgSocketEvents events,
+				    SgObject jitter);
 
 /* select */
 SG_EXTERN SgObject  Sg_SocketSelect(SgObject reads, SgObject writes,

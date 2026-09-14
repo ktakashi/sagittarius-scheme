@@ -1662,6 +1662,22 @@ int Sg_TLSSocketOpenP(SgTLSSocket *tlsSocket)
   return !data->closed;
 }
 
+int Sg_TLSSocketReadyP(SgTLSSocket *tlsSocket,
+		       SgSocketEvents events, SgObject jitter)
+{
+  WinTLSData *data = (WinTLSData *)tlsSocket->data;
+  if (!data) return FALSE;
+
+  switch (events) {
+  case SG_SOCKET_READ:
+    if (data->pendingSize > 0) return TRUE;
+    break;
+  default: break;		/* do nothing */
+  }
+  return Sg_SocketReadyP(tlsSocket->socket, events, jitter);
+}
+
+
 int Sg_TLSSocketReceive(SgTLSSocket *tlsSocket, uint8_t *b, int size, int flags)
 {
   SgSocket *socket = tlsSocket->socket;

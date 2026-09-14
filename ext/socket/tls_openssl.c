@@ -566,6 +566,24 @@ int Sg_TLSSocketOpenP(SgTLSSocket *tlsSocket)
     && data->ctx != NULL;
 }
 
+int Sg_TLSSocketReadyP(SgTLSSocket *tlsSocket,
+		       SgSocketEvents events, SgObject jitter)
+{
+  OpenSSLData *data = (OpenSSLData *)tlsSocket->data;
+  if (!data) return TRUE;
+
+  SSL *ssl = data->ssl;
+  if (!ssl) return 0;
+  switch (events) {
+  case SG_SOCKET_READ:
+    /* SSL contains buffer, so it's ready to read */
+    if (SSL_pending(ssl) > 0) return FALSE;
+    break;
+  default: break;		/* do nothing */
+  }
+  return Sg_SocketReadyP(tlsSocket->socket, events, jitter);
+}
+
 int Sg_TLSSocketReceive(SgTLSSocket *tlsSocket, uint8_t *data,
 			int size, int flags)
 {

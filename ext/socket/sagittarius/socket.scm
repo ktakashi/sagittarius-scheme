@@ -36,7 +36,7 @@
 	    call-with-socket
 	    shutdown-output-port
 	    socket?
-	    socket-closed?
+	    socket-closed? socket-ready?
 	    make-socket
 	    socket-port socket-input-port socket-output-port
 	    shutdown-port shutdown-input-port shutdown-output-port
