@@ -37,6 +37,7 @@
 	    tls-socket-recv tls-socket-recv!
 	    tls-socket-pending?
 	    tls-socket-shutdown tls-socket-close tls-socket-closed?
+	    tls-socket-ready?
 	    tls-server-socket-handshake
 	    tls-socket-peer-certificate
 	    tls-socket-peer-certificate-verifier

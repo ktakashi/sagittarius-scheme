@@ -197,9 +197,16 @@
 (define-c-proc socket-shutdown (o::<socket> how::<ifixnum>) ::<void>
   Sg_SocketShutdown)
 
-(define-c-proc socket-close  (o::<socket>) ::<void> Sg_SocketClose)
-(define-c-proc socket-closed?  (o::<socket>) ::<boolean>
+(define-c-proc socket-close (o::<socket>) ::<void> Sg_SocketClose)
+(define-c-proc socket-closed? (o::<socket>) ::<boolean>
   (result (not (Sg_SocketOpenP o))))
+
+(define-c-proc socket-ready?
+  (o::<socket> :optional (event::<symbol> 'read) (jitter 0)) ::<boolean>
+  (let ((e::SgSocketEvents SG_SOCKET_READ)) ;; default read
+    (cond ((SG_EQ event 'write) (set! e SG_SOCKET_WRITE))
+	  ((SG_EQ event 'error) (set! e SG_SOCKET_ERROR)))
+    (result (Sg_SocketReadyP o e jitter))))
 
 (define-c-proc socket-fd (o::<socket>) :no-side-effect
   (.if "defined(_WIN32) && SIZEOF_VOIDP == 8"

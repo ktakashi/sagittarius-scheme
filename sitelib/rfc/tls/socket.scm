@@ -42,6 +42,7 @@
 	    tls-socket-shutdown
 	    tls-socket-close
 	    tls-socket-closed?
+	    tls-socket-ready?
 	    tls-socket-accept
 	    tls-socket-peer
 	    tls-socket-name
@@ -68,6 +69,7 @@
 
 	    socket-close
 	    socket-closed?
+	    socket-ready?
 	    socket-shutdown
 	    socket-send socket-send/range
 	    socket-recv
@@ -322,6 +324,8 @@
   (tls-socket-close o))
 (define-method socket-closed? ((o <tls-socket>))
   (tls-socket-closed? o))
+(define-method socket-ready? ((o <tls-socket>) events jitter)
+  (tls-socket-ready? o events jitter))
 (define-method socket-shutdown ((o <tls-socket>) how)
   (tls-socket-shutdown o how))
 (define-method socket-send ((o <tls-socket>) data :optional (flags 0))

@@ -1,6 +1,6 @@
 /* sagittarius-socket.c                            -*- mode:c; coding:utf-8; -*-
  *
- *   Copyright (c) 2010-2025  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2026  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -1311,6 +1311,84 @@ SgObject Sg_SocketSelectX(SgObject reads, SgObject writes, SgObject errors,
 		    (e ? SG_OBJ(e) : SG_FALSE));
 }
 
+/*
+  0 = FALSE
+  >0 = TRUE
+  <0 = error
+ */
+static int socket_ready_p(int fd, SgSocketEvents events,
+			  struct timeval *tm)
+{
+#ifdef _WIN32
+  /* For Windows, the nfds is ignored, so no limit for one socket check */
+  fd_set rfds, wfds, efds;
+  fd_set *prfds = NULL, *pwfds = NULL, *pefds = NULL;
+
+  switch (events) {
+  case SG_SOCKET_WRITE:
+    FD_ZERO(&wfds);
+    FD_SET(fd, &wfds);
+    pwfds = &wfds;
+    break;
+  case SG_SOCKET_ERROR:
+    FD_ZERO(&efds);
+    FD_SET(fd, &efds);
+    pefds = &efds;
+    break;
+    /* read and default are the same,
+       default should never happen
+     */
+  case SG_SOCKET_READ:
+  default:
+    FD_ZERO(&rfds);
+    FD_SET(fd, &rfds);
+    prfds = &rfds;
+    break;
+  }
+
+  int state = select(FD_SETSIZE, prfds, pwfds, pefds, tm);
+  if (state < 0) goto err;
+  if (prfds) return FD_ISSET(fd, prfds) != 0;
+  if (pwfds) return FD_ISSET(fd, pwfds) != 0;
+  if (pefds) return FD_ISSET(fd, pefds) != 0;
+  /* should never happen, but fallback to err = -1 */
+  
+#else
+  /* use poll */
+  struct pollfd fds[1];
+  fds[0].fd = fd;
+  switch (events) {
+  case SG_SOCKET_WRITE:         fds[0].events = POLLOUT; break;
+  case SG_SOCKET_ERROR:         fds[0].events = POLLERR; break;
+  case SG_SOCKET_READ: default: fds[0].events = POLLIN;  break;
+  }
+
+  int timeout = -1;
+  if (tm) {
+    timeout = (int)(tm->tv_sec * (uint64_t)1000) + (tm->tv_usec / 1000);
+  }
+	   
+  int state = poll(fds, 1, timeout);
+  if (state < 0) goto err;
+  switch (events) {
+  case SG_SOCKET_WRITE:         return (fds[0].revents & POLLOUT) == POLLOUT;
+  case SG_SOCKET_ERROR:         return (fds[0].revents & POLLERR) == POLLERR;
+  case SG_SOCKET_READ: default: return (fds[0].revents & POLLIN ) == POLLIN;
+  }
+#endif
+
+ err:
+  return -1;
+}
+
+int Sg_SocketReadyP(SgObject socket, SgSocketEvents events, SgObject jitter)
+{
+  struct timeval tv, *ptv;
+  ptv = select_timeval(jitter, &tv);
+  int r = socket_ready_p(SG_SOCKET(socket)->socket, events, ptv);
+  /* we don't check error here. error means not ready. */
+  return r > 0;
+}
 
 SgObject Sg_SocketPeer(SgObject socket)
 {
@@ -1433,28 +1511,8 @@ static void socket_flush(SgObject self)
 static int socket_ready_int(SgObject port, SgObject socket, struct timeval *tm)
 {
   int fd = SG_SOCKET(socket)->socket;
-#ifdef _WIN32
-  /* For Windows, the nfds is ignored, so no limit for one socket check */
-  fd_set fds;
-  
-  FD_ZERO(&fds);
-  FD_SET(fd, &fds);
-
-  int state = select(FD_SETSIZE, &fds, NULL, NULL, tm);
-#else
-  /* use poll */
-  struct pollfd fds[1];
-  fds[0].fd = fd;
-  fds[0].events = POLLIN;
-  int timeout = -1;
-  if (tm) {
-    timeout = (int)(tm->tv_sec * (uint64_t)1000) + (tm->tv_usec / 1000);
-  }
-	   
-  int state = poll(fds, 1, timeout);
-#endif
-
-  if (state < 0) {
+  int r = socket_ready_p(fd, SG_SOCKET_READ, tm);
+  if (r < 0) {
     if (last_error == EINTR) return FALSE;
     raise_socket_error(SG_INTERN("port-ready?"), 
 		       Sg_GetLastErrorMessageWithErrorCode(last_error),
@@ -1463,12 +1521,7 @@ static int socket_ready_int(SgObject port, SgObject socket, struct timeval *tm)
 		       SG_MAKE_INT(fd));
     return FALSE;
   }
-
-#ifdef _WIN32
-  return FD_ISSET(SG_SOCKET(socket)->socket, &fds);
-#else
-  return (fds[0].revents & POLLIN) == POLLIN;
-#endif
+  return r > 0;
 }
 
 static int socket_open(SgObject self)

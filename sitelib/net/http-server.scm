@@ -178,7 +178,8 @@
                 (unless (serve-state! server socket state)
                   (when (and (connection-open? server socket)
                              (< drain-count max-drain)
-                             (pair? (socket-read-select select-delay socket)))
+			     (socket-ready? socket 'read select-delay)
+                             #;(pair? (socket-read-select select-delay socket)))
                     (loop (+ drain-count 1))))))))))
 
   (make-simple-server port socket-handler
