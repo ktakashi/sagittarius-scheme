@@ -330,6 +330,7 @@
       (apply make class :name arg :type type :count count rest)))
 
   (define (process-c-proc-args name argspecs)
+    (define (quote? s) (eq? s 'quote))
     (define (badarg arg)
       (error 'define-c-proc
 	     "bad argument in argspec" arg name))
@@ -365,6 +366,14 @@
 	 (optional specs
 		   (cons (make-arg <optional-arg> sym (+ nreqs nopts)
 				   :opt-count nopts)
+			 args)
+		   nreqs
+		   (+ nopts 1)))
+	((((? symbol? sym) ((? quote?) default)) . specs)
+	 (optional specs
+		   (cons (make-arg <optional-arg> sym (+ nreqs nopts)
+				   :opt-count nopts
+				   :default (make-literal default))
 			 args)
 		   nreqs
 		   (+ nopts 1)))
@@ -404,10 +413,21 @@
 		  (cons (make-arg <keyword-arg> sym (+ nreqs nopts))
 			keyargs)
 		  nreqs (+ nopts 2)))
-	((((? symbol? sym) default) . specs)
+	((((? symbol? sym) ((? quote?) default)) . specs)
 	 (keyword specs args
 		  (cons (make-arg <keyword-arg> sym (+ nreqs nopts)
 				  :default (make-literal default))
+			keyargs)
+		  nreqs (+ nopts 2)))
+	((((? symbol? sym) default) . specs)
+	 (keyword specs args
+		  (cons (make-arg <keyword-arg> sym (+ nreqs nopts)
+				  ;; default can be expression
+				   ;; so if it's a list assume it's an
+				   ;; expression
+				  :default (if (pair? default)
+					       default
+					       (make-literal default)))
 			keyargs)
 		  nreqs (+ nopts 2)))
 	(_ (badarg (car specs)))))
