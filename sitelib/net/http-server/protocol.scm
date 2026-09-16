@@ -5,26 +5,53 @@
 
 #!nounbound
 (library (net http-server protocol)
-    (export http-server:protocol-driver?
-            make-http-server:protocol-driver
-            http-server:protocol-driver-name
-	    http-server:protocol-driver-consume!
-            http-server:protocol-driver-serve!
+    (export http-server:connection?
+	    make-http-server:connection
+	    http-server:connection-process
+	    http-server:connection-close
+	    http-server:connection-process!
+	    http-server:connection-close!
 
-            make-http-server:protocol-registry
-            http-server:register-protocol-driver!
-            http-server:select-protocol-driver)
+	    http-server:protocol-driver?
+	    make-http-server:protocol-driver
+	    http-server:protocol-driver-name
+	    http-server:protocol-driver-connect
+	    http-server:protocol-driver-consume!
+	    http-server:protocol-driver-serve!
+	    http-server:connection-oriented-driver?
+	    http-server:protocol-driver-connect!
+
+	    make-http-server:protocol-registry
+	    http-server:register-protocol-driver!
+	    http-server:select-protocol-driver)
     (import (rnrs)
             (net socket))
 
-(define-record-type http-server:protocol-driver
-  (fields name consume serve))
+(define-record-type http-server:connection
+  (fields process close))
 
-(define-record-type (http-server:protocol-registry
-                     %make-http-server:protocol-registry
-                     http-server:protocol-registry?)
+(define (http-server:connection-process! conn chunk)
+  ((http-server:connection-process conn) chunk))
+
+(define (http-server:connection-close! conn)
+  ((http-server:connection-close conn)))
+
+(define-record-type http-server:protocol-driver
+  (fields name consume serve connect)
+  (protocol
+   (lambda (p)
+     (case-lambda
+      ((name consume serve)
+	(p name consume serve #f))
+      ((name consume serve connect)
+	(p name consume serve connect))))))
+
+(define-record-type http-server:protocol-registry
   (fields (mutable drivers)
-          (mutable default-driver)))
+          (mutable default-driver))
+  (protocol (lambda (p)
+	      (lambda (driver)
+		(p '() driver)))))
 
 ;; consume returns: status, req-or-code, extra, remainder, next-state (#f => fresh)
 (define (http-server:protocol-driver-consume! driver state buffer . rest)
@@ -34,9 +61,17 @@
 (define (http-server:protocol-driver-serve! driver socket req result)
   ((http-server:protocol-driver-serve driver) socket req result))
 
+(define (http-server:connection-oriented-driver? driver)
+  (and (http-server:protocol-driver-connect driver) #t))
 
-(define (make-http-server:protocol-registry default-driver)
-  (%make-http-server:protocol-registry '() default-driver))
+(define (http-server:protocol-driver-connect! driver socket config app-handler . rest)
+  (let ((connect (http-server:protocol-driver-connect driver)))
+    (if connect
+	(apply connect socket config app-handler rest)
+	(assertion-violation 'http-server:protocol-driver-connect!
+			     "Connection oriented protocol driver required"
+			     driver))))
+
 
 (define (http-server:register-protocol-driver! registry alpn-name driver)
   (let ((name (and alpn-name (string-downcase alpn-name))))

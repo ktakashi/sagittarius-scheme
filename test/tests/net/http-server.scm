@@ -3,8 +3,8 @@
         (net socket)
         (net server)
         (net http-server)
-  (net http-server protocol)
-  (net http-server http1)
+	(net http-server protocol)
+	(net http-server http1)
         (srfi :18)
         (srfi :64))
 
@@ -29,6 +29,69 @@
       (cond ((> (+ i m) n) #f)
             ((string=? (substring s i (+ i m)) part) #t)
             (else (loop (+ i 1)))))))
+
+(let ()
+  (define legacy-driver
+    (make-http-server:protocol-driver
+     "legacy"
+     (lambda (state buffer . rest)
+       (values 'start #f #f buffer state))
+     (lambda (socket req result)
+       #f)))
+  (test-assert "legacy protocol driver"
+               (http-server:protocol-driver? legacy-driver))
+  (test-equal "legacy protocol driver name"
+              "legacy"
+              (http-server:protocol-driver-name legacy-driver))
+  (test-assert "legacy driver not connection-oriented"
+               (not (http-server:connection-oriented-driver? legacy-driver)))
+  (let-values (((kind req x remainder next-state)
+                (http-server:protocol-driver-consume!
+                 legacy-driver
+                 'state
+                 #vu8(1 2 3))))
+    (test-equal "legacy consume kind" 'start kind)
+    (test-eqv "legacy consume req" #f req)
+    (test-eqv "legacy consume extra" #f x)
+    (test-equal "legacy consume remainder" #vu8(1 2 3) remainder)
+    (test-eqv "legacy consume next-state" 'state next-state))
+  (test-eqv "legacy serve" #f
+            (http-server:protocol-driver-serve! legacy-driver #f #f #f))
+  (test-error "legacy connect unsupported" condition?
+              (http-server:protocol-driver-connect!
+               legacy-driver
+               'socket
+               'config
+               'handler)))
+
+(let ()
+  (define connect-args #f)
+  (define conn-driver
+    (make-http-server:protocol-driver
+     "conn"
+     (lambda args (assertion-violation 'conn-driver "unused consume" args))
+     (lambda args #f)
+     (lambda (socket config app-handler . opts)
+       (set! connect-args (list socket config app-handler opts))
+       (make-http-server:connection
+        (lambda (chunk) (bytevector? chunk))
+        (lambda () 'closed)))))
+  (test-assert "connection oriented driver"
+               (http-server:connection-oriented-driver? conn-driver))
+  (let ((conn (http-server:protocol-driver-connect!
+               conn-driver
+               'socket
+               'config
+               'handler
+               'extra-option)))
+    (test-assert "connection object" (http-server:connection? conn))
+    (test-equal "connection args"
+                '(socket config handler (extra-option))
+                connect-args)
+    (test-eqv "connection process" #t
+              (http-server:connection-process! conn #vu8(0)))
+    (test-equal "connection close" 'closed
+                (http-server:connection-close! conn))))
 
 (let ()
   (define driver *http-server:http1-driver*)
