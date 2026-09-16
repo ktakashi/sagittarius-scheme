@@ -2,7 +2,7 @@
 ;;;
 ;;; rfc/http2/hpack - HPACK
 ;;;  
-;;;   Copyright (c) 2010-2015  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2015-2026  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -38,6 +38,8 @@
 
 	    ;; hpack context
 	    make-hpack-context
+	    hpack-table-size-limit
+	    set-hpack-table-size-limit!
 	    update-hpack-table-size!
 	    ;; read
 	    make-hpack-reader
@@ -149,12 +151,25 @@
 ;; we need this to manage dynamic table
 (define-record-type hpack-context
   (fields dynamic-table
-          header-list)
+          header-list
+	  (mutable table-size-limit))
   (protocol (lambda (p)
       	      (lambda (max-size)
       		(let ((table (make-dynamic-table max-size))
       		      (queue (list-queue)))
-      		  (p table queue))))))
+		  (p table queue max-size))))))
+
+(define (hpack-table-size-limit context)
+  (hpack-context-table-size-limit context))
+
+(define (set-hpack-table-size-limit! context size)
+  (when (negative? size)
+    (assertion-violation 'set-hpack-table-size-limit!
+			 "Non negative integer required" size))
+  (hpack-context-table-size-limit-set! context size)
+  (let ((table (hpack-context-dynamic-table context)))
+    (when (> (dynamic-table-max-size table) size)
+      (update-hpack-table-size! context size))))
 (define (append-header-list! context e)
   (let ((header-list (hpack-context-header-list context)))
     (list-queue-add-back! header-list e)))
@@ -187,6 +202,12 @@
 
 ;; needed for connection
 (define (update-hpack-table-size! context size)
+  (let ((limit (hpack-context-table-size-limit context)))
+    (when (> size limit)
+      (error 'update-hpack-table-size!
+	     "New dynamic table size is bigger than negotiated limit"
+	     limit
+	     size)))
   (let1 table (hpack-context-dynamic-table context)
     (dynamic-table-max-size-set! table size)
     (evict-table-entries! table 0)))
@@ -222,11 +243,11 @@
        ;; 6.3 Dynamic Table Size Update
        ((= (bitwise-and b #x20) #x20)
         (let ((new-size (read-hpack-integer in b #x1F))
-      	      (table (hpack-context-dynamic-table context)))
-          (when (> new-size (dynamic-table-max-size table))
+        (limit (hpack-context-table-size-limit context)))
+    (when (> new-size limit)
             (error 'read-hpack
-      		   "New dynamic table size is bigger than current size"
-      		   (dynamic-table-max-size table)
+		   "New dynamic table size is bigger than negotiated limit"
+		   limit
       		   new-size))
           (update-hpack-table-size! context new-size)
           (loop r)))

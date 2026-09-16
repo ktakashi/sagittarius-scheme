@@ -141,6 +141,8 @@
   (define max-size-16 #vu8(#b00110000))
   (define max-size-1337 #vu8(#b00111111 #b10011010 #b00001010))
 
+  (test-equal "table-size-limit" 4096 (hpack-table-size-limit ctx))
+
   (test-equal "max size" '() 
 	      (reader (open-bytevector-input-port max-size-1337)))
   (test-equal "max size 1337" 1337 (table-max-size ctx))
@@ -148,9 +150,17 @@
   (test-equal "max size" '() (reader (open-bytevector-input-port max-size-16)))
   (test-equal "max size 16" 16 (table-max-size ctx))
 
-  (test-error "setting bigger max size" condition?
+  (test-equal "setting bigger max size within negotiated limit" '()
 	      (reader (open-bytevector-input-port max-size-1337)))
-  (test-equal "max size 16 (2)" 16 (table-max-size ctx))
+  (test-equal "max size 1337 (2)" 1337 (table-max-size ctx))
+  
+  (set-hpack-table-size-limit! ctx 32)
+  (test-equal "table-size-limit updated" 32 (hpack-table-size-limit ctx))
+  (test-equal "max size after shrinking limit" 32 (table-max-size ctx))
+  
+  (test-error "setting bigger negotiated max size" condition?
+	      (reader (open-bytevector-input-port max-size-1337)))
+  (test-equal "max size 32" 32 (table-max-size ctx))
   )
 
 ;; encode test
@@ -276,7 +286,15 @@
 (test-equal "initial buffer size" #x4000 +http2-initial-frame-buffer-size+)
 (test-equal "initial buffer-size" +http2-initial-frame-buffer-size+
 	    (bytevector-length (frame-buffer-buffer (make-frame-buffer))))
+(test-equal "custom frame buffer size"
+	    (+ +http2-initial-frame-buffer-size+ 10)
+	    (bytevector-length
+	     (frame-buffer-buffer
+	      (make-frame-buffer (+ +http2-initial-frame-buffer-size+ 10)))))
 (test-equal "current size" 0 (frame-buffer-size (make-frame-buffer)))
+(test-equal "HTTP/2 connection preface"
+	    #*"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n"
+	    +http2-connection-preface+)
 
 (test-error "invalid size range(1)" http2-protocol-error?
 	    (make-frame-buffer
@@ -324,6 +342,34 @@
 		   (write-http2-frame! out 0 0 1 buf)))))
 )
 
+(test-equal "http2-frame-block-end short frame header" #f
+	    (http2-frame-block-end #vu8(0 0 1) 0 +http2-initial-frame-buffer-size+))
+(test-equal "http2-frame-block-end short frame payload" #f
+	    (http2-frame-block-end #vu8(0 0 1 0 0 0 0 0 1) 0
+				   +http2-initial-frame-buffer-size+))
+(test-equal "http2-frame-block-end single frame" 10
+	    (http2-frame-block-end #vu8(0 0 1 0 0 0 0 0 1 1) 0
+				   +http2-initial-frame-buffer-size+))
+(let ((v (bytevector-append
+	  #vu8(0 0 1 1 0 0 0 0 1 1)
+	  #vu8(0 0 1 9 0 0 0 0 1 2)
+	  #vu8(0 0 1 9 4 0 0 0 1 3))))
+  (test-equal "http2-frame-block-end headers continuation chain" 30
+	      (http2-frame-block-end v 0 +http2-initial-frame-buffer-size+)))
+(let ((v (bytevector-append
+	  #vu8(0 0 1 1 0 0 0 0 1 1)
+	  #vu8(0 0 1 9 0 0 0 0 1 2))))
+  (test-equal "http2-frame-block-end incomplete continuation chain" #f
+	      (http2-frame-block-end v 0 +http2-initial-frame-buffer-size+)))
+(let ((v (bytevector-append
+	  #vu8(0 0 1 1 0 0 0 0 1 1)
+	  #vu8(0 0 1 0 0 0 0 0 1 2))))
+  (test-error "http2-frame-block-end wrong continuation type" http2-protocol-error?
+	      (http2-frame-block-end v 0 +http2-initial-frame-buffer-size+)))
+(let ((v #vu8(0 0 2 0 0 0 0 0 1 1 2)))
+  (test-error "http2-frame-block-end too large frame" http2-frame-size-error?
+	      (http2-frame-block-end v 0 1)))
+
 (define-syntax test-http2-frame
   (lambda (x)
     (define (->const name)
@@ -366,6 +412,13 @@
 (test-http2-frame goaway        #x7 last-stream-id error-code data)
 (test-http2-frame window-update #x8 window-size-increment)
 (test-http2-frame continuation  #x9 headers)
+
+(let ((f (make-http2-frame-headers 0 1 #f #f '())))
+  (test-equal "header end-headers helper false" #f
+	      (http2-frame-end-headers? f)))
+(let ((f (make-http2-frame-headers +http2-frame-flag-end-headers+ 1 #f #f '())))
+  (test-equal "header end-headers helper true" #t
+	      (http2-frame-end-headers? f)))
 
 (define (test-http2-frame-data frame)
   (let ((buffer (make-frame-buffer)))
@@ -624,6 +677,83 @@
    (#*":path"       #*"/")
    (#*":authority"  #*"www.example.com"))
  #f #f #f)
+
+(test-http2-header-write
+ (bytevector-append #vu8(0 0 22 1 36 0 0 0 1 0 0 0 2 10)
+		    (integer->bytevector #x828684418cf1e3c2e5f23a6ba0ab90f4ff))
+ '((#*":method"     #*"GET")
+   (#*":scheme"     #*"http")
+   (#*":path"       #*"/")
+   (#*":authority"  #*"www.example.com"))
+ 2 10 #f)
+
+(let* ((big-value (make-bytevector 20000 65))
+	 (headers `((#*"x-big" ,big-value :no-huffman)))
+	 (ctx (make-hpack-context 4096))
+	 (frame (make-http2-frame-headers 0 1 #f #f headers))
+	 (written (call-with-bytevector-output-port
+		   (lambda (out)
+		     (write-http2-frame out (make-frame-buffer) frame #f ctx))))
+	 (decoded (read-http2-frame (open-bytevector-input-port written)
+				    (make-frame-buffer)
+				    (make-hpack-context 4096))))
+  (test-assert "header continuation emitted" (> (bytevector-length written) 16384))
+  (test-assert "header continuation round trip" (http2-frame-headers? decoded))
+  (test-equal "header continuation value"
+	      big-value
+	      (cadar (http2-frame-headers-headers decoded))))
+
+(test-equal "priority write"
+	    #vu8(0 0 5 2 0 0 0 0 1 0 0 0 2 10)
+	    (call-with-bytevector-output-port
+	     (lambda (out)
+	       (let ((frame (make-http2-frame-priority 0 1 2 10))
+		     (buffer (make-frame-buffer)))
+		 (write-http2-frame out buffer frame #f #f)))))
+
+(test-equal "rst-stream write"
+	    #vu8(0 0 4 3 0 0 0 0 1 0 0 0 1)
+	    (call-with-bytevector-output-port
+	     (lambda (out)
+	       (let ((frame (make-http2-frame-rst-stream 0 1 1))
+		     (buffer (make-frame-buffer)))
+		 (write-http2-frame out buffer frame #f #f)))))
+
+(test-equal "push-promise write"
+	    (bytevector-append #vu8(0 0 21 5 4 0 0 0 1 0 0 0 1)
+			     (integer->bytevector #x828684418cf1e3c2e5f23a6ba0ab90f4ff))
+	    (call-with-bytevector-output-port
+	     (lambda (out)
+	       (let ((frame (make-http2-frame-push-promise
+			    0 1 1
+			    '((#*":method"     #*"GET")
+			      (#*":scheme"     #*"http")
+			      (#*":path"       #*"/")
+			      (#*":authority"  #*"www.example.com"))))
+		     (buffer (make-frame-buffer)))
+		 (write-http2-frame out buffer frame #f (make-hpack-context 4096))))))
+
+(test-equal "continuation write"
+	    (bytevector-append #vu8(0 0 17 9 4 0 0 0 1)
+			     (integer->bytevector #x828684418cf1e3c2e5f23a6ba0ab90f4ff))
+	    (call-with-bytevector-output-port
+	     (lambda (out)
+	       (let ((frame (make-http2-frame-continuation
+			    0 1
+			    '((#*":method"     #*"GET")
+			      (#*":scheme"     #*"http")
+			      (#*":path"       #*"/")
+			      (#*":authority"  #*"www.example.com"))))
+		     (buffer (make-frame-buffer)))
+		 (write-http2-frame out buffer frame #f (make-hpack-context 4096))))))
+
+(test-equal "goaway write with debug data"
+	    #vu8(0 0 11 7 0 0 0 0 0 0 0 0 1 0 0 0 2 1 2 3)
+	    (call-with-bytevector-output-port
+	     (lambda (out)
+	       (let ((frame (make-http2-frame-goaway 0 0 1 2 #vu8(1 2 3)))
+		     (buffer (make-frame-buffer)))
+		 (write-http2-frame out buffer frame #f #f)))))
 
 ;; settings
 (define (test-http2-settings-write expect ack settings)
