@@ -77,6 +77,17 @@
                  (utf8->string v)
                  (loop (cdr rest))))))))
 
+(define (data-bytes-on-stream frames sid)
+  (let loop ((rest frames) (sum 0))
+    (if (null? rest)
+        sum
+        (let ((f (car rest)))
+          (if (and (http2-frame-data? f)
+                   (= (http2-frame-stream-identifier f) sid))
+              (loop (cdr rest)
+                    (+ sum (bytevector-length (http2-frame-data-data f))))
+              (loop (cdr rest) sum))))))
+
 (define (with-http2-connection app proc)
   (define server-sock #f)
   (define accepted #f)
@@ -236,5 +247,129 @@
                    +http2-error-code-protocol-error+
               (and rst
                  (http2-frame-rst-stream-error-code rst)))))))
+
+(let ()
+  (define seen-body #f)
+  (define request-headers
+    '((#*":method" #*"POST")
+      (#*":scheme" #*"http")
+      (#*":path" #*"/upload")
+      (#*":authority" #*"localhost")))
+  (with-http2-connection
+   (lambda (req res)
+     (set! seen-body (utf8->string (http-server:request-body-bytevector req)))
+     (http-server:response-text! res "ok")
+     res)
+   (lambda (client accepted conn)
+     (define preface+headers
+       (bytevector-append
+        +http2-connection-preface+
+        (encode-frames
+         (list (cons (make-http2-frame-settings 0 0 '()) #f)
+               (cons (make-http2-frame-headers 0 1 #f #f request-headers) #f)))))
+     (define body-part-1
+       (encode-frames (list (cons (make-http2-frame-data 0 1 #*"hello ") #f))))
+     (define body-part-2
+       (encode-frames (list (cons (make-http2-frame-data 0 1 #*"world") #t))))
+     (test-assert "connection accepts split request headers"
+                  (http-server:connection-process! conn preface+headers))
+     (test-assert "connection accepts request data chunk 1"
+                  (http-server:connection-process! conn body-part-1))
+     (test-assert "connection accepts request data chunk 2"
+                  (http-server:connection-process! conn body-part-2))
+     (test-equal "split body is assembled"
+                 "hello world"
+                  seen-body))))
+
+(let ()
+  (define large-request-body (make-bytevector 40000 88))
+  (define request-headers
+    '((#*":method" #*"POST")
+      (#*":scheme" #*"http")
+      (#*":path" #*"/bulk")
+      (#*":authority" #*"localhost")))
+  (with-http2-connection
+   (lambda (req res)
+     (http-server:response-text! res "ok")
+     res)
+   (lambda (client accepted conn)
+     (define payload
+       (bytevector-append
+        +http2-connection-preface+
+        (encode-frames
+         (list (cons (make-http2-frame-settings 0 0 '()) #f)
+               (cons (make-http2-frame-headers 0 1 #f #f request-headers) #f)
+               (cons (make-http2-frame-data 0 1 large-request-body) #t)))))
+     (test-assert "connection accepts large request payload"
+                  (http-server:connection-process! conn payload))
+     (thread-sleep! 0.02)
+     (let* ((raw (recv-bytes client))
+            (frames (decode-frames raw))
+            (conn-wu
+             (find (lambda (f)
+                     (and (http2-frame-window-update? f)
+                          (= (http2-frame-stream-identifier f) 0)))
+                   frames))
+            (stream-wu
+             (find (lambda (f)
+                     (and (http2-frame-window-update? f)
+                          (= (http2-frame-stream-identifier f) 1)))
+                   frames)))
+       (test-assert "connection window update emitted" conn-wu)
+       (test-assert "stream window update emitted" stream-wu)
+       (test-equal "connection window update increment"
+                   40000
+                   (and conn-wu
+                        (http2-frame-window-update-window-size-increment conn-wu)))
+       (test-equal "stream window update increment"
+                   40000
+                   (and stream-wu
+                        (http2-frame-window-update-window-size-increment stream-wu)))))))
+
+(let ()
+  (define large-response-body (make-bytevector 70000 65))
+  (define request-headers
+    '((#*":method" #*"GET")
+      (#*":scheme" #*"http")
+      (#*":path" #*"/large")
+      (#*":authority" #*"localhost")))
+  (with-http2-connection
+   (lambda (req res)
+     (http-server:response-bytes! res large-response-body)
+     res)
+   (lambda (client accepted conn)
+     (define request-payload
+       (bytevector-append
+        +http2-connection-preface+
+        (encode-frames
+         (list (cons (make-http2-frame-settings 0 0 '()) #f)
+               (cons (make-http2-frame-headers 0 1 #f #f request-headers) #t)))))
+     (test-assert "connection accepts large response request"
+                  (http-server:connection-process! conn request-payload))
+     (thread-sleep! 0.02)
+     (let* ((frames-1 (decode-frames (recv-bytes client)))
+            (sent-before-update (data-bytes-on-stream frames-1 1)))
+       (test-equal "send side is capped by initial peer window"
+                   65535
+                   sent-before-update)
+      (let ((update-payload
+        (encode-frames
+         (list (cons (make-http2-frame-window-update 0 0 70000) #f)
+          (cons (make-http2-frame-window-update 0 1 70000) #f)))))
+        (test-assert "connection accepts peer window updates"
+           (http-server:connection-process! conn update-payload))
+        (thread-sleep! 0.02)
+        (let* ((frames-2 (decode-frames (recv-bytes client)))
+          (sent-after-update (data-bytes-on-stream frames-2 1))
+          (end-frame
+           (find (lambda (f)
+              (and (http2-frame-data? f)
+              (= (http2-frame-stream-identifier f) 1)
+              (http2-frame-end-stream? f)))
+            frames-2)))
+          (test-equal "window update flushes remaining response bytes"
+            70000
+            (+ sent-before-update sent-after-update))
+          (test-assert "final data frame carries END_STREAM" end-frame)))))))
 
 (test-end)
