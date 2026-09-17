@@ -8,24 +8,24 @@
 #!nounbound
 #!read-macro=sagittarius/bv-string
 (library (net http-server http2)
-  (export http-server:http2-request?
-	  http-server:http2-request-stream-id
-	  make-http-server:http2-connection
-	  *http-server:http2-driver*)
-  (import (rnrs)
-	  (clos user)
-	  (srfi :1)
-	  (srfi :18)
-	  (net socket)
-	  (net http-server protocol)
-	  (net http-server request)
-	  (net http-server response)
-	  (net http-server types)
-	  (rfc http2 frame)
-	  (rfc http2 conditions)
-	  (rfc http2 hpack)
-	  (rfc http2 priority)
-	  (util bytevector))
+    (export http-server:http2-request?
+	    http-server:http2-request-stream-id
+	    make-http-server:http2-connection
+	    *http-server:http2-driver*)
+    (import (rnrs)
+	    (clos user)
+	    (srfi :1)
+	    (srfi :18)
+	    (net socket)
+	    (net http-server protocol)
+	    (net http-server request)
+	    (net http-server response)
+	    (net http-server types)
+	    (rfc http2 frame)
+	    (rfc http2 conditions)
+	    (rfc http2 hpack)
+	    (rfc http2 priority)
+	    (util bytevector))
 
 (define +default-max-header-bytes+ 65536)
 (define +default-max-body-bytes+ 1048576)
@@ -76,6 +76,7 @@
           (mutable pending)
           (mutable stage)
           (mutable last-stream-id)
+          (mutable next-push-stream-id)
           (mutable local-max-frame-size)
           (mutable remote-max-frame-size)
           (mutable remote-enable-push?)
@@ -263,6 +264,42 @@
     (http-server:request-remote-set! req remote)
     req))
 
+(define (request->upgrade-stream conn req stream-id)
+  (let ((wire-weight +default-priority-wire-weight+)
+        (dependency 0)
+        (body (http-server:request-body-bytevector req)))
+    (http2-priority-tree-add!
+     (http2-server-connection-state-priority-tree conn)
+     stream-id
+     dependency
+     wire-weight
+     #f
+     #f)
+    (make-http2-server-stream
+     stream-id
+     (http-server:request-method req)
+     (http-server:request-target req)
+     (http-server:request-path req)
+     (http-server:request-query req)
+     (make-http-server:headers
+      (http-server:headers->alist (http-server:request-headers req)))
+     (if (and body (> (bytevector-length body) 0))
+         (list body)
+         '())
+     (if body (bytevector-length body) 0)
+     (http2-server-connection-state-remote-initial-window-size conn)
+     +default-initial-window-size+
+     0
+     #vu8()
+     #f
+     dependency
+     wire-weight)))
+
+(define (replay-upgrade-request! conn req)
+  (let ((stream (request->upgrade-stream conn req 1)))
+    (register-stream! conn stream)
+    (dispatch-application! conn stream)))
+
 (define (response-body->bytevector body)
   (cond ((bytevector? body) body)
         ((string? body) (string->utf8 body))
@@ -319,6 +356,7 @@
                   skip-body?)))))
 
 (define (write-stream-response! conn stream req res)
+  (emit-push-responses! conn stream req res)
   (let-values (((headers body skip-body?) (response->hpack-headers req res)))
     (define sid (http2-server-stream-id stream))
     (send-frame! conn
@@ -330,6 +368,145 @@
           (http2-server-stream-pending-output-set! stream body)
           (http2-server-stream-pending-end-stream?-set! stream #t)
           (flush-pending-output! conn)))))
+
+(define (method->http-token method)
+  (cond ((symbol? method) (string-upcase (symbol->string method)))
+        ((string? method) (string-upcase method))
+        (else
+         (assertion-violation 'method->http-token
+                              "Unsupported HTTP method"
+                              method))))
+
+(define (collect-push-headers headers)
+  (define (header-entry name value)
+    (list (string->utf8 name) (string->utf8 value)))
+  (let loop ((rest (http-server:headers->alist headers)) (out '()))
+    (if (null? rest)
+        (reverse out)
+        (let ((name (http-server:normalize-header-name (caar rest)))
+              (values (cdar rest)))
+          (if (or (http-server:hop-by-hop-header? name)
+                  (and (> (string-length name) 0)
+                       (char=? (string-ref name 0) #\:)))
+              (loop (cdr rest) out)
+              (loop (cdr rest)
+                    (append (map (lambda (v) (header-entry name v)) values)
+                            out)))))))
+
+(define (push-enabled? conn req)
+  (and req
+       (http-server:http2-request? req)
+       (odd? (http-server:http2-request-stream-id req))
+       (config-ref (http2-server-connection-state-config conn)
+                   'http2-enable-push?
+                   #f)
+       (http2-server-connection-state-remote-enable-push? conn)))
+
+(define (allocate-push-stream-id! conn)
+  (let ((sid (http2-server-connection-state-next-push-stream-id conn)))
+    (if (> sid #x7fffffff)
+        #f
+        (begin
+          (http2-server-connection-state-next-push-stream-id-set! conn (+ sid 2))
+          sid))))
+
+(define (prepare-pushed-request conn parent-req stream-id method target headers)
+  (define socket (http2-server-connection-state-socket conn))
+  (define scheme (if (tls-socket? socket) "https" "http"))
+  (define authority
+    (or (http-server:headers-ref headers "host" #f)
+        (and parent-req (http-server:request-header-ref parent-req "host" #f))
+        "localhost"))
+  (define method-token (method->http-token method))
+  (define push-headers (make-http-server:headers (http-server:headers->alist headers)))
+  (unless (http-server:headers-ref push-headers "host" #f)
+    (http-server:headers-add! push-headers "host" authority))
+  (let-values (((path query) (parse-target target)))
+    (let ((req (make-http-server:http2-request
+                (string->symbol method-token)
+                target
+                path
+                query
+                push-headers
+                #vu8()
+                stream-id)))
+      (when parent-req
+        (http-server:request-remote-set! req (http-server:request-remote parent-req)))
+      (values req
+              (append (list (list (string->utf8 ":method") (string->utf8 method-token))
+                            (list (string->utf8 ":scheme") (string->utf8 scheme))
+                            (list (string->utf8 ":authority") (string->utf8 authority))
+                            (list (string->utf8 ":path") (string->utf8 target)))
+                      (collect-push-headers push-headers))))))
+
+(define (make-push-stream conn stream-id parent-id)
+  (let ((wire-weight +default-priority-wire-weight+)
+        (dependency parent-id))
+    (http2-priority-tree-add!
+     (http2-server-connection-state-priority-tree conn)
+     stream-id
+     dependency
+     wire-weight
+     #f
+     #f)
+    (register-stream!
+     conn
+     (make-http2-server-stream
+      stream-id
+      'GET
+      "/"
+      "/"
+      #f
+      (make-http-server:headers)
+      '()
+      0
+      (http2-server-connection-state-remote-initial-window-size conn)
+      +default-initial-window-size+
+      0
+      #vu8()
+      #f
+      dependency
+      wire-weight))))
+
+(define (dispatch-pushed-application! conn stream req)
+  (let* ((res (make-http-server:response))
+         (app-handler (http2-server-connection-state-app-handler conn))
+         (result
+          (guard (e (else
+                     (let ((er (make-http-server:response 500)))
+                       (http-server:response-text!
+                        er
+                        "Unhandled application error")
+                       er)))
+            (let ((r (app-handler req res)))
+              (if (http-server:response? r) r res)))))
+    (write-stream-response! conn stream req result)
+    #t))
+
+(define (emit-push-responses! conn stream req res)
+  (when (and (push-enabled? conn req)
+             (pair? (http-server:response-pushes res)))
+    (for-each
+     (lambda (push)
+       (let ((method (car push))
+             (target (cadr push))
+             (headers (caddr push)))
+         (let ((push-id (allocate-push-stream-id! conn)))
+           (when push-id
+             (let-values (((push-req promise-headers)
+                           (prepare-pushed-request conn req push-id method target headers)))
+               (let ((push-stream (make-push-stream conn
+                                                    push-id
+                                                    (http2-server-stream-id stream))))
+                 (send-frame! conn
+                              (make-http2-frame-push-promise
+                               0
+                               (http2-server-stream-id stream)
+                               push-id
+                               promise-headers)
+                              #f)
+                 (dispatch-pushed-application! conn push-stream push-req)))))))
+     (http-server:response-pushes res))))
 
 (define (ensure-stream-id-valid conn sid)
   (when (or (zero? sid) (even? sid)
@@ -415,9 +592,10 @@
   (hashtable-set! (http2-server-connection-state-streams conn)
                   (http2-server-stream-id stream)
                   stream)
-  (http2-server-connection-state-last-stream-id-set!
-   conn
-   (http2-server-stream-id stream))
+  (when (odd? (http2-server-stream-id stream))
+    (http2-server-connection-state-last-stream-id-set!
+     conn
+     (http2-server-stream-id stream)))
   stream)
 
 (define (dispatch-application! conn stream)
@@ -723,6 +901,11 @@
                      ,max-header-bytes)))
                  #f)))
 
+(define (send-settings-ack! conn)
+  (send-frame! conn
+               (make-http2-frame-settings +http2-frame-flag-ack+ 0 '())
+               #f))
+
 (define (consume-preface! conn)
   (let* ((pending (http2-server-connection-state-pending conn))
          (plen (bytevector-length +http2-connection-preface+))
@@ -788,7 +971,11 @@
           (and result (flush-pending-output! conn)))
         #t)))
 
-(define (make-http-server:http2-connection socket config app-handler . opts)
+(define (make-http-server:http2-connection socket config app-handler
+                                           :key
+                                           (settings '())
+                                           (upgrade-request #f)
+                                           (expect-preface? #t))
   (let* ((max-concurrent-streams
           (config-ref config
                       'http2-max-concurrent-streams
@@ -807,16 +994,25 @@
                 (make-frame-buffer)
                 (make-mutex)
                 #vu8()
-                'await-preface
+                (if expect-preface? 'await-preface 'ready)
                 0
+                2
                 +default-max-frame-size+
                 +default-max-frame-size+
-                #f
+                #t
                 +default-initial-window-size+
                 +default-initial-window-size+
                 +default-initial-window-size+
                 0
                 (make-http2-priority-tree priority-node-cap))))
+    (unless expect-preface?
+      (send-initial-settings! conn))
+    (unless (null? settings)
+      (apply-peer-settings! conn settings)
+      (send-settings-ack! conn))
+    (when upgrade-request
+      (replay-upgrade-request! conn upgrade-request)
+      (flush-pending-output! conn))
     (make-http-server:connection
      (lambda (chunk)
        (process-connection! conn chunk))

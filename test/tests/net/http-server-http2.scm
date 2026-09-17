@@ -88,7 +88,7 @@
                     (+ sum (bytevector-length (http2-frame-data-data f))))
               (loop (cdr rest) sum))))))
 
-(define (with-http2-connection app proc)
+(define (with-http2-connection app proc :optional (config (make-http-server-config)))
   (define server-sock #f)
   (define accepted #f)
   (define client #f)
@@ -101,7 +101,7 @@
     (lambda ()
       (let ((conn (make-http-server:http2-connection
                    accepted
-                   (make-http-server-config)
+                   config
                    app)))
         (proc client accepted conn)))
     (lambda ()
@@ -371,5 +371,129 @@
             70000
             (+ sent-before-update sent-after-update))
           (test-assert "final data frame carries END_STREAM" end-frame)))))))
+
+(let ()
+  (define request-headers
+    '((#*":method" #*"GET")
+      (#*":scheme" #*"http")
+      (#*":path" #*"/push-default-off")
+      (#*":authority" #*"localhost")))
+  (with-http2-connection
+   (lambda (req res)
+     (http-server:response-push! res 'GET "/asset.css" '(("x-push" "1")))
+     (http-server:response-text! res "ok")
+     res)
+   (lambda (client accepted conn)
+     (define request-payload
+       (bytevector-append
+        +http2-connection-preface+
+        (encode-frames
+         (list (cons (make-http2-frame-settings 0 0 '()) #f)
+               (cons (make-http2-frame-headers 0 1 #f #f request-headers) #t)))))
+     (test-assert "connection accepts request when push is disabled"
+                  (http-server:connection-process! conn request-payload))
+     (thread-sleep! 0.02)
+     (let* ((frames (decode-frames (recv-bytes client)))
+            (push-frame
+             (find (lambda (f) (http2-frame-push-promise? f)) frames)))
+       (test-assert "push promise is not emitted by default" (not push-frame))))))
+
+(let ()
+  (define request-headers
+    '((#*":method" #*"GET")
+      (#*":scheme" #*"http")
+      (#*":path" #*"/index")
+      (#*":authority" #*"localhost")))
+  (define config (make-http-server-config :http2-enable-push? #t))
+  (with-http2-connection
+   (lambda (req res)
+     (cond ((string=? (http-server:request-path req) "/index")
+            (http-server:response-push! res 'GET "/style.css" '(("x-push" "1")))
+            (http-server:response-text! res "index")
+            res)
+           ((string=? (http-server:request-path req) "/style.css")
+            ;; pushed requests must not recursively trigger push promises.
+            (http-server:response-push! res 'GET "/nested.css" '())
+            (http-server:response-text! res "css")
+            res)
+           (else
+            (http-server:response-text! res "other")
+            res)))
+   (lambda (client accepted conn)
+     (define request-payload
+       (bytevector-append
+        +http2-connection-preface+
+        (encode-frames
+         (list (cons (make-http2-frame-settings 0 0 '()) #f)
+               (cons (make-http2-frame-headers 0 1 #f #f request-headers) #t)))))
+     (test-assert "connection accepts request when push is enabled"
+                  (http-server:connection-process! conn request-payload))
+     (thread-sleep! 0.03)
+     (let* ((frames (decode-frames (recv-bytes client)))
+            (push-frames (filter http2-frame-push-promise? frames))
+            (push-frame (and (pair? push-frames) (car push-frames)))
+            (push-id (and push-frame (http2-frame-push-promise-pushed-promise-id push-frame)))
+            (main-data
+             (find (lambda (f)
+                     (and (http2-frame-data? f)
+                          (= (http2-frame-stream-identifier f) 1)))
+                   frames))
+            (pushed-data
+             (and push-id
+                  (find (lambda (f)
+                          (and (http2-frame-data? f)
+                               (= (http2-frame-stream-identifier f) push-id)))
+                        frames)))
+            (nested-push
+             (and push-id
+                  (find (lambda (f)
+                          (and (http2-frame-push-promise? f)
+                               (= (http2-frame-stream-identifier f) push-id)))
+                        frames))))
+       (test-equal "exactly one push promise is emitted"
+                   1
+                   (length push-frames))
+       (test-assert "pushed stream id is even"
+                    (and push-id (even? push-id)))
+       (test-assert "main response data exists" main-data)
+       (test-assert "pushed response data exists" pushed-data)
+       (test-equal "main response body"
+                   "index"
+                   (and main-data
+                        (utf8->string (http2-frame-data-data main-data))))
+       (test-equal "pushed response body"
+                   "css"
+                   (and pushed-data
+                        (utf8->string (http2-frame-data-data pushed-data))))
+       (test-assert "no recursive push from pushed stream" (not nested-push))))
+   config))
+
+(let ()
+  (define request-headers
+    '((#*":method" #*"GET")
+      (#*":scheme" #*"http")
+      (#*":path" #*"/push-disabled-by-peer")
+      (#*":authority" #*"localhost")))
+  (define config (make-http-server-config :http2-enable-push? #t))
+  (with-http2-connection
+   (lambda (req res)
+     (http-server:response-push! res 'GET "/asset.css" '())
+     (http-server:response-text! res "ok")
+     res)
+   (lambda (client accepted conn)
+     (define request-payload
+       (bytevector-append
+        +http2-connection-preface+
+        (encode-frames
+           (list (cons (make-http2-frame-settings 0 0 `((,+http2-settings-enable-push+ 0))) #f)
+               (cons (make-http2-frame-headers 0 1 #f #f request-headers) #t)))))
+     (test-assert "connection accepts request with peer push disabled"
+                  (http-server:connection-process! conn request-payload))
+     (thread-sleep! 0.02)
+     (let* ((frames (decode-frames (recv-bytes client)))
+            (push-frame
+             (find (lambda (f) (http2-frame-push-promise? f)) frames)))
+       (test-assert "push promise is suppressed by peer settings" (not push-frame))))
+   config))
 
 (test-end)

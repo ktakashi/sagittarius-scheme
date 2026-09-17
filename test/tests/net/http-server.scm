@@ -3,8 +3,12 @@
         (net socket)
         (net server)
         (net http-server)
+	(net http-server upgrade)
 	(net http-server protocol)
 	(net http-server http1)
+  (rfc http2 frame)
+  (rfc http2 hpack)
+  (srfi :1)
         (srfi :18)
         (srfi :64))
 
@@ -29,6 +33,80 @@
       (cond ((> (+ i m) n) #f)
             ((string=? (substring s i (+ i m)) part) #t)
             (else (loop (+ i 1)))))))
+
+(define (flag-set? flags mask)
+  (not (zero? (bitwise-and flags mask))))
+
+(define (encode-frames frames)
+  (define ctx (make-hpack-context 4096))
+  (define buffer (make-frame-buffer))
+  (call-with-bytevector-output-port
+   (lambda (out)
+     (for-each (lambda (entry)
+                 (write-http2-frame out buffer (car entry) (cdr entry) ctx))
+               frames))))
+
+(define (decode-frames bv)
+  (let ((len (bytevector-length bv))
+        (ctx (make-hpack-context 4096))
+        (buffer (make-frame-buffer)))
+    (let loop ((offset 0) (out '()))
+      (if (= offset len)
+          (reverse out)
+          (let ((end (http2-frame-block-end bv offset +http2-max-frame-buffer-size+)))
+            (if (not end)
+                (reverse out)
+                (let ((frame
+                       (read-http2-frame
+                        (open-bytevector-input-port (bytevector-copy bv offset end))
+                        buffer
+                        ctx)))
+                  (loop end (cons frame out)))))))))
+
+(define (recv-bytes sock)
+  (socket-set-read-timeout! sock 200)
+  (let loop ((chunks '()))
+    (guard (e ((socket-read-timeout-error? e)
+               (bytevector-concatenate (reverse chunks)))
+              ((socket-closed-error? e)
+               (bytevector-concatenate (reverse chunks))))
+      (let ((bv (socket-recv sock 8192)))
+        (if (and bv (bytevector? bv) (> (bytevector-length bv) 0))
+            (loop (cons bv chunks))
+            (bytevector-concatenate (reverse chunks)))))))
+
+(define (header-value headers name)
+  (let ((key (string->utf8 name)))
+    (let loop ((rest headers))
+      (and (pair? rest)
+           (let* ((e (car rest))
+                  (n (and (pair? e) (car e)))
+                  (v (and (pair? e) (pair? (cdr e)) (cadr e))))
+             (if (and (bytevector? n) (bytevector? v) (bytevector=? n key))
+                 (utf8->string v)
+                 (loop (cdr rest))))))))
+
+(define (bytevector-find-subsequence bv sub)
+  (let ((n (bytevector-length bv))
+        (m (bytevector-length sub)))
+    (let loop ((i 0))
+      (cond ((> (+ i m) n) #f)
+            ((let loop2 ((j 0))
+               (if (= j m)
+                   #t
+                   (and (= (bytevector-u8-ref bv (+ i j))
+                           (bytevector-u8-ref sub j))
+                        (loop2 (+ j 1)))))
+             i)
+            (else (loop (+ i 1)))))))
+
+(define (split-http-response bv)
+  (let* ((sep #*"\r\n\r\n")
+         (idx (bytevector-find-subsequence bv sep)))
+    (if idx
+        (values (bytevector-copy bv 0 (+ idx 4))
+                (bytevector-copy bv (+ idx 4) (bytevector-length bv)))
+        (values bv #vu8()))))
 
 (let ()
   (define legacy-driver
@@ -312,6 +390,136 @@
     (socket-close sock))
   
   
+  (server-stop! server))
+
+(let ()
+  (define request-headers
+    '((#*":method" #*"GET")
+      (#*":scheme" #*"http")
+      (#*":path" #*"/h2c-prior")
+      (#*":authority" #*"localhost")))
+  (define (app req res)
+    (http-server:response-text! res "h2c-prior-ok")
+    res)
+  (define config
+    (make-http-server-config :http2-cleartext? #t))
+  (define server (make-http-server "0" app :config config))
+  (server-start! server :background #t)
+  (thread-sleep! 0.2)
+  (let ((sock (make-client-socket "localhost" (server-port server))))
+    (socket-send
+     sock
+     (bytevector-append
+      +http2-connection-preface+
+      (encode-frames
+       (list (cons (make-http2-frame-settings 0 0 '()) #f)
+             (cons (make-http2-frame-headers 0 1 #f #f request-headers) #t)))))
+    (thread-sleep! 0.05)
+    (let* ((frames (decode-frames (recv-bytes sock)))
+           (response-headers-frame
+            (find (lambda (f)
+                    (and (http2-frame-headers? f)
+                         (= (http2-frame-stream-identifier f) 1)))
+                  frames))
+           (response-data-frame
+            (find (lambda (f)
+                    (and (http2-frame-data? f)
+                         (= (http2-frame-stream-identifier f) 1)))
+                  frames)))
+      (test-assert "h2c prior-knowledge response headers" response-headers-frame)
+      (test-assert "h2c prior-knowledge response data" response-data-frame)
+      (test-equal "h2c prior-knowledge status"
+                  "200"
+                  (and response-headers-frame
+                       (header-value (http2-frame-headers-headers response-headers-frame)
+                                     ":status")))
+      (test-equal "h2c prior-knowledge body"
+                  "h2c-prior-ok"
+                  (and response-data-frame
+                       (utf8->string (http2-frame-data-data response-data-frame)))))
+    (socket-close sock))
+  (server-stop! server))
+
+(let ()
+  (define (app req res)
+    (http-server:response-text! res "h2c-upgrade-ok")
+    res)
+  (define config
+    (make-http-server-config :http2-cleartext? #t))
+  (define server (make-http-server "0" app :config config))
+  (server-start! server :background #t)
+  (thread-sleep! 0.2)
+  (let ((sock (make-client-socket "localhost" (server-port server))))
+    (socket-send
+     sock
+     #*"GET /h2c-upgrade HTTP/1.1\r\nHost: localhost\r\nConnection: Upgrade, HTTP2-Settings\r\nUpgrade: h2c\r\nHTTP2-Settings: AAMAAABkAAQAAP__\r\n\r\n")
+    (thread-sleep! 0.05)
+    (let-values (((head tail) (split-http-response (recv-bytes sock))))
+      (let* ((txt (utf8->string head))
+             (frames (decode-frames tail))
+             (response-headers-frame
+              (find (lambda (f)
+                      (and (http2-frame-headers? f)
+                           (= (http2-frame-stream-identifier f) 1)))
+                    frames))
+             (response-data-frame
+              (find (lambda (f)
+                      (and (http2-frame-data? f)
+                           (= (http2-frame-stream-identifier f) 1)))
+                    frames))
+             (settings-ack-frame
+              (find (lambda (f)
+                      (and (http2-frame-settings? f)
+                           (flag-set? (http2-frame-flags f) +http2-frame-flag-ack+)))
+                    frames)))
+        (test-assert "h2c upgrade sends 101" (contains? txt "HTTP/1.1 101 Switching Protocols"))
+        (test-assert "h2c upgrade sends settings ack" settings-ack-frame)
+        (test-assert "h2c upgrade response headers" response-headers-frame)
+        (test-assert "h2c upgrade response data" response-data-frame)
+        (test-equal "h2c upgrade status"
+                    "200"
+                    (and response-headers-frame
+                         (header-value (http2-frame-headers-headers response-headers-frame)
+                                       ":status")))
+        (test-equal "h2c upgrade body"
+                    "h2c-upgrade-ok"
+                    (and response-data-frame
+                         (utf8->string (http2-frame-data-data response-data-frame))))))
+    (socket-close sock))
+  (server-stop! server))
+
+(let ()
+  (define registry (make-http-server:upgrade-registry))
+  (define (app req res)
+    (http-server:response-text! res "http1-fallback")
+    res)
+  (define server (make-http-server "0" app :upgrade-registry registry))
+  (http-server:register-upgrade-handler!
+   registry
+   "x-echo"
+   (lambda (conn req remainder app-handler)
+     (socket-send
+      (http-server:connection-socket conn)
+      #*"HTTP/1.1 101 Switching Protocols\r\nConnection: Upgrade\r\nUpgrade: x-echo\r\n\r\n")
+     (values 'handled
+             (make-http-server:custom-connection
+              (http-server:connection-server conn)
+              (http-server:connection-socket conn)
+              (lambda (chunk) #t)
+              (lambda () #t))
+             #t)))
+  (server-start! server :background #t)
+  (thread-sleep! 0.2)
+  (let ((sock (make-client-socket "localhost" (server-port server))))
+    (socket-send
+     sock
+     #*"GET /upgrade HTTP/1.1\r\nHost: localhost\r\nConnection: Upgrade\r\nUpgrade: x-echo\r\n\r\n")
+    (let ((txt (recv-text sock)))
+      (test-assert "custom upgrade handler sends 101"
+                   (contains? txt "HTTP/1.1 101 Switching Protocols"))
+      (test-assert "custom upgrade protocol token"
+                   (contains? txt "Upgrade: x-echo")))
+    (socket-close sock))
   (server-stop! server))
 
 (test-end)

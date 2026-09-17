@@ -30,81 +30,103 @@
 
 #!nounbound
 (library (net http-server)
-  (export make-http-server
+    (export make-http-server
 
-          http-server-config?
-          make-http-server-config
-          http-server-config-max-header-bytes
-          http-server-config-max-body-bytes
-          http-server-config-max-pipelined-requests
-          http-server-config-max-requests-per-connection
-          http-server-config-read-size
-          http-server-config-cache
+	    http-server-config?
+	    make-http-server-config
+	    http-server-config-max-header-bytes
+	    http-server-config-max-body-bytes
+	    http-server-config-max-pipelined-requests
+	    http-server-config-max-requests-per-connection
+	    http-server-config-read-size
+	    http-server-config-cache
+	    http-server-config-http2?
+	    http-server-config-http2-cleartext?
+	    http-server-config-http2-enable-push?
+            http-server:upgrade-registry?
+            make-http-server:upgrade-registry
+            http-server:register-upgrade-handler!
 
-          http-server:request?
-          make-http-server:request
-          http-server:request-method
-          http-server:request-target
-          http-server:request-path
-          http-server:request-query
-          http-server:request-http-version
-          http-server:request-headers
-          http-server:request-body-bytevector
-          http-server:request-body-port
-          http-server:request-remote
-          http-server:request-attributes
-          http-server:request-header-ref
-          http-server:request-header-ref*
-          http-server:request-attribute-ref
-          http-server:request-attribute-set!
+	    http-server:request?
+	    make-http-server:request
+	    http-server:request-method
+	    http-server:request-target
+	    http-server:request-path
+	    http-server:request-query
+	    http-server:request-http-version
+	    http-server:request-headers
+	    http-server:request-body-bytevector
+	    http-server:request-body-port
+	    http-server:request-remote
+	    http-server:request-attributes
+	    http-server:request-header-ref
+	    http-server:request-header-ref*
+	    http-server:request-attribute-ref
+	    http-server:request-attribute-set!
 
-          http-server:response?
-          make-http-server:response
-          http-server:response-status
-          http-server:response-status-set!
-          http-server:response-reason
-          http-server:response-reason-set!
-          http-server:response-headers
-          http-server:response-body
-          http-server:response-body-set!
-          http-server:response-cacheable?
-          http-server:response-cacheable?-set!
-          http-server:response-cache-ttl
-          http-server:response-cache-ttl-set!
-          http-server:response-header-ref
-          http-server:response-header-ref*
-          http-server:response-header-set!
-          http-server:response-header-add!
-          http-server:response-text!
-          http-server:response-bytes!
+	    http-server:response?
+	    make-http-server:response
+	    http-server:response-status
+	    http-server:response-status-set!
+	    http-server:response-reason
+	    http-server:response-reason-set!
+	    http-server:response-headers
+	    http-server:response-body
+	    http-server:response-body-set!
+	    http-server:response-pushes
+	    http-server:response-cacheable?
+	    http-server:response-cacheable?-set!
+	    http-server:response-cache-ttl
+	    http-server:response-cache-ttl-set!
+	    http-server:response-header-ref
+	    http-server:response-header-ref*
+	    http-server:response-header-set!
+	    http-server:response-header-add!
+	    http-server:response-push!
+	    http-server:response-text!
+	    http-server:response-bytes!
 
-          http-server:router?
-          make-http-server:router
-          http-server:router-add-route!
-          http-server:make-router-handler
+	    http-server:router?
+	    make-http-server:router
+	    http-server:router-add-route!
+	    http-server:make-router-handler
 
-          http-server:cache?
-          make-http-server:cache
-          http-server:cache-lookup
-          http-server:cache-store!
-          http-server:cache-invalidate!
-          http-server:cache-clear!
-          http-server:make-cache-middleware
-          make-http-server:memory-cache)
-  (import (rnrs)
-	  (clos user)
-          (srfi :18)
-          (net socket)
-          (net server)
-          (net http-server types)
-          (net http-server request)
-          (net http-server response)
-          (net http-server router)
-          (net http-server cache)
-          (net http-server cache memory)
-	  (net http-server protocol)
-	  (net http-server http1)
-	  (util bytevector))
+	    http-server:cache?
+	    make-http-server:cache
+	    http-server:cache-lookup
+	    http-server:cache-store!
+	    http-server:cache-invalidate!
+	    http-server:cache-clear!
+	    http-server:make-cache-middleware
+	    make-http-server:memory-cache)
+    (import (rnrs)
+	    (clos user)
+	    (sagittarius) ;; for get-keyword
+	    (srfi :18)
+	    (net socket)
+	    (net server)
+	    (net http-server types)
+	    (net http-server request)
+	    (net http-server response)
+	    (net http-server router)
+	    (net http-server cache)
+	    (net http-server cache memory)
+	    (only (net http-server protocol)
+		  make-http-server:protocol-registry
+		  http-server:register-protocol-driver!
+		  http-server:protocol-driver-consume!
+		  http-server:protocol-driver-serve!
+		  http-server:connection-oriented-driver?
+		  http-server:protocol-driver-connect!)
+	    (rename (only (net http-server protocol)
+			  http-server:connection-process!)
+		    (http-server:connection-process!
+		     protocol-connection-process!))
+	    (net http-server upgrade)
+	    (net http-server h2c)
+	    (net http-server http1)
+	    (net http-server http2)
+	    (util bytevector))
 
 (define-class <http-server-config> (<server-config>)
   ((max-header-bytes :init-keyword :max-header-bytes :init-value 65536
@@ -121,26 +143,32 @@
 	      :reader http-server-config-read-size)
    (cache :init-keyword :cache :init-form (make-http-server:memory-cache)
 	  :reader http-server-config-cache)
+   (http2? :init-keyword :http2? :init-value #t
+	   :reader http-server-config-http2?)
+   (http2-cleartext? :init-keyword :http2-cleartext? :init-value #f
+		     :reader http-server-config-http2-cleartext?)
+   (http2-enable-push? :init-keyword :http2-enable-push? :init-value #f
+		       :reader http-server-config-http2-enable-push?)
    (max-drain :init-keyword :max-drain :init-value 8)
-   (select-delay :init-keyword :select-delay :init-value 1) 
-   ))
+   (select-delay :init-keyword :select-delay :init-value 1)))
+
 (define (make-http-server-config . opts)
+  (define http2? (get-keyword :http2? opts #t))
+  (define opts*
+    (if (memq :alpn opts)
+        opts
+        (append (list :alpn (if http2? '("h2" "http/1.1") '("http/1.1"))) opts)))
   (apply make <http-server-config>
 	 :close-socket? #f
-	 opts))
+	 opts*))
 (define (http-server-config? o) (is-a? o <http-server-config>))
 
 (define-class <http-server> (<simple-server>)
   ((registry :init-keyword :registry)
+  (upgrade-registry :init-keyword :upgrade-registry)
    (app-handler :init-keyword :app-handler)
    (states :init-form (make-eq-hashtable))
    (lock :init-form (make-mutex))))
-
-(define-record-type connection-state
-  (fields (mutable buffer)
-          (mutable request-count)
-          (mutable parse-state)
-          driver))
 
 (define (make-error-response code message)
   (let ((res (make-http-server:response code)))
@@ -151,117 +179,6 @@
 
 (define (normalize-handler-result result fallback)
   (if (http-server:response? result) result fallback))
-
-(define (make-http-server port handler :key (config (make-http-server-config)))
-  (define app-handler
-    (let ((cache (http-server-config-cache config)))
-      (if (http-server:cache? cache)
-          (http-server:make-cache-middleware cache handler)
-          handler)))
-
-  (define registry
-    (let ((r (make-http-server:protocol-registry *http-server:http1-driver*)))
-      (http-server:register-protocol-driver! r 
-	"http/1.1" *http-server:http1-driver*)
-      r))
-  (define max-drain (slot-ref config 'max-drain))
-  (define select-delay (slot-ref config 'select-delay))
-  (define (socket-handler server socket)
-    (let ((state (get-state server socket)))
-      (let loop ((drain-count 0))
-        (let ((chunk (socket-recv socket (http-server-config-read-size config))))
-          (if (or (not chunk) (zero? (bytevector-length chunk)))
-              (close-connection! server socket)
-              (begin
-                (connection-state-buffer-set! state
-                 (bytevector-append (connection-state-buffer state) chunk))
-                (unless (serve-state! server socket state)
-                  (when (and (connection-open? server socket)
-                             (< drain-count max-drain)
-			     (socket-ready? socket 'read select-delay)
-                             #;(pair? (socket-read-select select-delay socket)))
-                    (loop (+ drain-count 1))))))))))
-
-  (make-simple-server port socket-handler
-		      :server-class <http-server>
-		      :config config
-		      :registry registry
-		      :app-handler app-handler))
-
-;; internal
-(define (get-state server socket)
-  (define lock (slot-ref server 'lock))
-  (define states (slot-ref server 'states))
-  (define registry (slot-ref server 'registry))
-
-  (mutex-lock! lock)
-  (let ((state (hashtable-ref states socket #f)))
-    (if state
-        (begin
-          (mutex-unlock! lock)
-          state)
-         (let* ((driver (http-server:select-protocol-driver registry socket))
-           (new-state (make-connection-state #vu8() 0 #f driver)))
-          (hashtable-set! states socket new-state)
-          (mutex-unlock! lock)
-          new-state))))
-
-(define (serve-state! server socket state)
-  (define app-handler (slot-ref server 'app-handler))
-  (define driver (connection-state-driver state))
-  (define config (slot-ref server 'config))
-  (define max-header-bytes (http-server-config-max-header-bytes config))
-  (define max-body-bytes (http-server-config-max-body-bytes config))
-  (define max-requests-per-connection
-    (http-server-config-max-requests-per-connection config))
-  (define max-pipelined-requests
-    (http-server-config-max-pipelined-requests config))
-  (let loop ((served 0))
-    (let-values (((kind req b remainder next-state)
-                  (http-server:protocol-driver-consume! driver
-                   (connection-state-parse-state state)
-		   (connection-state-buffer state)
-                   :max-header-bytes max-header-bytes
-                   :max-body-bytes max-body-bytes)))
-      (cond ((or (eq? kind 'start)
-                 (eq? kind 'line)
-                 (eq? kind 'header))
-             (connection-state-buffer-set! state remainder)
-             (connection-state-parse-state-set! state next-state)
-             #f)
-            ((eq? kind 'error)
-             (connection-state-parse-state-set! state #f)
-             (let* ((code req)
-		    (message b)
-                    (res (make-error-response code message)))
-               (http-server:protocol-driver-serve! driver socket #f res)
-               (close-connection! server socket)
-               #t))
-            (else
-             (connection-state-buffer-set! state remainder)
-	     (connection-state-parse-state-set! state #f)
-	     (http-server:request-remote-set! req (remote-info socket))
-             (let* ((res (make-http-server:response))
-                    (result
-                     (guard (e (else
-                                (let ((er (make-http-server:response 500)))
-                                  (http-server:response-text!
-                                   er
-                                   "Unhandled application error")
-                                  er)))
-                       (normalize-handler-result (app-handler req res) res)))
-                    (close? (http-server:protocol-driver-serve!
-			     driver socket req result)))
-               (connection-state-request-count-set! state
-                (+ 1 (connection-state-request-count state)))
-               (if (or close?
-                       (>= (connection-state-request-count state)
-                           max-requests-per-connection))
-                   (close-connection! server socket)
-                   (if (and (< served max-pipelined-requests)
-                            (> (bytevector-length (connection-state-buffer state)) 0))
-                       (loop (+ served 1))
-                       #f))))))))
 
 (define (connection-open? server socket)
   (define lock (slot-ref server 'lock))
@@ -276,9 +193,19 @@
   (define lock (slot-ref server 'lock))
   (define states (slot-ref server 'states))
 
-  (mutex-lock! lock)
-  (hashtable-delete! states socket)
-  (mutex-unlock! lock)
+  (define conn
+    (begin
+      (mutex-lock! lock)
+      (let* ((state (hashtable-ref states socket #f))
+             (conn state))
+        (hashtable-delete! states socket)
+        (mutex-unlock! lock)
+        conn)))
+
+  (when conn
+    (guard (e (else #f))
+      (http-server:connection-close! conn)))
+
   (server-detach-socket! server socket)
   (socket-close socket)
   #t)
@@ -286,4 +213,200 @@
 (define (remote-info socket)
   (guard (e (else #f))
     (socket-info socket)))
-)
+
+(define (make-http-server port handler
+                          :key (config (make-http-server-config))
+                               (upgrade-registry (make-http-server:upgrade-registry)))
+  (define effective-upgrade-registry
+    (http-server:register-h2c-upgrade-handler! upgrade-registry))
+  (define app-handler
+    (let ((cache (http-server-config-cache config)))
+      (if (http-server:cache? cache)
+          (http-server:make-cache-middleware cache handler)
+          handler)))
+
+  (define registry
+    (let ((r (make-http-server:protocol-registry *http-server:http1-driver*)))
+      (http-server:register-protocol-driver! r
+	"http/1.1" *http-server:http1-driver*)
+      (when (http-server-config-http2? config)
+        (http-server:register-protocol-driver! r "h2" *http-server:http2-driver*))
+      r))
+  (define max-drain (slot-ref config 'max-drain))
+  (define select-delay (slot-ref config 'select-delay))
+  (define (socket-handler server socket)
+    (let ((conn (get-state server socket)))
+      (let loop ((drain-count 0))
+        (let ((chunk (socket-recv socket (http-server-config-read-size config))))
+          (if (or (not chunk) (zero? (bytevector-length chunk)))
+              (close-connection! server socket)
+              (cond
+               ((http-server:http-connection? conn)
+                (http-server:http-connection-buffer-set!
+                 conn
+                 (bytevector-append (http-server:http-connection-buffer conn)
+                                    chunk))
+                (unless (serve-state! server socket conn)
+                  (when (and (connection-open? server socket)
+                             (< drain-count max-drain)
+			     (socket-ready? socket 'read select-delay)
+                             #;(pair? (socket-read-select select-delay socket)))
+                    (loop (+ drain-count 1)))))
+               ((http-server:custom-connection? conn)
+                (unless ((http-server:custom-connection-process conn) chunk)
+                  (close-connection! server socket)))
+               (else
+                (close-connection! server socket))))))))
+
+  (make-simple-server port socket-handler
+		      :server-class <http-server>
+		      :config config
+		      :registry registry
+          :upgrade-registry effective-upgrade-registry
+		      :app-handler app-handler))
+
+;; internal
+(define (get-state server socket)
+  (define lock (slot-ref server 'lock))
+  (define states (slot-ref server 'states))
+
+  (mutex-lock! lock)
+  (let ((state (hashtable-ref states socket #f)))
+    (if state
+        (begin
+          (mutex-unlock! lock)
+          state)
+        (let ((new-state (http-server:make-server-http-connection server socket)))
+          (hashtable-set! states socket new-state)
+          (mutex-unlock! lock)
+          new-state))))
+
+(define (set-state! server socket conn)
+  (define lock (slot-ref server 'lock))
+  (define states (slot-ref server 'states))
+
+  (mutex-lock! lock)
+  (hashtable-set! states socket conn)
+  (mutex-unlock! lock))
+
+(define (serve-state! server socket state0)
+  (define app-handler (slot-ref server 'app-handler))
+  (define config (slot-ref server 'config))
+  (define max-header-bytes (http-server-config-max-header-bytes config))
+  (define max-body-bytes (http-server-config-max-body-bytes config))
+  (define max-requests-per-connection
+    (http-server-config-max-requests-per-connection config))
+  (define max-pipelined-requests
+    (http-server-config-max-pipelined-requests config))
+  (define (connect! state)
+    (let ((c (http-server:protocol-driver-connect!
+              (http-server:http-connection-driver state)
+              socket
+              config
+              app-handler)))
+      (http-server:http-connection-protocol-connection-set! state c)
+      c))
+
+  (define (serve-with-connection-driver! state)
+    (let ((driver (http-server:http-connection-driver state))
+          (conn (or (http-server:http-connection-protocol-connection state)
+                    (connect! state)))
+          (chunk (http-server:http-connection-buffer state)))
+      (http-server:http-connection-buffer-set! state #vu8())
+      (http-server:http-connection-parse-state-set! state #f)
+      (cond ((protocol-connection-process! conn chunk) #t)
+	    (else (close-connection! server socket) #t))))
+
+  (let ((state state0))
+    (let-values (((prior-status prior-state prior-open?)
+                  (http-server:http-connection-check-prior-knowledge!
+                   state
+                   app-handler)))
+      (set! state prior-state)
+      (cond
+       ((eq? prior-status 'wait) #f)
+       ((eq? prior-status 'handled)
+        (unless (eq? state state0)
+          (set-state! server socket state))
+        (if prior-open?
+            #f
+            (begin
+              (close-connection! server socket)
+              #t)))
+       ((http-server:connection-oriented-driver?
+         (http-server:http-connection-driver state))
+        (serve-with-connection-driver! state))
+       (else
+        (let loop ((served 0))
+          (let ((driver (http-server:http-connection-driver state)))
+            (let-values (((kind req b remainder next-state)
+                          (http-server:protocol-driver-consume!
+                           driver
+                           (http-server:http-connection-parse-state state)
+                           (http-server:http-connection-buffer state)
+                           :max-header-bytes max-header-bytes
+                           :max-body-bytes max-body-bytes)))
+              (cond
+               ((or (eq? kind 'start)
+                    (eq? kind 'line)
+                    (eq? kind 'header))
+                (http-server:http-connection-buffer-set! state remainder)
+                (http-server:http-connection-parse-state-set! state next-state)
+                #f)
+               ((eq? kind 'error)
+                (http-server:http-connection-parse-state-set! state #f)
+                (let* ((code req)
+                       (message b)
+                       (res (make-error-response code message)))
+                  (http-server:protocol-driver-serve! driver socket #f res)
+                  (close-connection! server socket)
+                  #t))
+               (else
+                (http-server:http-connection-buffer-set! state remainder)
+                (http-server:http-connection-parse-state-set! state #f)
+                (http-server:request-remote-set! req (remote-info socket))
+                (let-values (((upgrade-status upgraded-state keep-open?)
+                              (http-server:http-connection-attempt-upgrade!
+                               state
+                               req
+                               remainder
+                               app-handler)))
+                  (cond
+                   ((eq? upgrade-status 'handled)
+                    (unless (eq? upgraded-state state)
+                      (set! state upgraded-state)
+                      (set-state! server socket state))
+                    (if keep-open?
+                        #f
+                        (begin
+                          (close-connection! server socket)
+                          #t)))
+                   ((eq? upgrade-status 'error)
+                    (close-connection! server socket)
+                    #t)
+                   (else
+                    (let* ((res (make-http-server:response))
+                           (result
+                            (guard (e (else
+                                       (let ((er (make-http-server:response 500)))
+                                         (http-server:response-text!
+                                          er
+                                          "Unhandled application error")
+                                         er)))
+                              (normalize-handler-result (app-handler req res) res)))
+                           (close? (http-server:protocol-driver-serve!
+                                    driver socket req result)))
+                      (http-server:http-connection-request-count-set! state
+                       (+ 1 (http-server:http-connection-request-count state)))
+                            (if (or close?
+                              (>= (http-server:http-connection-request-count state)
+                            max-requests-per-connection))
+                          (close-connection! server socket)
+                          (if (and (< served max-pipelined-requests)
+                             (> (bytevector-length
+                                 (http-server:http-connection-buffer state)) 0))
+                              (loop (+ served 1))
+                              #f)))))))))))))))))
+
+
+
