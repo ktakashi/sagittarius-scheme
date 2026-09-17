@@ -18,6 +18,7 @@
           (net http-server response)
           (net http-server http1)
           (only (net http-server http2)
+                make-http-server:http2-upgrade-connection
                 make-http-server:http2-connection
                 *http-server:http2-driver*)
           (only (net http-server protocol)
@@ -78,6 +79,8 @@
           (make-http-server:http2-upgrade-connection
            server
            socket
+             #f
+             #f
            #vu8()
            (http-server:http-connection-request-count conn)
            #f

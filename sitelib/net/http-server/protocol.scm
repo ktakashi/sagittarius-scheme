@@ -5,8 +5,11 @@
 
 #!nounbound
 (library (net http-server protocol)
-    (export http-server:connection?
+    (export http-server:connection
+	    http-server:connection?
 	    make-http-server:connection
+	    http-server:connection-server
+	    http-server:connection-socket
 	    http-server:connection-process
 	    http-server:connection-close
 	    http-server:connection-process!
@@ -27,8 +30,17 @@
     (import (rnrs)
             (net socket))
 
-(define-record-type http-server:connection
-  (fields process close))
+(define-record-type (http-server:connection
+		     %make-http-server:connection
+		     http-server:connection?)
+  (fields server socket process close))
+
+(define make-http-server:connection
+  (case-lambda
+   ((process close)
+    (%make-http-server:connection #f #f process close))
+   ((server socket process close)
+    (%make-http-server:connection server socket process close))))
 
 (define (http-server:connection-process! conn chunk)
   ((http-server:connection-process conn) chunk))

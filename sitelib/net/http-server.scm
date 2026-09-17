@@ -114,6 +114,8 @@
 	    (only (net http-server protocol)
 		  make-http-server:protocol-registry
 		  http-server:register-protocol-driver!
+		  http-server:protocol-driver-name
+		  http-server:select-protocol-driver
 		  http-server:protocol-driver-consume!
 		  http-server:protocol-driver-serve!
 		  http-server:connection-oriented-driver?
@@ -266,6 +268,36 @@
 		      :app-handler app-handler))
 
 ;; internal
+(define (make-server-http-connection server socket)
+  (let* ((protocol-registry (slot-ref server 'registry))
+         (upgrade-registry (slot-ref server 'upgrade-registry))
+         (driver (http-server:select-protocol-driver protocol-registry socket)))
+    (if (string=? (http-server:protocol-driver-name driver) "h2")
+        (make-http-server:http2-upgrade-connection
+         server
+         socket
+         #f
+         #f
+         #vu8()
+         0
+         #f
+         driver
+         #f
+         protocol-registry
+         upgrade-registry)
+        (make-http-server:http1-connection
+         server
+         socket
+         #f
+         #f
+         #vu8()
+         0
+         #f
+         driver
+         #f
+         protocol-registry
+         upgrade-registry))))
+
 (define (get-state server socket)
   (define lock (slot-ref server 'lock))
   (define states (slot-ref server 'states))
@@ -276,7 +308,7 @@
         (begin
           (mutex-unlock! lock)
           state)
-        (let ((new-state (http-server:make-server-http-connection server socket)))
+        (let ((new-state (make-server-http-connection server socket)))
           (hashtable-set! states socket new-state)
           (mutex-unlock! lock)
           new-state))))

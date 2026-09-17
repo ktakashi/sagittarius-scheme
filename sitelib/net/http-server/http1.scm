@@ -6,20 +6,27 @@
 #!nounbound
 #!read-macro=sagittarius/regex
 (library (net http-server http1)
-  (export http-server:http1-request?
-	  *http-server:http1-driver*)
-  (import (rnrs)
-          (net socket)
-          (net http-server types)
-	  (net http-server request)
-          (net http-server response)
-	  (net http-server protocol)
-	  (rfc :5322)
-	  (sagittarius regex)
-	  (srfi :1 lists)
-	  (srfi :2 and-let*)
-	  (srfi :13 strings)
-	  (util bytevector))
+    (export http-server:http1-request?
+	    http-server:http1-connection?
+	    make-http-server:http1-connection
+	    *http-server:http1-driver*)
+    (import (rnrs)
+            (net socket)
+            (net http-server types)
+	    (net http-server request)
+            (net http-server response)
+	    (net http-server protocol)
+	    (only (net http-server upgrade)
+		  http-server:http-connection)
+	    (rfc :5322)
+	    (sagittarius regex)
+	    (srfi :1 lists)
+	    (srfi :2 and-let*)
+	    (srfi :13 strings)
+	    (util bytevector))
+
+(define-record-type http-server:http1-connection
+  (parent http-server:http-connection))
 
 (define-record-type http-server:http1-request
   (parent http-server:request)

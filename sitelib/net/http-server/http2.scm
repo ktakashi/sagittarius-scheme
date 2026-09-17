@@ -10,6 +10,8 @@
 (library (net http-server http2)
     (export http-server:http2-request?
 	    http-server:http2-request-stream-id
+	    http-server:http2-connection?
+	    make-http-server:http2-upgrade-connection
 	    make-http-server:http2-connection
 	    *http-server:http2-driver*)
     (import (rnrs)
@@ -18,6 +20,8 @@
 	    (srfi :18)
 	    (net socket)
 	    (net http-server protocol)
+	    (only (net http-server upgrade)
+		  http-server:http-connection)
 	    (net http-server request)
 	    (net http-server response)
 	    (net http-server types)
@@ -26,6 +30,11 @@
 	    (rfc http2 hpack)
 	    (rfc http2 priority)
 	    (util bytevector))
+
+(define-record-type (http-server:http2-connection
+                     make-http-server:http2-upgrade-connection
+                     http-server:http2-connection?)
+  (parent http-server:http-connection))
 
 (define +default-max-header-bytes+ 65536)
 (define +default-max-body-bytes+ 1048576)
