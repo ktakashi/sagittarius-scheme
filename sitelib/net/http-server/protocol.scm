@@ -71,14 +71,7 @@
     ((http-server:connection-close conn))))
 
 (define-record-type http-server:protocol-driver
-  (fields name consume serve connect)
-  (protocol
-   (lambda (p)
-     (case-lambda
-      ((name consume serve)
-	(p name consume serve #f))
-      ((name consume serve connect)
-	(p name consume serve connect))))))
+  (fields name consume serve connect))
 
 (define-record-type http-server:protocol-registry
   (fields (mutable drivers)
