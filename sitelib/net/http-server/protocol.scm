@@ -15,6 +15,19 @@
 	    http-server:connection-process!
 	    http-server:connection-close!
 
+	    http-server:http-connection
+	    http-server:http-connection?
+	    make-http-server:http-connection
+	    http-server:http-connection-buffer
+	    http-server:http-connection-buffer-set!
+	    http-server:http-connection-request-count
+	    http-server:http-connection-request-count-set!
+	    http-server:http-connection-parse-state
+	    http-server:http-connection-parse-state-set!
+	    http-server:http-connection-driver
+	    http-server:http-connection-upgrade-registry
+
+
 	    http-server:protocol-driver?
 	    make-http-server:protocol-driver
 	    http-server:protocol-driver-name
@@ -35,6 +48,14 @@
 		     http-server:connection?)
   (fields server socket process close))
 
+(define-record-type http-server:http-connection
+  (parent http-server:connection)
+  (fields (mutable buffer)
+          (mutable request-count)
+          (mutable parse-state)
+          driver
+          upgrade-registry))
+
 (define make-http-server:connection
   (case-lambda
    ((process close)
@@ -46,7 +67,8 @@
   ((http-server:connection-process conn) chunk))
 
 (define (http-server:connection-close! conn)
-  ((http-server:connection-close conn)))
+  (guard (e (else #f))
+    ((http-server:connection-close conn))))
 
 (define-record-type http-server:protocol-driver
   (fields name consume serve connect)
@@ -66,20 +88,20 @@
 		(p '() driver)))))
 
 ;; consume returns: status, req-or-code, extra, remainder, next-state (#f => fresh)
-(define (http-server:protocol-driver-consume! driver state buffer . rest)
-  (apply (http-server:protocol-driver-consume driver) state buffer rest))
+(define (http-server:protocol-driver-consume! driver conn . rest)
+  (apply (http-server:protocol-driver-consume driver) conn rest))
 
 ;; req = #f, error response
-(define (http-server:protocol-driver-serve! driver socket req result)
-  ((http-server:protocol-driver-serve driver) socket req result))
+(define (http-server:protocol-driver-serve! driver conn req result)
+  ((http-server:protocol-driver-serve driver) conn req result))
 
 (define (http-server:connection-oriented-driver? driver)
   (and (http-server:protocol-driver-connect driver) #t))
 
-(define (http-server:protocol-driver-connect! driver socket config app-handler . rest)
+(define (http-server:protocol-driver-connect! driver server socket app-handler . rest)
   (let ((connect (http-server:protocol-driver-connect driver)))
     (if connect
-	(apply connect socket config app-handler rest)
+	(apply connect server socket app-handler rest)
 	(assertion-violation 'http-server:protocol-driver-connect!
 			     "Connection oriented protocol driver required"
 			     driver))))

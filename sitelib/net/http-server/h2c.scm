@@ -17,15 +17,8 @@
           (net http-server request)
           (net http-server response)
           (net http-server http1)
-          (only (net http-server http2)
-                make-http-server:http2-upgrade-connection
-                make-http-server:http2-connection
-                *http-server:http2-driver*)
-          (only (net http-server protocol)
-                http-server:protocol-driver-serve!)
-          (rename (only (net http-server protocol)
-                        http-server:connection-process!)
-                  (http-server:connection-process! protocol-connection-process!))
+          (net http-server http2)
+          (net http-server protocol)
           (net http-server upgrade)
           (rfc base64)
           (rfc http2 frame))
@@ -71,24 +64,8 @@
 
 (define (make-http2-connection-from-http1 conn app-handler . opts)
   (let* ((server (http-server:connection-server conn))
-         (socket (http-server:connection-socket conn))
-         (config (slot-ref server 'config))
-         (protocol-conn
-          (apply make-http-server:http2-connection socket config app-handler opts))
-         (new-conn
-          (make-http-server:http2-upgrade-connection
-           server
-           socket
-             #f
-             #f
-           #vu8()
-           (http-server:http-connection-request-count conn)
-           #f
-           *http-server:http2-driver*
-           protocol-conn
-           (http-server:http-connection-protocol-registry conn)
-           (http-server:http-connection-upgrade-registry conn))))
-    (values new-conn protocol-conn)))
+         (socket (http-server:connection-socket conn)))
+    (apply make-http-server:http2-connection server socket app-handler opts)))
 
 (define (h2c-upgrade-settings req)
   (define headers (http-server:request-headers req))
@@ -123,17 +100,17 @@
              (let* ((settings (decode-http2-settings-value
                                (http-server:request-header-ref req "http2-settings" #f))))
                (write-h2c-switching-protocols! socket)
-               (let-values (((new-conn protocol-conn)
-                             (make-http2-connection-from-http1
-                              conn
-                              app-handler
-                              :settings settings
-                              :upgrade-request req
-                              :expect-preface? #f)))
+               (let ((new-conn
+                      (make-http2-connection-from-http1
+                       conn
+                       app-handler
+                       :settings settings
+                       :upgrade-request req
+                       :expect-preface? #f)))
                  (http-server:http-connection-request-count-set!
                   new-conn
                   (+ 1 (http-server:http-connection-request-count conn)))
-                 (if (protocol-connection-process! protocol-conn remainder)
+                 (if (http-server:connection-process! new-conn remainder)
                      (values 'handled new-conn #t)
                      (values 'handled new-conn #f)))))))))
 
@@ -153,13 +130,13 @@
         (case (http2-preface-status (http-server:http-connection-buffer conn))
           ((partial) (values 'wait conn #t))
           ((full)
-           (let ((chunk (http-server:http-connection-buffer conn)))
-             (let-values (((new-conn protocol-conn)
-                           (make-http2-connection-from-http1 conn app-handler)))
-               (http-server:http-connection-buffer-set! new-conn #vu8())
-               (if (protocol-connection-process! protocol-conn chunk)
-                   (values 'handled new-conn #t)
-                   (values 'handled new-conn #f)))))
+           (let ((chunk (http-server:http-connection-buffer conn))
+		 (new-conn
+                  (make-http2-connection-from-http1 conn app-handler)))
+             (http-server:http-connection-buffer-set! new-conn #vu8())
+             (if (http-server:connection-process! new-conn chunk)
+                 (values 'handled new-conn #t)
+                 (values 'handled new-conn #f))))
           (else
            (values 'none conn #t)))
         (values 'none conn #t))))

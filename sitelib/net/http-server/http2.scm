@@ -11,7 +11,6 @@
     (export http-server:http2-request?
 	    http-server:http2-request-stream-id
 	    http-server:http2-connection?
-	    make-http-server:http2-upgrade-connection
 	    make-http-server:http2-connection
 	    *http-server:http2-driver*)
     (import (rnrs)
@@ -32,7 +31,7 @@
 	    (util bytevector))
 
 (define-record-type (http-server:http2-connection
-                     make-http-server:http2-upgrade-connection
+                     %make-http-server:http2-connection
                      http-server:http2-connection?)
   (parent http-server:http-connection))
 
@@ -104,9 +103,7 @@
 
 (define (close-connection! conn)
   (unless (connection-closed? conn)
-    (http2-server-connection-state-stage-set! conn 'closed)
-    (guard (e (else #f))
-      (socket-close (http2-server-connection-state-socket conn)))))
+    (http2-server-connection-state-stage-set! conn 'closed)))
 
 (define (with-send-lock conn proc)
   (let ((mutex (http2-server-connection-state-mutex conn)))
@@ -123,10 +120,10 @@
         (call-with-bytevector-output-port
          (lambda (out)
            (write-http2-frame out
-                              (http2-server-connection-state-write-buffer conn)
-                              frame
-                              end?
-                              (http2-server-connection-state-encoder-context conn)))))))
+	    (http2-server-connection-state-write-buffer conn)
+	    frame
+	    end?
+	    (http2-server-connection-state-encoder-context conn)))))))
   (socket-send (http2-server-connection-state-socket conn) out-bv))
 
 (define (send-goaway! conn code message)
@@ -672,10 +669,9 @@
         ((= id +http2-settings-initial-window-size+)
          (when (> value (- (expt 2 31) 1))
            (http2-protocol-error 'apply-peer-settings!
-                                 "Invalid initial window size"
-                                 value))
-         (let ((delta (- value
-                         (http2-server-connection-state-remote-initial-window-size conn))))
+                                 "Invalid initial window size" value))
+         (let* ((w (http2-server-connection-state-remote-initial-window-size conn))
+		(delta (- value w)))
            (for-each-stream
             conn
             (lambda (stream)
@@ -887,12 +883,14 @@
             (else #f)))))
 
 (define (send-initial-settings! conn)
-  (let ((max-header-bytes (config-ref (http2-server-connection-state-config conn)
-                                      'max-header-bytes
-                                      +default-max-header-bytes+))
-        (max-concurrent-streams (config-ref (http2-server-connection-state-config conn)
-                                            'http2-max-concurrent-streams
-                                            +default-max-concurrent-streams+)))
+  (let ((max-header-bytes
+	 (config-ref (http2-server-connection-state-config conn)
+                     'max-header-bytes
+                     +default-max-header-bytes+))
+        (max-concurrent-streams
+	 (config-ref (http2-server-connection-state-config conn)
+                     'http2-max-concurrent-streams
+                     +default-max-concurrent-streams+)))
     (send-frame! conn
                  (make-http2-frame-settings
                   0
@@ -911,9 +909,7 @@
                  #f)))
 
 (define (send-settings-ack! conn)
-  (send-frame! conn
-               (make-http2-frame-settings +http2-frame-flag-ack+ 0 '())
-               #f))
+  (send-frame! conn (make-http2-frame-settings +http2-frame-flag-ack+ 0 '()) #f))
 
 (define (consume-preface! conn)
   (let* ((pending (http2-server-connection-state-pending conn))
@@ -961,11 +957,11 @@
              (send-goaway! conn +http2-error-code-internal-error+
                            (condition-message e))))
     (when (connection-closed? conn)
-      #f)
+      (http2-protocol-error 'process-connection!
+                            "Connection closed" conn))
     (when (not (bytevector? chunk))
       (http2-protocol-error 'process-connection!
-                            "Bytevector chunk required"
-                            chunk))
+                            "Bytevector chunk required" chunk))
     (when (positive? (bytevector-length chunk))
       (http2-server-connection-state-pending-set!
        conn
@@ -980,12 +976,13 @@
           (and result (flush-pending-output! conn)))
         #t)))
 
-(define (make-http-server:http2-connection socket config app-handler
+(define (make-http-server:http2-connection server socket app-handler
                                            :key
                                            (settings '())
                                            (upgrade-request #f)
                                            (expect-preface? #t))
-  (let* ((max-concurrent-streams
+  (let* ((config (slot-ref server 'config)) ;; FIXME
+	 (max-concurrent-streams
           (config-ref config
                       'http2-max-concurrent-streams
                       +default-max-concurrent-streams+))
@@ -1022,16 +1019,24 @@
     (when upgrade-request
       (replay-upgrade-request! conn upgrade-request)
       (flush-pending-output! conn))
-    (make-http-server:connection
-     (lambda (chunk)
-       (process-connection! conn chunk))
-     (lambda ()
-       (close-connection! conn)
-       #t))))
+    (%make-http-server:http2-connection
+     server socket
+     (lambda (chunk) (process-connection! conn chunk))
+     (lambda () (close-connection! conn) #t)
+     #vu8()
+     0
+     #f
+     *http-server:http2-driver*
+     #f)))
 
-(define (http-server:http2-consume state buffer :key (max-header-bytes 65536)
-                                   (max-body-bytes 1048576))
-  (values 'error 500 "HTTP/2 driver is connection-oriented" buffer #f))
+(define (http-server:http2-connect server socket app-handler . opts)
+  (apply make-http-server:http2-connection server socket app-handler opts))
+
+(define (http-server:http2-consume conn
+	  :key (max-header-bytes 65536)
+	       (max-body-bytes 1048576))
+  ;; I believe we won't have buffer for HTTP2
+  (process-connection! conn (http-server:http-connection-buffer conn)))
 
 (define (http-server:http2-serve socket req result)
   #t)
@@ -1041,6 +1046,6 @@
    "h2"
    http-server:http2-consume
    http-server:http2-serve
-   make-http-server:http2-connection))
+   http-server:http2-connect))
 
 )

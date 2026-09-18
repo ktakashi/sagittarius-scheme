@@ -100,8 +100,8 @@
         (set! accepted (socket-accept server-sock))))
     (lambda ()
       (let ((conn (make-http-server:http2-connection
+		   (make-http-server "0" (lambda (req resp) #t) :config config)
                    accepted
-                   config
                    app)))
         (proc client accepted conn)))
     (lambda ()

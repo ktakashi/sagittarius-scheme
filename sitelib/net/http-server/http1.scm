@@ -291,19 +291,27 @@
     ((chunked) (consume-chunk st buffer max-body-bytes))
     (else (values 'error 500 "Unknown body framing state" buffer #f))))
 
-(define (http-server:http1-consume state buffer
+(define (http-server:http1-consume conn
                                    :key (max-header-bytes 65536)
-                                        (max-body-bytes 1048576))
+                                        (max-body-bytes 1048576)
+				   :allow-other-keys)
+  (define state (http-server:http-connection-parse-state conn))
+  (define buffer (http-server:http-connection-buffer conn))
   (define st (if (and state (http1-consume-state? state))
                  state
                  (make-http1-consume-state)))
-  (let loop ()
-    (case (http1-consume-state-stage st)
-      ((start) (consume:start st buffer max-header-bytes loop))
-      ((line) (consume:line st buffer max-header-bytes max-body-bytes loop))
-      ((header) (consume:header st buffer max-body-bytes))
-      (else
-       (values 'error 500 "Unknown consume stage" buffer #f)))))
+  (define (consume st buffer)
+    (let loop ()
+      (case (http1-consume-state-stage st)
+	((start) (consume:start st buffer max-header-bytes loop))
+	((line) (consume:line st buffer max-header-bytes max-body-bytes loop))
+	((header) (consume:header st buffer max-body-bytes))
+	(else (values 'error 500 "Unknown consume stage" buffer #f)))))
+  (let-values (((kind code message remaining next-state) (consume st buffer)))
+    (http-server:http-connection-buffer-set! conn remaining)
+    (http-server:http-connection-parse-state-set! conn next-state)
+    (values kind code message)))
+		
 				 
 (define (body->bytevector body)
   (cond ((bytevector? body) body)
@@ -382,9 +390,21 @@
             (socket-send socket body))
           close?))))
 
+(define (http-server:http1-connect server socket app-handler . rest)
+  (make-http-server:http1-connection
+   server socket
+   http-server:http1-consume
+   (lambda () #t) ;; nothing to do
+   #vu8()
+   0
+   #f
+   *http-server:http1-driver*
+   #f))
+
 (define *http-server:http1-driver*
   (make-http-server:protocol-driver "http/1.1"
 				    http-server:http1-consume
-				    http-server:http1-write-response!))
+				    http-server:http1-write-response!
+				    http-server:http1-connect))
 
 )

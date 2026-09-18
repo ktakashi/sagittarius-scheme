@@ -111,19 +111,7 @@
 	    (net http-server router)
 	    (net http-server cache)
 	    (net http-server cache memory)
-	    (only (net http-server protocol)
-		  make-http-server:protocol-registry
-		  http-server:register-protocol-driver!
-		  http-server:protocol-driver-name
-		  http-server:select-protocol-driver
-		  http-server:protocol-driver-consume!
-		  http-server:protocol-driver-serve!
-		  http-server:connection-oriented-driver?
-		  http-server:protocol-driver-connect!)
-	    (rename (only (net http-server protocol)
-			  http-server:connection-process!)
-		    (http-server:connection-process!
-		     protocol-connection-process!))
+	    (net http-server protocol)
 	    (net http-server upgrade)
 	    (net http-server h2c)
 	    (net http-server http1)
@@ -191,22 +179,14 @@
     (mutex-unlock! lock)
     (and alive #t)))
 
-(define (close-connection! server socket)
+(define (close-connection! conn)
+  (define server (http-server:connection-server conn))
+  (define socket (http-server:connection-socket conn))
   (define lock (slot-ref server 'lock))
   (define states (slot-ref server 'states))
 
-  (define conn
-    (begin
-      (mutex-lock! lock)
-      (let* ((state (hashtable-ref states socket #f))
-             (conn state))
-        (hashtable-delete! states socket)
-        (mutex-unlock! lock)
-        conn)))
-
-  (when conn
-    (guard (e (else #f))
-      (http-server:connection-close! conn)))
+  (guard (e (else #f))
+    (http-server:connection-close! conn))
 
   (server-detach-socket! server socket)
   (socket-close socket)
@@ -237,11 +217,11 @@
   (define max-drain (slot-ref config 'max-drain))
   (define select-delay (slot-ref config 'select-delay))
   (define (socket-handler server socket)
-    (let ((conn (get-state server socket)))
+    (let ((conn (get-state server socket app-handler)))
       (let loop ((drain-count 0))
         (let ((chunk (socket-recv socket (http-server-config-read-size config))))
           (if (or (not chunk) (zero? (bytevector-length chunk)))
-              (close-connection! server socket)
+              (close-connection! conn)
               (cond
                ((http-server:http-connection? conn)
                 (http-server:http-connection-buffer-set!
@@ -256,9 +236,9 @@
                     (loop (+ drain-count 1)))))
                ((http-server:custom-connection? conn)
                 (unless ((http-server:custom-connection-process conn) chunk)
-                  (close-connection! server socket)))
+                  (close-connection! conn)))
                (else
-                (close-connection! server socket))))))))
+                (close-connection! conn))))))))
 
   (make-simple-server port socket-handler
 		      :server-class <http-server>
@@ -268,37 +248,13 @@
 		      :app-handler app-handler))
 
 ;; internal
-(define (make-server-http-connection server socket)
+(define (make-server-http-connection server socket app-handler)
   (let* ((protocol-registry (slot-ref server 'registry))
          (upgrade-registry (slot-ref server 'upgrade-registry))
          (driver (http-server:select-protocol-driver protocol-registry socket)))
-    (if (string=? (http-server:protocol-driver-name driver) "h2")
-        (make-http-server:http2-upgrade-connection
-         server
-         socket
-         #f
-         #f
-         #vu8()
-         0
-         #f
-         driver
-         #f
-         protocol-registry
-         upgrade-registry)
-        (make-http-server:http1-connection
-         server
-         socket
-         #f
-         #f
-         #vu8()
-         0
-         #f
-         driver
-         #f
-         protocol-registry
-         upgrade-registry))))
+    (http-server:protocol-driver-connect! driver server socket app-handler)))
 
-(define (get-state server socket)
+(define (get-state server socket app-handler)
   (define lock (slot-ref server 'lock))
   (define states (slot-ref server 'states))
 
@@ -308,7 +264,7 @@
         (begin
           (mutex-unlock! lock)
           state)
-        (let ((new-state (make-server-http-connection server socket)))
+        (let ((new-state (make-server-http-connection server socket app-handler)))
           (hashtable-set! states socket new-state)
           (mutex-unlock! lock)
           new-state))))
@@ -321,7 +277,7 @@
   (hashtable-set! states socket conn)
   (mutex-unlock! lock))
 
-(define (serve-state! server socket state)
+(define (serve-state! server socket conn)
   (define app-handler (slot-ref server 'app-handler))
   (define config (slot-ref server 'config))
   (define max-header-bytes (http-server-config-max-header-bytes config))
@@ -332,44 +288,36 @@
     (http-server-config-max-pipelined-requests config))
 
   (let loop ((served 0))
-    (let ((driver (http-server:http-connection-driver state)))
-      (let-values (((kind req b remainder next-state)
+    (let ((driver (http-server:http-connection-driver conn)))
+      (let-values (((kind req b)
                     (http-server:protocol-driver-consume!
                      driver
-                     (http-server:http-connection-parse-state state)
-                     (http-server:http-connection-buffer state)
+                     conn
                      :max-header-bytes max-header-bytes
                      :max-body-bytes max-body-bytes)))
         (cond
          ((or (eq? kind 'start)
               (eq? kind 'line)
               (eq? kind 'header))
-          (http-server:http-connection-buffer-set! state remainder)
-          (http-server:http-connection-parse-state-set! state next-state)
           #f)
          ((eq? kind 'error)
-          (http-server:http-connection-parse-state-set! state #f)
           (let* ((code req)
                  (message b)
                  (res (make-error-response code message)))
-            (http-server:protocol-driver-serve! driver socket #f res)
+            (http-server:protocol-driver-serve! driver conn #f res)
             (close-connection! server socket)
             #t))
          (else
-          (http-server:http-connection-buffer-set! state remainder)
-          (http-server:http-connection-parse-state-set! state #f)
           (http-server:request-remote-set! req (remote-info socket))
-          (let-values (((upgrade-status upgraded-state keep-open?)
+          (let-values (((upgrade-status upgraded-conn keep-open?)
                         (http-server:http-connection-attempt-upgrade!
-                         state
-                         req
-                         remainder
-                         app-handler)))
+                         conn req
+			 (http-server:http-connection-buffer conn)
+			 app-handler)))
             (cond
              ((eq? upgrade-status 'handled)
-              (unless (eq? upgraded-state state)
-                (set! state upgraded-state)
-                (set-state! server socket state))
+              (unless (eq? upgraded-conn conn)
+                (set-state! server socket upgraded-conn))
 	      (and (not keep-open?) (close-connection! server socket) #t))
              ((eq? upgrade-status 'error)
               (close-connection! server socket)
@@ -385,16 +333,16 @@
                                    er)))
                         (normalize-handler-result (app-handler req res) res)))
                      (close? (http-server:protocol-driver-serve!
-                              driver socket req result)))
-                (http-server:http-connection-request-count-set! state
-		  (+ 1 (http-server:http-connection-request-count state)))
+                              driver conn req result)))
+                (http-server:http-connection-request-count-set! conn
+		  (+ 1 (http-server:http-connection-request-count conn)))
                 (if (or close?
-                        (>= (http-server:http-connection-request-count state)
+                        (>= (http-server:http-connection-request-count conn)
                             max-requests-per-connection))
                     (close-connection! server socket)
                     (if (and (< served max-pipelined-requests)
                              (> (bytevector-length
-                                 (http-server:http-connection-buffer state)) 0))
+                                 (http-server:http-connection-buffer conn)) 0))
                         (loop (+ served 1))
                         #f))))))))))))
 )
