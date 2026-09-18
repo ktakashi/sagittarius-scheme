@@ -6,13 +6,21 @@
 	(net http-server upgrade)
 	(net http-server protocol)
 	(net http-server http1)
+  (sagittarius crypto keys)
+  (rfc tls)
+  (rfc x509)
   (rfc http2 frame)
   (rfc http2 hpack)
   (srfi :1)
         (srfi :18)
+  (srfi :19)
         (srfi :64))
 
 (test-begin "net/http-server")
+
+(define default-config
+  (make-http-server-config
+   :exception-handler (lambda (s sock e) (report-error e))))
 
 (define (recv-text sock)
   (socket-set-read-timeout! sock 1000)
@@ -302,7 +310,7 @@
   (define (app req res)
     (http-server:response-text! res "ok")
     res)
-  (define server (make-http-server "0" app))
+  (define server (make-http-server "0" app :config default-config))
   (server-start! server :background #t)
   (thread-sleep! 0.2)
   (let ((sock (make-client-socket "localhost" (server-port server))))
@@ -492,11 +500,74 @@
   (server-stop! server))
 
 (let ()
+  (define keypair (generate-key-pair *key:rsa*))
+  (define cert
+    (make-x509-basic-certificate keypair 1
+                                 (make-x509-issuer '((C . "NL")))
+                                 (make-validity (current-date) (current-date))
+                                 (make-x509-issuer '((C . "NL")))))
+  (define request-headers
+    '((#*":method" #*"GET")
+      (#*":scheme" #*"https")
+      (#*":path" #*"/tls-h2")
+      (#*":authority" #*"localhost")))
+  (define (app req res)
+    (http-server:response-text! res "tls-h2-ok")
+    res)
+  (define config
+    (make-http-server-config
+     :secure? #t
+     :certificates (list cert)
+     :private-key (key-pair-private keypair)))
+  (define server (make-http-server "0" app :config config))
+  (server-start! server :background #t)
+  (thread-sleep! 0.2)
+  (let ((sock (make-client-tls-socket
+               "localhost"
+               (server-port server)
+               :certificate-verifier #f
+               :hello-extensions (list (make-protocol-name-list '("h2"))))))
+    (test-equal "tls alpn selected h2" "h2" (tls-socket-selected-alpn sock))
+    (socket-send
+     sock
+     (bytevector-append
+      +http2-connection-preface+
+      (encode-frames
+       (list (cons (make-http2-frame-settings 0 0 '()) #f)
+             (cons (make-http2-frame-headers 0 1 #f #f request-headers) #t)))))
+    (thread-sleep! 0.05)
+    (let* ((frames (decode-frames (recv-bytes sock)))
+           (response-headers-frame
+            (find (lambda (f)
+                    (and (http2-frame-headers? f)
+                         (= (http2-frame-stream-identifier f) 1)))
+                  frames))
+           (response-data-frame
+            (find (lambda (f)
+                    (and (http2-frame-data? f)
+                         (= (http2-frame-stream-identifier f) 1)))
+                  frames)))
+      (test-assert "tls h2 response headers" response-headers-frame)
+      (test-assert "tls h2 response data" response-data-frame)
+      (test-equal "tls h2 status"
+                  "200"
+                  (and response-headers-frame
+                       (header-value (http2-frame-headers-headers response-headers-frame)
+                                     ":status")))
+      (test-equal "tls h2 body"
+                  "tls-h2-ok"
+                  (and response-data-frame
+                       (utf8->string (http2-frame-data-data response-data-frame)))))
+    (socket-close sock))
+  (server-stop! server))
+
+(let ()
   (define registry (make-http-server:upgrade-registry))
   (define (app req res)
     (http-server:response-text! res "http1-fallback")
     res)
-  (define server (make-http-server "0" app :upgrade-registry registry))
+  (define server (make-http-server "0" app :upgrade-registry registry
+				   :config default-config))
   (http-server:register-upgrade-handler!
    registry
    "x-echo"
@@ -508,7 +579,9 @@
              (make-http-server:custom-connection
               (http-server:connection-server conn)
               (http-server:connection-socket conn)
-              (lambda (chunk) #t)
+              (lambda (chunk)
+		(print 'here)
+		#t)
               (lambda () #t))
              #t)))
   (server-start! server :background #t)
@@ -522,6 +595,7 @@
                    (contains? txt "HTTP/1.1 101 Switching Protocols"))
       (test-assert "custom upgrade protocol token"
                    (contains? txt "Upgrade: x-echo")))
+    (socket-send sock #*"hello")
     (socket-close sock))
   (server-stop! server))
 

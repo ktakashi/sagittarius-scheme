@@ -33,7 +33,10 @@
 (define-record-type (http-server:http2-connection
                      %make-http-server:http2-connection
                      http-server:http2-connection?)
-  (parent http-server:http-connection))
+  (parent http-server:http-connection)
+  (protocol (lambda (n)
+	      (lambda (server socket process close state driver upgrade-registry)
+		((n server socket process close state driver upgrade-registry))))))
 
 (define +default-max-header-bytes+ 65536)
 (define +default-max-body-bytes+ 1048576)
@@ -98,12 +101,18 @@
   (guard (e (else default))
     (slot-ref config name)))
 
-(define (connection-closed? conn)
-  (eq? (http2-server-connection-state-stage conn) 'closed))
+(define (connection-closed? state)
+  (eq? (http2-server-connection-state-stage state) 'closed))
+
+(define (->connection-state conn-or-state)
+  (if (http-server:http-connection? conn-or-state)
+      (http-server:http-connection-parse-state conn-or-state)
+      conn-or-state))
 
 (define (close-connection! conn)
-  (unless (connection-closed? conn)
-    (http2-server-connection-state-stage-set! conn 'closed)))
+  (define state (->connection-state conn))
+  (unless (connection-closed? state)
+    (http2-server-connection-state-stage-set! state 'closed)))
 
 (define (with-send-lock conn proc)
   (let ((mutex (http2-server-connection-state-mutex conn)))
@@ -127,18 +136,19 @@
   (socket-send (http2-server-connection-state-socket conn) out-bv))
 
 (define (send-goaway! conn code message)
-  (unless (connection-closed? conn)
+  (define state (->connection-state conn))
+  (unless (connection-closed? state)
     (let ((debug (if message (string->utf8 message) #vu8())))
       (guard (e (else #f))
-        (send-frame! conn
+        (send-frame! state
                      (make-http2-frame-goaway
                       0
                       0
-                      (http2-server-connection-state-last-stream-id conn)
+                      (http2-server-connection-state-last-stream-id state)
                       code
                       debug)
                      #t)))
-    (close-connection! conn))
+    (close-connection! state))
   #f)
 
 (define (split-once s ch)
@@ -254,21 +264,17 @@
                       (http-server:headers-add! header-map name value)
                       (loop (cdr rest)))))))))))))
 
-(define (stream->request conn stream)
-  (let* ((remote (guard (e (else #f))
-		   (socket-info (http2-server-connection-state-socket conn))))
-	 (body (bytevector-concatenate
-                (reverse (http2-server-stream-body-chunks stream))))
-         (req (make-http-server:http2-request
-               (http2-server-stream-method stream)
-               (http2-server-stream-target stream)
-               (http2-server-stream-path stream)
-               (http2-server-stream-query stream)
-               (http2-server-stream-headers stream)
-               body
-               (http2-server-stream-id stream))))
-    (http-server:request-remote-set! req remote)
-    req))
+(define (stream->request state stream)
+  (let ((body (bytevector-concatenate
+               (reverse (http2-server-stream-body-chunks stream)))))
+    (make-http-server:http2-request
+     (http2-server-stream-method stream)
+     (http2-server-stream-target stream)
+     (http2-server-stream-path stream)
+     (http2-server-stream-query stream)
+     (http2-server-stream-headers stream)
+     body
+     (http2-server-stream-id stream))))
 
 (define (request->upgrade-stream conn req stream-id)
   (let ((wire-weight +default-priority-wire-weight+)
@@ -416,8 +422,8 @@
           (http2-server-connection-state-next-push-stream-id-set! conn (+ sid 2))
           sid))))
 
-(define (prepare-pushed-request conn parent-req stream-id method target headers)
-  (define socket (http2-server-connection-state-socket conn))
+(define (prepare-pushed-request state parent-req stream-id method target headers)
+  (define socket (http2-server-connection-state-socket state))
   (define scheme (if (tls-socket? socket) "https" "http"))
   (define authority
     (or (http-server:headers-ref headers "host" #f)
@@ -436,8 +442,6 @@
                 push-headers
                 #vu8()
                 stream-id)))
-      (when parent-req
-        (http-server:request-remote-set! req (http-server:request-remote parent-req)))
       (values req
               (append (list (list (string->utf8 ":method") (string->utf8 method-token))
                             (list (string->utf8 ":scheme") (string->utf8 scheme))
@@ -489,29 +493,29 @@
     (write-stream-response! conn stream req result)
     #t))
 
-(define (emit-push-responses! conn stream req res)
-  (when (and (push-enabled? conn req)
+(define (emit-push-responses! state stream req res)
+  (when (and (push-enabled? state req)
              (pair? (http-server:response-pushes res)))
     (for-each
      (lambda (push)
        (let ((method (car push))
              (target (cadr push))
              (headers (caddr push)))
-         (let ((push-id (allocate-push-stream-id! conn)))
+         (let ((push-id (allocate-push-stream-id! state)))
            (when push-id
              (let-values (((push-req promise-headers)
-                           (prepare-pushed-request conn req push-id method target headers)))
-               (let ((push-stream (make-push-stream conn
+                           (prepare-pushed-request state req push-id method target headers)))
+               (let ((push-stream (make-push-stream state
                                                     push-id
                                                     (http2-server-stream-id stream))))
-                 (send-frame! conn
+                 (send-frame! state
                               (make-http2-frame-push-promise
                                0
                                (http2-server-stream-id stream)
                                push-id
                                promise-headers)
                               #f)
-                 (dispatch-pushed-application! conn push-stream push-req)))))))
+                 (dispatch-pushed-application! state push-stream push-req)))))))
      (http-server:response-pushes res))))
 
 (define (ensure-stream-id-valid conn sid)
@@ -604,10 +608,10 @@
      (http2-server-stream-id stream)))
   stream)
 
-(define (dispatch-application! conn stream)
-  (let* ((req (stream->request conn stream))
+(define (dispatch-application! state stream)
+  (let* ((req (stream->request state stream))
          (res (make-http-server:response))
-         (app-handler (http2-server-connection-state-app-handler conn))
+         (app-handler (http2-server-connection-state-app-handler state))
          (result
           (guard (e (else
                      (let ((er (make-http-server:response 500)))
@@ -617,7 +621,7 @@
                        er)))
             (let ((r (app-handler req res)))
               (if (http-server:response? r) r res)))))
-    (write-stream-response! conn stream req result)
+    (write-stream-response! state stream req result)
     #t))
 
 (define (send-rst-stream! conn sid code)
@@ -696,23 +700,24 @@
 
 (define (dispatch-frame! conn frame)
   (define sid (http2-frame-stream-identifier frame))
+  (define state (http-server:http-connection-parse-state conn))
   (cond
    ((http2-frame-settings? frame)
     (if (frame-flag-set? (http2-frame-flags frame) +http2-frame-flag-ack+)
         #t
         (begin
-          (apply-peer-settings! conn (http2-frame-settings-settings frame))
-          (send-frame! conn
+          (apply-peer-settings! state (http2-frame-settings-settings frame))
+          (send-frame! state
                        (make-http2-frame-settings +http2-frame-flag-ack+ 0 '())
                        #f)
-          (flush-pending-output! conn)
+          (flush-pending-output! state)
           #t)))
 
    ((http2-frame-ping? frame)
     (if (frame-flag-set? (http2-frame-flags frame) +http2-frame-flag-ack+)
         #t
         (begin
-          (send-frame! conn
+          (send-frame! state
                        (make-http2-frame-ping
                         +http2-frame-flag-ack+
                         0
@@ -731,30 +736,30 @@
                               sid))
       (if (zero? sid)
           (http2-server-connection-state-connection-send-window-set!
-           conn
-           (+ increment (http2-server-connection-state-connection-send-window conn)))
-          (let ((stream (find-stream conn sid)))
+	   state
+           (+ increment (http2-server-connection-state-connection-send-window state)))
+          (let ((stream (find-stream state sid)))
             (when stream
               (http2-server-stream-send-window-set!
                stream
                (+ increment (http2-server-stream-send-window stream))))))
-      (flush-pending-output! conn)
+      (flush-pending-output! state)
       #t))
 
    ((http2-frame-goaway? frame)
-    (http2-server-connection-state-stage-set! conn 'closing)
+    (http2-server-connection-state-stage-set! state 'closing)
     #f)
 
    ((http2-frame-rst-stream? frame)
-    (drop-stream! conn sid)
+    (drop-stream! state sid)
     #t)
 
    ((http2-frame-priority? frame)
     (let-values (((dependency exclusive?)
                   (decode-priority-dependency
                    (http2-frame-priority-stream-dependency frame))))
-      (let ((stream (find-stream conn sid)))
-        (http2-priority-tree-add! (http2-server-connection-state-priority-tree conn)
+      (let ((stream (find-stream state sid)))
+        (http2-priority-tree-add! (http2-server-connection-state-priority-tree state)
                                   sid
                                   dependency
                                   (http2-frame-priority-weight frame)
@@ -768,8 +773,8 @@
     #t)
 
    ((http2-frame-headers? frame)
-    (ensure-stream-id-valid conn sid)
-    (when (find-stream conn sid)
+    (ensure-stream-id-valid state sid)
+    (when (find-stream state sid)
       (http2-protocol-error 'dispatch-frame!
                             "HEADERS received for existing stream"
                             sid))
@@ -778,7 +783,7 @@
                    (http2-frame-headers-headers frame))))
       (if err
           (begin
-            (send-rst-stream! conn sid +http2-error-code-protocol-error+)
+            (send-rst-stream! state sid +http2-error-code-protocol-error+)
             #t)
           (let-values (((dependency exclusive?)
                         (decode-priority-dependency
@@ -796,7 +801,7 @@
                      header-map
                      '()
                      0
-                     (http2-server-connection-state-remote-initial-window-size conn)
+                     (http2-server-connection-state-remote-initial-window-size state)
                      +default-initial-window-size+
                      0
                      #vu8()
@@ -804,31 +809,31 @@
                      dependency
                      wire-weight)))
               (http2-priority-tree-add!
-               (http2-server-connection-state-priority-tree conn)
+               (http2-server-connection-state-priority-tree state)
                sid
                dependency
                wire-weight
                exclusive?
                #f)
-              (register-stream! conn stream)
+              (register-stream! state stream)
               (if (http2-frame-end-stream? frame)
-                  (dispatch-application! conn stream)
+                  (dispatch-application! state stream)
                   #t))))))
 
    ((http2-frame-data? frame)
-    (let ((stream (find-stream conn sid)))
+    (let ((stream (find-stream state sid)))
       (if (not stream)
           (begin
-            (send-rst-stream! conn sid +http2-error-code-stream-closed+)
+            (send-rst-stream! state sid +http2-error-code-stream-closed+)
             #t)
           (let* ((data (http2-frame-data-data frame))
                  (received (bytevector-length data))
                  (conn-recv-window
-                  (http2-server-connection-state-connection-recv-window conn))
+                  (http2-server-connection-state-connection-recv-window state))
                  (stream-recv-window (http2-server-stream-recv-window stream))
                  (new-size (+ (http2-server-stream-body-size stream)
                               received))
-                 (max-body (config-ref (http2-server-connection-state-config conn)
+                 (max-body (config-ref (http2-server-connection-state-config state)
                                        'max-body-bytes
                                        +default-max-body-bytes+)))
             (when (or (> received conn-recv-window)
@@ -837,14 +842,14 @@
                                         "DATA exceeds flow control window"
                                         sid))
             (http2-server-connection-state-connection-recv-window-set!
-             conn
+             state
              (- conn-recv-window received))
             (http2-server-stream-recv-window-set!
              stream
              (- stream-recv-window received))
             (http2-server-connection-state-connection-recv-consumed-set!
-             conn
-             (+ (http2-server-connection-state-connection-recv-consumed conn)
+             state
+             (+ (http2-server-connection-state-connection-recv-consumed state)
                 received))
             (http2-server-stream-recv-consumed-set!
              stream
@@ -852,17 +857,17 @@
                 received))
             (if (> new-size max-body)
                 (begin
-                  (send-rst-stream! conn sid +http2-error-code-enhance-your-calm+)
+                  (send-rst-stream! state sid +http2-error-code-enhance-your-calm+)
                   #t)
                 (begin
                   (http2-server-stream-body-size-set! stream new-size)
                   (http2-server-stream-body-chunks-set!
                    stream
                    (cons data (http2-server-stream-body-chunks stream)))
-                    (maybe-send-connection-window-update! conn)
-                    (maybe-send-stream-window-update! conn stream)
+                    (maybe-send-connection-window-update! state)
+                    (maybe-send-stream-window-update! state stream)
                   (if (http2-frame-end-stream? frame)
-                      (dispatch-application! conn stream)
+                      (dispatch-application! state stream)
                       #t)))))))
 
    ((http2-frame-continuation? frame)
@@ -927,36 +932,37 @@
         (send-initial-settings! conn)
         (http2-server-connection-state-stage-set! conn 'ready)))))
 
-(define (process-ready! conn)
+(define (process-ready! conn state)
   (let loop ()
-    (let ((pending (http2-server-connection-state-pending conn)))
+    (let ((pending (http2-server-connection-state-pending state)))
       (if (zero? (bytevector-length pending))
           #t
           (let ((end (http2-frame-block-end
                       pending
                       0
-                      (http2-server-connection-state-local-max-frame-size conn))))
+                      (http2-server-connection-state-local-max-frame-size state))))
             (if (not end)
                 #t
                 (let ((frame-bytes (bytevector-copy pending 0 end))
                       (next (bytevector-copy pending end (bytevector-length pending))))
-                  (http2-server-connection-state-pending-set! conn next)
+                  (http2-server-connection-state-pending-set! state next)
                   (let ((frame
                          (read-http2-frame
                           (open-bytevector-input-port frame-bytes)
-                          (http2-server-connection-state-read-buffer conn)
-                          (http2-server-connection-state-decoder-context conn))))
+                          (http2-server-connection-state-read-buffer state)
+                          (http2-server-connection-state-decoder-context state))))
                     (if (dispatch-frame! conn frame)
                         (loop)
                         #f)))))))))
 
 (define (process-connection! conn chunk)
+  (define state (http-server:http-connection-parse-state conn))
   (guard (e ((http2-error? e)
-             (send-goaway! conn (http2-error-code e) (condition-message e)))
+             (send-goaway! state (http2-error-code e) (condition-message e)))
             (else
-             (send-goaway! conn +http2-error-code-internal-error+
+             (send-goaway! state +http2-error-code-internal-error+
                            (condition-message e))))
-    (when (connection-closed? conn)
+    (when (connection-closed? state)
       (http2-protocol-error 'process-connection!
                             "Connection closed" conn))
     (when (not (bytevector? chunk))
@@ -964,23 +970,24 @@
                             "Bytevector chunk required" chunk))
     (when (positive? (bytevector-length chunk))
       (http2-server-connection-state-pending-set!
-       conn
-       (bytevector-append (http2-server-connection-state-pending conn)
+       state
+       (bytevector-append (http2-server-connection-state-pending state)
                           chunk)))
 
-    (when (eq? (http2-server-connection-state-stage conn) 'await-preface)
-      (consume-preface! conn))
+    (when (eq? (http2-server-connection-state-stage state) 'await-preface)
+      (consume-preface! state))
 
-    (if (eq? (http2-server-connection-state-stage conn) 'ready)
-        (let ((result (process-ready! conn)))
-          (and result (flush-pending-output! conn)))
+    (if (eq? (http2-server-connection-state-stage state) 'ready)
+        (let ((result (process-ready! conn state)))
+          (and result (flush-pending-output! state)))
         #t)))
 
 (define (make-http-server:http2-connection server socket app-handler
                                            :key
                                            (settings '())
                                            (upgrade-request #f)
-                                           (expect-preface? #t))
+                                           (expect-preface? #t)
+                                           (upgrade-registry #f))
   (let* ((config (slot-ref server 'config)) ;; FIXME
 	 (max-concurrent-streams
           (config-ref config
@@ -989,54 +996,54 @@
          (priority-node-cap (+ 5 (* 2 max-concurrent-streams)))
          (decoder (make-hpack-context +default-header-table-size+))
          (encoder (make-hpack-context +default-header-table-size+))
-         (conn (make-http2-server-connection-state
-                socket
-                config
-                app-handler
-                (make-eqv-hashtable)
-                decoder
-                encoder
-                (make-frame-buffer)
-                (make-frame-buffer)
-                (make-mutex)
-                #vu8()
-                (if expect-preface? 'await-preface 'ready)
-                0
-                2
-                +default-max-frame-size+
-                +default-max-frame-size+
-                #t
-                +default-initial-window-size+
-                +default-initial-window-size+
-                +default-initial-window-size+
-                0
-                (make-http2-priority-tree priority-node-cap))))
+         (state (make-http2-server-connection-state
+                 socket
+                 config
+                 app-handler
+                 (make-eqv-hashtable)
+                 decoder
+                 encoder
+                 (make-frame-buffer)
+                 (make-frame-buffer)
+                 (make-mutex)
+                 #vu8()
+                 (if expect-preface? 'await-preface 'ready)
+                 0
+                 2
+                 +default-max-frame-size+
+                 +default-max-frame-size+
+                 #t
+                 +default-initial-window-size+
+                 +default-initial-window-size+
+                 +default-initial-window-size+
+                 0
+                 (make-http2-priority-tree priority-node-cap))))
     (unless expect-preface?
-      (send-initial-settings! conn))
+      (send-initial-settings! state))
     (unless (null? settings)
-      (apply-peer-settings! conn settings)
-      (send-settings-ack! conn))
+      (apply-peer-settings! state settings)
+      (send-settings-ack! state))
     (when upgrade-request
-      (replay-upgrade-request! conn upgrade-request)
-      (flush-pending-output! conn))
+      (replay-upgrade-request! state upgrade-request)
+      (flush-pending-output! state))
     (%make-http-server:http2-connection
      server socket
-     (lambda (chunk) (process-connection! conn chunk))
-     (lambda () (close-connection! conn) #t)
-     #vu8()
-     0
-     #f
+     (lambda (conn chunk) (process-connection! conn chunk))
+     (lambda (conn) (close-connection! conn) #t)
+     state
      *http-server:http2-driver*
-     #f)))
+    upgrade-registry)))
 
 (define (http-server:http2-connect server socket app-handler . opts)
   (apply make-http-server:http2-connection server socket app-handler opts))
 
 (define (http-server:http2-consume conn
 	  :key (max-header-bytes 65536)
-	       (max-body-bytes 1048576))
-  ;; I believe we won't have buffer for HTTP2
-  (process-connection! conn (http-server:http-connection-buffer conn)))
+         (max-body-bytes 1048576)
+    :allow-other-keys)
+  (let ((chunk (http-server:http-connection-buffer conn)))
+    (http-server:http-connection-buffer-set! conn #vu8())
+    (process-connection! conn chunk)))
 
 (define (http-server:http2-serve socket req result)
   #t)

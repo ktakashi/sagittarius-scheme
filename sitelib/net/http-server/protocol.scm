@@ -7,13 +7,15 @@
 (library (net http-server protocol)
     (export http-server:connection
 	    http-server:connection?
+	    http-server:close-connection!
+
 	    make-http-server:connection
 	    http-server:connection-server
 	    http-server:connection-socket
-	    http-server:connection-process
-	    http-server:connection-close
+	    http-server:connection-remote-info
 	    http-server:connection-process!
 	    http-server:connection-close!
+	    http-server:http-connection-feed!
 
 	    http-server:http-connection
 	    http-server:http-connection?
@@ -41,12 +43,31 @@
 	    http-server:register-protocol-driver!
 	    http-server:select-protocol-driver)
     (import (rnrs)
-            (net socket))
+            (net socket)
+	    (net server)
+            (util bytevector))
 
-(define-record-type (http-server:connection
-		     %make-http-server:connection
-		     http-server:connection?)
-  (fields server socket process close))
+(define-record-type http-server:connection
+  (fields server socket process close remote-info)
+  (protocol (lambda (p)
+	      (lambda (server socket process close)
+		(p server socket process close (remote-info socket))))))
+
+(define (remote-info socket)
+  (guard (e (else #f))
+    (socket-info socket)))
+
+(define (http-server:close-connection! conn)
+  (define server (http-server:connection-server conn))
+  (define socket (http-server:connection-socket conn))
+
+  (guard (e (else #f))
+    (http-server:connection-close! conn))
+
+  (server-detach-socket! server socket)
+  (socket-close socket)
+  #t)
+
 
 (define-record-type http-server:http-connection
   (parent http-server:connection)
@@ -54,21 +75,31 @@
           (mutable request-count)
           (mutable parse-state)
           driver
-          upgrade-registry))
+          upgrade-registry)
+  (protocol (lambda (n)
+	      (lambda (server socket process close state driver upgrade-registry)
+		((n server socket process close) #vu8() 0 state driver upgrade-registry)))))
 
-(define make-http-server:connection
-  (case-lambda
-   ((process close)
-    (%make-http-server:connection #f #f process close))
-   ((server socket process close)
-    (%make-http-server:connection server socket process close))))
+(define (http-server:http-connection-feed! conn chunk . rest)
+  (unless (http-server:http-connection? conn)
+    (assertion-violation 'http-server:http-connection-feed!
+                         "HTTP connection required"
+                         conn))
+  (when (positive? (bytevector-length chunk))
+    (http-server:http-connection-buffer-set!
+     conn
+     (bytevector-append (http-server:http-connection-buffer conn) chunk)))
+  (apply http-server:protocol-driver-consume!
+         (http-server:http-connection-driver conn)
+         conn
+         rest))
 
-(define (http-server:connection-process! conn chunk)
-  ((http-server:connection-process conn) chunk))
+(define (http-server:connection-process! conn chunk . rest)
+  ((http-server:connection-process conn) conn chunk))
 
 (define (http-server:connection-close! conn)
   (guard (e (else #f))
-    ((http-server:connection-close conn))))
+    ((http-server:connection-close conn) conn)))
 
 (define-record-type http-server:protocol-driver
   (fields name consume serve connect))
@@ -86,7 +117,12 @@
 
 ;; req = #f, error response
 (define (http-server:protocol-driver-serve! driver conn req result)
-  ((http-server:protocol-driver-serve driver) conn req result))
+  ((http-server:protocol-driver-serve driver)
+   (if (http-server:connection? conn)
+       (http-server:connection-socket conn)
+       conn)
+   req
+   result))
 
 (define (http-server:connection-oriented-driver? driver)
   (and (http-server:protocol-driver-connect driver) #t))

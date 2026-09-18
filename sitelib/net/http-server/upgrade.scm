@@ -14,8 +14,6 @@
 
 	    http-server:custom-connection?
 	    make-http-server:custom-connection
-	    http-server:custom-connection-process
-	    http-server:custom-connection-close
 
 	    http-server:upgrade-registry?
 	    make-http-server:upgrade-registry
@@ -30,13 +28,10 @@
 	    (net http-server protocol))
 
 (define-record-type http-server:custom-connection
-  (parent http-server:connection))
-
-(define http-server:custom-connection-process
-  http-server:connection-process)
-
-(define http-server:custom-connection-close
-  http-server:connection-close)
+  (parent http-server:connection)
+  (protocol (lambda (n)
+	     (lambda (server socket process close)
+	       ((n server socket process close))))))
 
 (define-record-type http-server:upgrade-registry
   (fields (mutable handlers))

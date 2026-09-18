@@ -30,7 +30,21 @@
 
 #!nounbound
 (library (net http-server types)
-    (export http-server:headers?
+    (export <http-server-config> make-http-server-config http-server-config?
+	    http-server-config-max-header-bytes
+	    http-server-config-max-body-bytes
+	    http-server-config-max-pipelined-requests
+	    http-server-config-max-requests-per-connection
+	    http-server-config-read-size
+	    http-server-config-cache
+	    http-server-config-http2?
+	    http-server-config-http2-cleartext?
+	    http-server-config-http2-enable-push?
+
+	    <http-server> http-server?
+	    http-server:connection-open?
+
+	    http-server:headers?
             make-http-server:headers
             http-server:headers-empty?
             http-server:headers-ref
@@ -49,7 +63,63 @@
 
             http-server:current-http-date)
     (import (rnrs)
+	    (clos user)
+	    (net server)
+	    (sagittarius)
+	    (srfi :18)
             (srfi :19))
+
+(define-class <http-server-config> (<server-config>)
+  ((max-header-bytes :init-keyword :max-header-bytes :init-value 65536
+		     :reader http-server-config-max-header-bytes)
+   (max-body-bytes :init-keyword :max-body-bytes :init-value 1048576
+		   :reader http-server-config-max-body-bytes)
+   (max-pipelined-requests :init-keyword :max-pipelined-requests :init-value 16
+			   :reader http-server-config-max-pipelined-requests)
+   (max-requests-per-connection 
+    :init-keyword :max-requests-per-connection
+    :init-value 100
+    :reader http-server-config-max-requests-per-connection)
+   (read-size :init-keyword :read-size :init-value 8192
+	      :reader http-server-config-read-size)
+   (cache :init-keyword :cache :init-value #f
+	  :reader http-server-config-cache)
+   (http2? :init-keyword :http2? :init-value #t
+	   :reader http-server-config-http2?)
+   (http2-cleartext? :init-keyword :http2-cleartext? :init-value #f
+		     :reader http-server-config-http2-cleartext?)
+   (http2-enable-push? :init-keyword :http2-enable-push? :init-value #f
+		       :reader http-server-config-http2-enable-push?)
+   (max-drain :init-keyword :max-drain :init-value 8)
+   (select-delay :init-keyword :select-delay :init-value 1)))
+
+(define (make-http-server-config . opts)
+  (define http2? (get-keyword :http2? opts #t))
+  (define opts*
+    (if (memq :alpn opts)
+        opts
+        (append (list :alpn (if http2? '("h2" "http/1.1") '("http/1.1"))) opts)))
+  (apply make <http-server-config>
+	 :close-socket? #f
+	 opts*))
+(define (http-server-config? o) (is-a? o <http-server-config>))
+
+(define-class <http-server> (<simple-server>)
+  ((registry :init-keyword :registry)
+   (upgrade-registry :init-keyword :upgrade-registry)
+   (app-handler :init-keyword :app-handler)
+   (states :init-form (make-eq-hashtable))
+   (lock :init-form (make-mutex))))
+(define (http-server? o) (is-a? o <http-server>))
+
+(define (http-server:connection-open? server socket)
+  (define lock (slot-ref server 'lock))
+  (define states (slot-ref server 'states))
+
+  (mutex-lock! lock)
+  (let ((alive (hashtable-ref states socket #f)))
+    (mutex-unlock! lock)
+    (and alive #t)))
 
 (define (ascii-downcase-char c)
   (if (and (char>=? c #\A) (char<=? c #\Z))
