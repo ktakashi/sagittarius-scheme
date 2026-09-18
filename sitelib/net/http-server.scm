@@ -217,8 +217,8 @@
     (socket-info socket)))
 
 (define (make-http-server port handler
-                          :key (config (make-http-server-config))
-                               (upgrade-registry (make-http-server:upgrade-registry)))
+	  :key (config (make-http-server-config))
+	       (upgrade-registry (make-http-server:upgrade-registry)))
   (define effective-upgrade-registry
     (http-server:register-h2c-upgrade-handler! upgrade-registry))
   (define app-handler
@@ -264,7 +264,7 @@
 		      :server-class <http-server>
 		      :config config
 		      :registry registry
-          :upgrade-registry effective-upgrade-registry
+		      :upgrade-registry effective-upgrade-registry
 		      :app-handler app-handler))
 
 ;; internal
@@ -321,7 +321,7 @@
   (hashtable-set! states socket conn)
   (mutex-unlock! lock))
 
-(define (serve-state! server socket state0)
+(define (serve-state! server socket state)
   (define app-handler (slot-ref server 'app-handler))
   (define config (slot-ref server 'config))
   (define max-header-bytes (http-server-config-max-header-bytes config))
@@ -330,115 +330,74 @@
     (http-server-config-max-requests-per-connection config))
   (define max-pipelined-requests
     (http-server-config-max-pipelined-requests config))
-  (define (connect! state)
-    (let ((c (http-server:protocol-driver-connect!
-              (http-server:http-connection-driver state)
-              socket
-              config
-              app-handler)))
-      (http-server:http-connection-protocol-connection-set! state c)
-      c))
 
-  (define (serve-with-connection-driver! state)
-    (let ((driver (http-server:http-connection-driver state))
-          (conn (or (http-server:http-connection-protocol-connection state)
-                    (connect! state)))
-          (chunk (http-server:http-connection-buffer state)))
-      (http-server:http-connection-buffer-set! state #vu8())
-      (http-server:http-connection-parse-state-set! state #f)
-      (cond ((protocol-connection-process! conn chunk) #t)
-	    (else (close-connection! server socket) #t))))
-
-  (let ((state state0))
-    (let-values (((prior-status prior-state prior-open?)
-                  (http-server:http-connection-check-prior-knowledge!
-                   state
-                   app-handler)))
-      (set! state prior-state)
-      (cond
-       ((eq? prior-status 'wait) #f)
-       ((eq? prior-status 'handled)
-        (unless (eq? state state0)
-          (set-state! server socket state))
-        (if prior-open?
-            #f
-            (begin
+  (let loop ((served 0))
+    (let ((driver (http-server:http-connection-driver state)))
+      (let-values (((kind req b remainder next-state)
+                    (http-server:protocol-driver-consume!
+                     driver
+                     (http-server:http-connection-parse-state state)
+                     (http-server:http-connection-buffer state)
+                     :max-header-bytes max-header-bytes
+                     :max-body-bytes max-body-bytes)))
+        (cond
+         ((or (eq? kind 'start)
+              (eq? kind 'line)
+              (eq? kind 'header))
+          (http-server:http-connection-buffer-set! state remainder)
+          (http-server:http-connection-parse-state-set! state next-state)
+          #f)
+         ((eq? kind 'error)
+          (http-server:http-connection-parse-state-set! state #f)
+          (let* ((code req)
+                 (message b)
+                 (res (make-error-response code message)))
+            (http-server:protocol-driver-serve! driver socket #f res)
+            (close-connection! server socket)
+            #t))
+         (else
+          (http-server:http-connection-buffer-set! state remainder)
+          (http-server:http-connection-parse-state-set! state #f)
+          (http-server:request-remote-set! req (remote-info socket))
+          (let-values (((upgrade-status upgraded-state keep-open?)
+                        (http-server:http-connection-attempt-upgrade!
+                         state
+                         req
+                         remainder
+                         app-handler)))
+            (cond
+             ((eq? upgrade-status 'handled)
+              (unless (eq? upgraded-state state)
+                (set! state upgraded-state)
+                (set-state! server socket state))
+	      (and (not keep-open?) (close-connection! server socket) #t))
+             ((eq? upgrade-status 'error)
               (close-connection! server socket)
-              #t)))
-       ((http-server:connection-oriented-driver?
-         (http-server:http-connection-driver state))
-        (serve-with-connection-driver! state))
-       (else
-        (let loop ((served 0))
-          (let ((driver (http-server:http-connection-driver state)))
-            (let-values (((kind req b remainder next-state)
-                          (http-server:protocol-driver-consume!
-                           driver
-                           (http-server:http-connection-parse-state state)
-                           (http-server:http-connection-buffer state)
-                           :max-header-bytes max-header-bytes
-                           :max-body-bytes max-body-bytes)))
-              (cond
-               ((or (eq? kind 'start)
-                    (eq? kind 'line)
-                    (eq? kind 'header))
-                (http-server:http-connection-buffer-set! state remainder)
-                (http-server:http-connection-parse-state-set! state next-state)
-                #f)
-               ((eq? kind 'error)
-                (http-server:http-connection-parse-state-set! state #f)
-                (let* ((code req)
-                       (message b)
-                       (res (make-error-response code message)))
-                  (http-server:protocol-driver-serve! driver socket #f res)
-                  (close-connection! server socket)
-                  #t))
-               (else
-                (http-server:http-connection-buffer-set! state remainder)
-                (http-server:http-connection-parse-state-set! state #f)
-                (http-server:request-remote-set! req (remote-info socket))
-                (let-values (((upgrade-status upgraded-state keep-open?)
-                              (http-server:http-connection-attempt-upgrade!
-                               state
-                               req
-                               remainder
-                               app-handler)))
-                  (cond
-                   ((eq? upgrade-status 'handled)
-                    (unless (eq? upgraded-state state)
-                      (set! state upgraded-state)
-                      (set-state! server socket state))
-                    (if keep-open?
-                        #f
-                        (begin
-                          (close-connection! server socket)
-                          #t)))
-                   ((eq? upgrade-status 'error)
-                    (close-connection! server socket)
-                    #t)
-                   (else
-                    (let* ((res (make-http-server:response))
-                           (result
-                            (guard (e (else
-                                       (let ((er (make-http-server:response 500)))
-                                         (http-server:response-text!
-                                          er
-                                          "Unhandled application error")
-                                         er)))
-                              (normalize-handler-result (app-handler req res) res)))
-                           (close? (http-server:protocol-driver-serve!
-                                    driver socket req result)))
-                      (http-server:http-connection-request-count-set! state
-                       (+ 1 (http-server:http-connection-request-count state)))
-                            (if (or close?
-                              (>= (http-server:http-connection-request-count state)
+              #t)
+             (else
+              (let* ((res (make-http-server:response))
+                     (result
+                      (guard (e (else
+                                 (let ((er (make-http-server:response 500)))
+                                   (http-server:response-text!
+                                    er
+                                    "Unhandled application error")
+                                   er)))
+                        (normalize-handler-result (app-handler req res) res)))
+                     (close? (http-server:protocol-driver-serve!
+                              driver socket req result)))
+                (http-server:http-connection-request-count-set! state
+		  (+ 1 (http-server:http-connection-request-count state)))
+                (if (or close?
+                        (>= (http-server:http-connection-request-count state)
                             max-requests-per-connection))
-                          (close-connection! server socket)
-                          (if (and (< served max-pipelined-requests)
+                    (close-connection! server socket)
+                    (if (and (< served max-pipelined-requests)
                              (> (bytevector-length
                                  (http-server:http-connection-buffer state)) 0))
-                              (loop (+ served 1))
-                              #f)))))))))))))))))
+                        (loop (+ served 1))
+                        #f))))))))))))
+)
 
 
 

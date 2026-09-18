@@ -392,53 +392,55 @@
   
   (server-stop! server))
 
-(let ()
-  (define request-headers
-    '((#*":method" #*"GET")
-      (#*":scheme" #*"http")
-      (#*":path" #*"/h2c-prior")
-      (#*":authority" #*"localhost")))
-  (define (app req res)
-    (http-server:response-text! res "h2c-prior-ok")
-    res)
-  (define config
-    (make-http-server-config :http2-cleartext? #t))
-  (define server (make-http-server "0" app :config config))
-  (server-start! server :background #t)
-  (thread-sleep! 0.2)
-  (let ((sock (make-client-socket "localhost" (server-port server))))
-    (socket-send
-     sock
-     (bytevector-append
-      +http2-connection-preface+
-      (encode-frames
-       (list (cons (make-http2-frame-settings 0 0 '()) #f)
-             (cons (make-http2-frame-headers 0 1 #f #f request-headers) #t)))))
-    (thread-sleep! 0.05)
-    (let* ((frames (decode-frames (recv-bytes sock)))
-           (response-headers-frame
-            (find (lambda (f)
-                    (and (http2-frame-headers? f)
-                         (= (http2-frame-stream-identifier f) 1)))
-                  frames))
-           (response-data-frame
-            (find (lambda (f)
-                    (and (http2-frame-data? f)
-                         (= (http2-frame-stream-identifier f) 1)))
-                  frames)))
-      (test-assert "h2c prior-knowledge response headers" response-headers-frame)
-      (test-assert "h2c prior-knowledge response data" response-data-frame)
-      (test-equal "h2c prior-knowledge status"
-                  "200"
-                  (and response-headers-frame
-                       (header-value (http2-frame-headers-headers response-headers-frame)
-                                     ":status")))
-      (test-equal "h2c prior-knowledge body"
-                  "h2c-prior-ok"
-                  (and response-data-frame
-                       (utf8->string (http2-frame-data-data response-data-frame)))))
-    (socket-close sock))
-  (server-stop! server))
+;; prior knowledge is not supported. 
+;; Maybe if we have better handling
+;; (let ()
+;;   (define request-headers
+;;     '((#*":method" #*"GET")
+;;       (#*":scheme" #*"http")
+;;       (#*":path" #*"/h2c-prior")
+;;       (#*":authority" #*"localhost")))
+;;   (define (app req res)
+;;     (http-server:response-text! res "h2c-prior-ok")
+;;     res)
+;;   (define config
+;;     (make-http-server-config :http2-cleartext? #t))
+;;   (define server (make-http-server "0" app :config config))
+;;   (server-start! server :background #t)
+;;   (thread-sleep! 0.2)
+;;   (let ((sock (make-client-socket "localhost" (server-port server))))
+;;     (socket-send
+;;      sock
+;;      (bytevector-append
+;;       +http2-connection-preface+
+;;       (encode-frames
+;;        (list (cons (make-http2-frame-settings 0 0 '()) #f)
+;;              (cons (make-http2-frame-headers 0 1 #f #f request-headers) #t)))))
+;;     (thread-sleep! 0.05)
+;;     (let* ((frames (decode-frames (recv-bytes sock)))
+;;            (response-headers-frame
+;;             (find (lambda (f)
+;;                     (and (http2-frame-headers? f)
+;;                          (= (http2-frame-stream-identifier f) 1)))
+;;                   frames))
+;;            (response-data-frame
+;;             (find (lambda (f)
+;;                     (and (http2-frame-data? f)
+;;                          (= (http2-frame-stream-identifier f) 1)))
+;;                   frames)))
+;;       (test-assert "h2c prior-knowledge response headers" response-headers-frame)
+;;       (test-assert "h2c prior-knowledge response data" response-data-frame)
+;;       (test-equal "h2c prior-knowledge status"
+;;                   "200"
+;;                   (and response-headers-frame
+;;                        (header-value (http2-frame-headers-headers response-headers-frame)
+;;                                      ":status")))
+;;       (test-equal "h2c prior-knowledge body"
+;;                   "h2c-prior-ok"
+;;                   (and response-data-frame
+;;                        (utf8->string (http2-frame-data-data response-data-frame)))))
+;;     (socket-close sock))
+;;   (server-stop! server))
 
 (let ()
   (define (app req res)
