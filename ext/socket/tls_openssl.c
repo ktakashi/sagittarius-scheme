@@ -538,7 +538,17 @@ void Sg_TLSSocketShutdown(SgTLSSocket *tlsSocket, int how)
   OpenSSLData *data = (OpenSSLData *)tlsSocket->data;
   ERR_clear_error();		/* clear error */
   if (data->ssl) {
-    SSL_shutdown(data->ssl);
+    for (;;) {
+      int r = SSL_shutdown(data->ssl);
+      if (r == 1) break;
+      if (r == 0) break;
+      int err = SSL_get_error(data->ssl, r);
+      if (err == SSL_ERROR_WANT_WRITE) continue;
+      if (err == SSL_ERROR_WANT_READ) break;
+      ERR_clear_error();		/* clear error */
+      break;
+    }
+
   }
   /* hmmm, does this work? */
   Sg_SocketShutdown(tlsSocket->socket, how);
@@ -548,6 +558,8 @@ void Sg_TLSSocketClose(SgTLSSocket *tlsSocket)
 {
   OpenSSLData *data = (OpenSSLData *)tlsSocket->data;
   if (data->ssl) {
+    ERR_clear_error();
+    SSL_shutdown(data->ssl);	/* Best-effort TLS shutdown */
     SSL_free(data->ssl);
     data->ssl = NULL;
   }
