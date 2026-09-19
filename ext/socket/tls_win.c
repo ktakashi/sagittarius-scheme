@@ -1638,8 +1638,9 @@ static void tls_socket_shutdown(SgTLSSocket *tlsSocket)
 
 void Sg_TLSSocketShutdown(SgTLSSocket *tlsSocket, int how)
 {
-  /* FIXME it seems not right */
-  tls_socket_shutdown(tlsSocket);
+  if (how == SHUT_WR || how == SHUT_RDWR) {
+    tls_socket_shutdown(tlsSocket);
+  }
   Sg_SocketShutdown(tlsSocket->socket, how);
 }
 
@@ -1647,6 +1648,7 @@ void Sg_TLSSocketClose(SgTLSSocket *tlsSocket)
 {
   WinTLSData *data = (WinTLSData *)tlsSocket->data;
   if (!data->closed) {
+    tls_socket_shutdown(tlsSocket);
     DeleteSecurityContext(&data->context);
     FreeCredentialsHandle(&data->credential);
     data->tlsContext = NULL;      /* for GC */
