@@ -45,6 +45,7 @@
     (import (rnrs)
             (net socket)
 	    (net server)
+	    (net http-server types)
             (util bytevector))
 
 (define-record-type http-server:connection
@@ -74,11 +75,13 @@
   (fields (mutable buffer)
           (mutable request-count)
           (mutable parse-state)
-          driver
-          upgrade-registry)
+          driver)
   (protocol (lambda (n)
-	      (lambda (server socket process close state driver upgrade-registry)
-		((n server socket process close) #vu8() 0 state driver upgrade-registry)))))
+	      (lambda (server socket process close state driver)
+		((n server socket process close) #vu8() 0 state driver)))))
+
+(define (http-server:http-connection-upgrade-registry conn)
+  (http-server-upgrade-registry (http-server:connection-server conn)))
 
 (define (http-server:http-connection-feed! conn chunk . rest)
   (unless (http-server:http-connection? conn)

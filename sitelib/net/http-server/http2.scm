@@ -35,8 +35,8 @@
                      http-server:http2-connection?)
   (parent http-server:http-connection)
   (protocol (lambda (n)
-	      (lambda (server socket process close state driver upgrade-registry)
-		((n server socket process close state driver upgrade-registry))))))
+	      (lambda (server socket process close state driver)
+		((n server socket process close state driver))))))
 
 (define +default-max-header-bytes+ 65536)
 (define +default-max-body-bytes+ 1048576)
@@ -986,8 +986,7 @@
                                            :key
                                            (settings '())
                                            (upgrade-request #f)
-                                           (expect-preface? #t)
-                                           (upgrade-registry #f))
+                                           (expect-preface? #t))
   (let* ((config (slot-ref server 'config)) ;; FIXME
 	 (max-concurrent-streams
           (config-ref config
@@ -1031,8 +1030,7 @@
      (lambda (conn chunk) (process-connection! conn chunk))
      (lambda (conn) (close-connection! conn) #t)
      state
-     *http-server:http2-driver*
-    upgrade-registry)))
+     *http-server:http2-driver*)))
 
 (define (http-server:http2-connect server socket app-handler . opts)
   (apply make-http-server:http2-connection server socket app-handler opts))

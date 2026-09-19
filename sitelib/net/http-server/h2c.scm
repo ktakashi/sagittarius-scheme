@@ -64,14 +64,8 @@
 
 (define (make-http2-connection-from-http1 conn app-handler . opts)
   (let* ((server (http-server:connection-server conn))
-      (socket (http-server:connection-socket conn))
-      (upgrade-registry (http-server:http-connection-upgrade-registry conn)))
-    (apply make-http-server:http2-connection
-     server
-     socket
-     app-handler
-     :upgrade-registry upgrade-registry
-     opts)))
+	 (socket (http-server:connection-socket conn)))
+    (apply make-http-server:http2-connection server socket app-handler opts)))
 
 (define (h2c-upgrade-settings req)
   (define headers (http-server:request-headers req))
@@ -103,8 +97,8 @@
                         (http-server:response-text! res "Malformed HTTP2-Settings")
                         (http-server:protocol-driver-serve! driver conn req res)
                         (values 'error conn #f))))
-             (let* ((settings (decode-http2-settings-value
-                               (http-server:request-header-ref req "http2-settings" #f))))
+             (let* ((h (http-server:request-header-ref req "http2-settings" #f))
+		    (settings (decode-http2-settings-value h)))
                (write-h2c-switching-protocols! socket)
                (let ((new-conn
                       (make-http2-connection-from-http1

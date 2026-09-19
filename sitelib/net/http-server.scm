@@ -169,13 +169,8 @@
 ;; internal
 (define (make-server-http-connection server socket app-handler)
   (let* ((protocol-registry (slot-ref server 'registry))
-	 (upgrade-registry (slot-ref server 'upgrade-registry))
          (driver (http-server:select-protocol-driver protocol-registry socket)))
-    (http-server:protocol-driver-connect! driver
-                  server
-                  socket
-                  app-handler
-                  :upgrade-registry upgrade-registry)))
+    (http-server:protocol-driver-connect! driver server socket app-handler)))
 
 (define (get-state server socket app-handler)
   (define lock (slot-ref server 'lock))

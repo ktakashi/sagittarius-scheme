@@ -28,8 +28,8 @@
 (define-record-type http-server:http1-connection
   (parent http-server:http-connection)
   (protocol (lambda (n)
-	      (lambda (server socket process close state driver upgrade-registry)
-		((n server socket process close state driver upgrade-registry))))))
+	      (lambda (server socket process close state driver)
+		((n server socket process close state driver))))))
 
 (define-record-type http-server:http1-request
   (parent http-server:request)
@@ -462,14 +462,12 @@
           close?))))
 
 (define (http-server:http1-connect server socket app-handler . rest)
-  (define upgrade-registry (get-keyword :upgrade-registry rest #f))
   (let* ((conn (make-http-server:http1-connection
 		server socket
 		http-server:http1-consume
 		(lambda (conn) #t) ;; nothing to do
 		#f
-		*http-server:http1-driver*
-		upgrade-registry))
+		*http-server:http1-driver*))
 	 (state (make-http1-consume-state app-handler
 		 (http-server:connection-remote-info conn))))
     (http-server:http-connection-parse-state-set! conn state)

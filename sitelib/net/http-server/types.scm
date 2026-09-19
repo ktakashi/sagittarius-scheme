@@ -42,6 +42,7 @@
 	    http-server-config-http2-enable-push?
 
 	    <http-server> http-server?
+	    http-server-upgrade-registry
 	    http-server:connection-open?
 
 	    http-server:headers?
@@ -106,7 +107,8 @@
 
 (define-class <http-server> (<simple-server>)
   ((registry :init-keyword :registry)
-   (upgrade-registry :init-keyword :upgrade-registry)
+   (upgrade-registry :init-keyword :upgrade-registry
+		     :reader http-server-upgrade-registry)
    (app-handler :init-keyword :app-handler)
    (states :init-form (make-eq-hashtable))
    (lock :init-form (make-mutex))))
