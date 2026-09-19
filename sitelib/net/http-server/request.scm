@@ -16,7 +16,6 @@
             http-server:request-body-bytevector
             http-server:request-body-port
             http-server:request-remote
-	    http-server:request-remote-set! ;; internal
             http-server:request-attributes
 
             http-server:request-header-ref
@@ -34,7 +33,7 @@
           http-version
           headers
           body-bytevector
-          (mutable remote)
+          remote
           (mutable attributes)))
 
 (define (http-server:request-body-port req)

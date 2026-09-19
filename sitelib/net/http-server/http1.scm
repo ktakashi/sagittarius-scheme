@@ -6,26 +6,37 @@
 #!nounbound
 #!read-macro=sagittarius/regex
 (library (net http-server http1)
-  (export http-server:http1-request?
-	  *http-server:http1-driver*)
-  (import (rnrs)
-          (net socket)
-          (net http-server types)
-	  (net http-server request)
-          (net http-server response)
-	  (net http-server protocol)
-	  (rfc :5322)
-	  (sagittarius regex)
-	  (srfi :1 lists)
-	  (srfi :2 and-let*)
-	  (srfi :13 strings)
-	  (util bytevector))
+    (export http-server:http1-request?
+	    http-server:http1-connection?
+	    make-http-server:http1-connection
+	    *http-server:http1-driver*)
+    (import (rnrs)
+          (sagittarius) ;; for get-keyword
+            (net socket)
+            (net http-server types)
+	    (net http-server request)
+            (net http-server response)
+	    (net http-server protocol)
+	    (net http-server upgrade)
+	    (rfc :5322)
+	    (sagittarius regex)
+	    (srfi :1 lists)
+	    (srfi :2 and-let*)
+	    (srfi :13 strings)
+	    (util bytevector))
+
+(define-record-type http-server:http1-connection
+  (parent http-server:http-connection)
+  (protocol (lambda (n)
+	      (lambda (server socket process close state driver)
+		((n server socket process close state driver))))))
 
 (define-record-type http-server:http1-request
   (parent http-server:request)
   (protocol (lambda (n)
-	      (lambda (method target path query version headers body)
-		((n method target path query version headers body #f '()))))))
+	      (lambda (method target path query version headers body remote-info)
+		((n method target path query version headers body remote-info
+		    '()))))))
 
 (define +crlf+ #vu8(#x0d #x0a))
 (define +crlf-crlf+ #vu8(#x0d #x0a #x0d #x0a))
@@ -78,18 +89,21 @@
           (mutable length)
           (mutable chunks)
           (mutable chunk-scan)
-          (mutable chunk-size))
+          (mutable chunk-size)
+	  app-handler
+	  remote-info)
   (protocol (lambda (p)
-	      (lambda ()
-		(p 'start 0 #f #f #f #f #f 'none 0 #f '() 0 0)))))
+	      (lambda (app-handler info)
+		(p 'start 0 #f #f #f #f #f 'none 0 #f '() 0 0
+		   app-handler info)))))
 
 (define (make-remainder buffer next)
   (bv-sub buffer next (bytevector-length buffer)))
 
-(define (make-http1-request* method target version headers body)
+(define (make-http1-request* method target version headers body remote-info)
   (let-values (((path query) (parse-target target)))
     (make-http-server:http1-request method target path query
-				    version headers body)))
+				    version headers body remote-info)))
 
 ;; the line must end with \r\n
 (define (strict-read-line bin)
@@ -119,7 +133,8 @@
                                (http1-consume-state-target st)
                                (http1-consume-state-version st)
                                (http1-consume-state-headers st)
-                               body)
+                               body
+			       (http1-consume-state-remote-info st))
           #f
           (make-remainder buffer next)
           #f))
@@ -284,20 +299,91 @@
     ((chunked) (consume-chunk st buffer max-body-bytes))
     (else (values 'error 500 "Unknown body framing state" buffer #f))))
 
-(define (http-server:http1-consume state buffer
+(define (http-server:http1-consume conn
                                    :key (max-header-bytes 65536)
-                                        (max-body-bytes 1048576))
-  (define st (if (and state (http1-consume-state? state))
-                 state
-                 (make-http1-consume-state)))
-  (let loop ()
-    (case (http1-consume-state-stage st)
-      ((start) (consume:start st buffer max-header-bytes loop))
-      ((line) (consume:line st buffer max-header-bytes max-body-bytes loop))
-      ((header) (consume:header st buffer max-body-bytes))
-      (else
-       (values 'error 500 "Unknown consume stage" buffer #f)))))
-				 
+                                        (max-body-bytes 1048576)
+				   :allow-other-keys)
+  (define buffer (http-server:http-connection-buffer conn))
+  (define st (http-server:http-connection-parse-state conn))
+  (define (consume st buffer)
+    (let loop ()
+      (case (http1-consume-state-stage st)
+	((start) (consume:start st buffer max-header-bytes loop))
+	((line) (consume:line st buffer max-header-bytes max-body-bytes loop))
+	((header) (consume:header st buffer max-body-bytes))
+	(else (values 'error 500 "Unknown consume stage" buffer #f)))))
+  (let-values (((kind code message remaining next-state) (consume st buffer)))
+    (http-server:http-connection-buffer-set! conn remaining)
+    (values kind code message)))
+		
+
+(define (make-error-response code message)
+  (let ((res (make-http-server:response code)))
+    (http-server:response-text! res message)
+    (http-server:response-header-set! res "content-type"
+				      "text/plain; charset=utf-8")
+    res))
+
+(define (http-server:http1-feed conn
+				:key max-requests-per-connection
+				     max-pipelined-requests
+				:allow-other-keys opts)
+  (define driver (http-server:http-connection-driver conn))
+  (define st (http-server:http-connection-parse-state conn))
+  (define app-handler (http1-consume-state-app-handler st))
+  (define (normalize-handler-result result fallback)
+    (if (http-server:response? result) result fallback))
+  (define (invoke-handler app-handler req res)
+    (guard (e (else
+               (let ((er (make-http-server:response 500)))
+                 (http-server:response-text! er "Unhandled application error")
+                 er)))
+      (normalize-handler-result (app-handler req res) res)))
+
+  (let loop ((served 0))
+    (let-values (((kind req b) (apply http-server:http1-consume conn opts)))
+      (cond ((or (eq? kind 'start)
+                 (eq? kind 'line)
+                 (eq? kind 'header))
+             #f)
+            ((eq? kind 'error)
+             (let* ((code req)
+                    (message b)
+                    (res (make-error-response code message)))
+               (http-server:protocol-driver-serve! driver conn #f res)
+               (http-server:close-connection! conn)))
+            (else
+             (let-values (((upgrade-status upgraded-conn keep-open?)
+                           (http-server:http-connection-attempt-upgrade!
+                            conn req
+                            (http-server:http-connection-buffer conn)
+                            app-handler)))
+               (cond
+		((eq? upgrade-status 'handled)
+                 (unless keep-open?
+		   (http-server:close-connection! upgraded-conn))
+                 upgraded-conn)
+		((eq? upgrade-status 'error)
+		 (http-server:close-connection! conn))
+		(else
+                 (let* ((res (make-http-server:response))
+			(result (invoke-handler app-handler req res))
+			(close? (http-server:protocol-driver-serve!
+                                 driver conn req result)))
+                   (http-server:http-connection-request-count-set!
+                    conn
+                    (+ 1 (http-server:http-connection-request-count conn)))
+                   (if (or close?
+                           (>= (http-server:http-connection-request-count conn)
+                               max-requests-per-connection))
+                       (http-server:close-connection! conn)
+                       (if (and (< served max-pipelined-requests)
+				(> (bytevector-length
+                                    (http-server:http-connection-buffer conn)) 0))
+                           (loop (+ served 1))
+                           #f)))))))))))
+    
+
 (define (body->bytevector body)
   (cond ((bytevector? body) body)
         ((string? body) (string->utf8 body))
@@ -339,7 +425,7 @@
           (else
            (loop (cdr rest) (cons (car rest) out))))))
 
-(define (http-server:http1-write-response! socket req res)
+(define (http-server:http1-serve socket req res)
   (define (ensure-header res name value)
     (unless (http-server:response-header-ref res name #f)
       (http-server:response-header-set! res name value)))
@@ -350,7 +436,7 @@
     (if (not body)
         (let ((err (make-http-server:response 500)))
           (http-server:response-text! err "Unsupported response body type")
-          (http-server:http1-write-response! socket req err))
+          (http-server:http1-serve socket req err))
         (let* ((close? (or (not req)
 			   (request-close? req)
                            (http-server:headers-contains-token?
@@ -375,9 +461,22 @@
             (socket-send socket body))
           close?))))
 
+(define (http-server:http1-connect server socket app-handler . rest)
+  (let* ((conn (make-http-server:http1-connection
+		server socket
+		http-server:http1-consume
+		(lambda (conn) #t) ;; nothing to do
+		#f
+		*http-server:http1-driver*))
+	 (state (make-http1-consume-state app-handler
+		 (http-server:connection-remote-info conn))))
+    (http-server:http-connection-parse-state-set! conn state)
+    conn))
+
 (define *http-server:http1-driver*
   (make-http-server:protocol-driver "http/1.1"
-				    http-server:http1-consume
-				    http-server:http1-write-response!))
+				    http-server:http1-feed
+				    http-server:http1-serve
+				    http-server:http1-connect))
 
 )
