@@ -216,14 +216,14 @@
             :max-body-bytes max-body-bytes
 	    :max-requests-per-connection max-requests-per-connection
 	    :max-pipelined-requests max-pipelined-requests)))
-		;; `http-server:http-connection-feed!` may return a new connection
-		;; (e.g. protocol upgrade) or a status boolean. Keep existing state
-		;; unless a connection object is returned.
-		(when (http-server:connection? r)
-			(set-state! server socket r))
-		(and (http-server:connection? r)
-	 (not (http-server:http-connection? r))
-	 (http-server:close-connection! r)
+    ;; `http-server:http-connection-feed!` may return a new connection
+    ;; (e.g. protocol upgrade) or a status boolean. Keep existing state
+    ;; unless a connection object is returned.
+    (when (http-server:connection? r)
+      (set-state! server socket r))
+    (and (boolean? r)
+	 r
+	 (http-server:close-connection! conn)
 	 #t)))
 
 )

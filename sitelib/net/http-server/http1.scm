@@ -351,7 +351,7 @@
                     (message b)
                     (res (make-error-response code message)))
                (http-server:protocol-driver-serve! driver conn #f res)
-               (http-server:close-connection! conn)))
+               #t))
             (else
              (let-values (((upgrade-status upgraded-conn keep-open?)
                            (http-server:http-connection-attempt-upgrade!
@@ -360,11 +360,8 @@
                             app-handler)))
                (cond
 		((eq? upgrade-status 'handled)
-                 (unless keep-open?
-		   (http-server:close-connection! upgraded-conn))
-                 upgraded-conn)
-		((eq? upgrade-status 'error)
-		 (http-server:close-connection! conn))
+                 (if keep-open? upgraded-conn #t))
+		((eq? upgrade-status 'error) #t)
 		(else
                  (let* ((res (make-http-server:response))
 			(result (invoke-handler app-handler req res))
