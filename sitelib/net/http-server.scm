@@ -33,6 +33,7 @@
     (export make-http-server
 
 	    http-server-config?
+	    http-server:register-upgrade!
 	    make-http-server-config
 	    http-server-config-max-header-bytes
 	    http-server-config-max-body-bytes
@@ -43,9 +44,11 @@
 	    http-server-config-http2?
 	    http-server-config-http2-cleartext?
 	    http-server-config-http2-enable-push?
+
             http-server:upgrade-registry?
             make-http-server:upgrade-registry
-            http-server:register-upgrade-handler!
+	    http-server:upgrade-registry-register!
+	    http-server:upgrade-registry-registered?
 
 	    http-server:request?
 	    make-http-server:request
@@ -113,7 +116,6 @@
 	    (net http-server cache memory)
 	    (net http-server protocol)
 	    (net http-server upgrade)
-	    (net http-server h2c)
 	    (net http-server http1)
 	    (net http-server http2)
 	    (util bytevector))
@@ -121,8 +123,6 @@
 (define (make-http-server port handler
 	  :key (config (make-http-server-config))
 	       (upgrade-registry (make-http-server:upgrade-registry)))
-  (define effective-upgrade-registry
-    (http-server:register-h2c-upgrade-handler! upgrade-registry))
   (define app-handler
     (let ((cache (http-server-config-cache config)))
       (if (http-server:cache? cache)
@@ -144,27 +144,31 @@
     (let ((conn (get-state server socket app-handler)))
       (let loop ((drain-count 0))
         (let ((chunk (socket-recv socket read-size)))
-          (if (or (not chunk) (zero? (bytevector-length chunk)))
-              (http-server:close-connection! conn)
-              (cond
-               ((http-server:http-connection? conn)
-                (unless (serve-state! server socket conn chunk)
-                  (when (and (http-server:connection-open? server socket)
-                             (< drain-count max-drain)
-			     (socket-ready? socket 'read select-delay)
-                             #;(pair? (socket-read-select select-delay socket)))
-                    (loop (+ drain-count 1)))))
-               ((http-server:custom-connection? conn)
-                (unless (http-server:connection-process! conn chunk)
-                  (http-server:close-connection! conn)))
-               (else (http-server:close-connection! conn))))))))
-
+          (cond ((or (not chunk) (zero? (bytevector-length chunk)))
+		 (http-server:close-connection! conn))
+		((http-server:http-connection? conn)
+                 (unless (serve-state! server socket conn chunk)
+                   (when (and (http-server:connection-open? server socket)
+                              (< drain-count max-drain)
+			      (socket-ready? socket 'read select-delay))
+                     (loop (+ drain-count 1)))))
+		((http-server:custom-connection? conn)
+                 (unless (http-server:connection-process! conn chunk)
+                   (http-server:close-connection! conn)))
+		(else (http-server:close-connection! conn)))))))
+  (for-each (lambda (o)
+	      (http-server:upgrade-registry-register! upgrade-registry o))
+	    (http-server-config-upgrades config))
   (make-simple-server port socket-handler
 		      :server-class <http-server>
 		      :config config
 		      :registry registry
-		      :upgrade-registry effective-upgrade-registry
+		      :upgrade-registry upgrade-registry
 		      :app-handler app-handler))
+
+(define (http-server:register-upgrade! server upgrade)
+  (http-server:upgrade-registry-register!
+   (http-server-upgrade-registry server) upgrade))
 
 ;; internal
 (define (make-server-http-connection server socket app-handler)

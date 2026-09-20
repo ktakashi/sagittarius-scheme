@@ -17,12 +17,16 @@
 
 	    http-server:upgrade-registry?
 	    make-http-server:upgrade-registry
-	    http-server:register-upgrade-handler!
-	    http-server:upgrade-handler-registered?
+	    http-server:upgrade-registry-register!
+	    http-server:upgrade-registry-registered?
 
+	    http-server:upgrade?
+	    make-http-server:upgrade
+	    
 	    http-server:http-connection-attempt-upgrade!)
     (import (rnrs)
 	    (clos user)
+	    (srfi :1)
 	    (net http-server types)
 	    (net http-server request)
 	    (net http-server protocol))
@@ -39,45 +43,49 @@
               (lambda ()
                 (p '())))))
 
+(define-record-type http-server:upgrade
+  (fields name handler)
+  (protocol (lambda (p)
+	      (lambda (name handler)
+		(p (normalize-token name) handler)))))
+
 (define (normalize-token token)
   (http-server:normalize-header-name token))
 
-(define (remove-upgrade-handler handlers token)
+(define (remove-upgrade-handler handlers upgrade)
+  (define (name=? a b)
+    (string=? (http-server:upgrade-name a) (http-server:upgrade-name b)))
   (let loop ((rest handlers) (out '()))
-    (cond ((null? rest) (reverse out))
-          ((string=? (caar rest) token)
-           (loop (cdr rest) out))
-          (else
-           (loop (cdr rest) (cons (car rest) out))))))
+    (cond ((null? rest) (reverse! out))
+          ((name=? (car rest) upgrade) (loop (cdr rest) out))
+          (else (loop (cdr rest) (cons (car rest) out))))))
 
-(define (http-server:register-upgrade-handler! registry token handler)
-  (let* ((k (normalize-token token))
-         (rest (remove-upgrade-handler
-                (http-server:upgrade-registry-handlers registry)
-                k)))
-    (http-server:upgrade-registry-handlers-set!
-     registry
-     (cons (cons k handler) rest))))
+(define (http-server:upgrade-registry-register! registry upgrade)
+  (let ((rest (remove-upgrade-handler
+               (http-server:upgrade-registry-handlers registry) upgrade)))
+    (http-server:upgrade-registry-handlers-set! registry (cons upgrade rest))))
 
-(define (http-server:upgrade-handler-registered? registry token)
+(define (http-server:upgrade-registry-registered? registry token)
   (let ((k (normalize-token token)))
     (let loop ((handlers (http-server:upgrade-registry-handlers registry)))
-      (and (pair? handlers)
-           (or (string=? (caar handlers) k)
+      (and (not (null? handlers))
+           (or (string=? (http-server:upgrade-name (car handlers)) k)
                (loop (cdr handlers)))))))
 
 ;; Returns 3 values: status, new-connection, keep-open?
 ;; status is one of 'none, 'handled, 'error.
-(define (http-server:http-connection-attempt-upgrade! conn req remainder app-handler)
+(define (http-server:http-connection-attempt-upgrade! 
+	 conn req remainder app-handler)
   (let* ((headers (http-server:request-headers req))
-         (upgrade-registry (http-server:http-connection-upgrade-registry conn)))
+         (registry (http-server:http-connection-upgrade-registry conn)))
     (if (and (http-server:http-connection? conn)
              (http-server:headers-contains-token? headers "connection" "upgrade"))
-        (let loop ((handlers (http-server:upgrade-registry-handlers upgrade-registry)))
+        (let loop ((handlers (http-server:upgrade-registry-handlers registry)))
           (if (null? handlers)
               (values 'none conn #t)
-              (let* ((token (caar handlers))
-                     (handler (cdar handlers)))
+              (let* ((upgrade (car handlers))
+		     (token (http-server:upgrade-name upgrade))
+		     (handler (http-server:upgrade-handler upgrade)))
                 (if (http-server:headers-contains-token? headers "upgrade" token)
                     (let-values (((status new-conn keep-open?)
                                   (handler conn req remainder app-handler)))

@@ -40,6 +40,7 @@
 	    http-server-config-http2?
 	    http-server-config-http2-cleartext?
 	    http-server-config-http2-enable-push?
+	    http-server-config-upgrades
 
 	    <http-server> http-server?
 	    http-server-upgrade-registry
@@ -91,6 +92,8 @@
 		     :reader http-server-config-http2-cleartext?)
    (http2-enable-push? :init-keyword :http2-enable-push? :init-value #f
 		       :reader http-server-config-http2-enable-push?)
+   (upgrades :init-keyword :upgrades :init-value '()
+	     :reader http-server-config-upgrades)
    (max-drain :init-keyword :max-drain :init-value 8)
    (select-delay :init-keyword :select-delay :init-value 1)))
 

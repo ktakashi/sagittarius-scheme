@@ -19,8 +19,6 @@
 	    (srfi :18)
 	    (net socket)
 	    (net http-server protocol)
-	    (only (net http-server upgrade)
-		  http-server:http-connection)
 	    (net http-server request)
 	    (net http-server response)
 	    (net http-server types)

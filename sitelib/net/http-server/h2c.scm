@@ -8,7 +8,7 @@
 #!nounbound
 #!read-macro=sagittarius/bv-string
 (library (net http-server h2c)
-  (export http-server:register-h2c-upgrade-handler!
+  (export *http-server:h2c-upgrade*
           http-server:http-connection-check-prior-knowledge!)
   (import (rnrs)
           (clos user)
@@ -26,11 +26,6 @@
 (define (config-ref config key default)
   (guard (e (else default))
     (slot-ref config key)))
-
-(define (http-server:register-h2c-upgrade-handler! registry)
-  (unless (http-server:upgrade-handler-registered? registry "h2c")
-    (http-server:register-upgrade-handler! registry "h2c" h2c-upgrade-handler))
-  registry)
 
 (define (http2-preface-status buffer)
   (let ((n (bytevector-length buffer))
@@ -140,4 +135,8 @@
           (else
            (values 'none conn #t)))
         (values 'none conn #t))))
+
+(define *http-server:h2c-upgrade* 
+  (make-http-server:upgrade "h2c" h2c-upgrade-handler))
+
 )

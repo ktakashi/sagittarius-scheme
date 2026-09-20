@@ -6,6 +6,7 @@
 	(net http-server upgrade)
 	(net http-server protocol)
 	(net http-server http1)
+	(net http-server h2c) ;; for upgrade 
 	(sagittarius crypto keys)
 	(rfc tls)
 	(rfc x509)
@@ -456,7 +457,8 @@
     (http-server:response-text! res "h2c-upgrade-ok")
     res)
   (define config
-    (make-http-server-config :http2-cleartext? #t))
+    (make-http-server-config :http2-cleartext? #t
+			     :upgrades (list *http-server:h2c-upgrade*)))
   (define server (make-http-server "0" app :config config))
   (server-start! server :background #t)
   (thread-sleep! 0.2)
@@ -562,28 +564,27 @@
   (server-stop! server))
 
 (let ()
-  (define registry (make-http-server:upgrade-registry))
   (define (app req res)
     (http-server:response-text! res "http1-fallback")
     res)
-  (define server (make-http-server "0" app :upgrade-registry registry
-				   :config default-config))
-  (http-server:register-upgrade-handler!
-   registry
-   "x-echo"
-   (lambda (conn req remainder app-handler)
-     (socket-send
-      (http-server:connection-socket conn)
-      #*"HTTP/1.1 101 Switching Protocols\r\nConnection: Upgrade\r\nUpgrade: x-echo\r\n\r\n")
-     (values 'handled
-             (make-http-server:custom-connection
-              (http-server:connection-server conn)
-              (http-server:connection-socket conn)
-              (lambda (chunk)
-		(print 'here)
-		#t)
-              (lambda () #t))
-             #t)))
+  (define server (make-http-server "0" app :config default-config))
+  (define x-echo-handler
+    (lambda (conn req remainder app-handler)
+      (socket-send
+       (http-server:connection-socket conn)
+       #*"HTTP/1.1 101 Switching Protocols\r\nConnection: Upgrade\r\nUpgrade: x-echo\r\n\r\n")
+      (values 'handled
+	      (make-http-server:custom-connection
+	       (http-server:connection-server conn)
+	       (http-server:connection-socket conn)
+	       (lambda (conn chunk)
+		 (print 'here)
+		 #t)
+	       (lambda () #t))
+	      #t)))
+  (define x-echo (make-http-server:upgrade "x-echo" x-echo-handler))
+  (http-server:register-upgrade! server x-echo)
+
   (server-start! server :background #t)
   (thread-sleep! 0.2)
   (let ((sock (make-client-socket "localhost" (server-port server))))
