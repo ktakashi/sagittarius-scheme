@@ -9,13 +9,18 @@
     (export http-server:http1-request?
 	    http-server:http1-connection?
 	    make-http-server:http1-connection
-	    *http-server:http1-driver*)
+	    *http-server:http1-driver*
+
+	    <http1-config> http1-config? make-http1-config
+	    http1-config-max-request-par-connection
+	    http1-config-max-pipelined-requests)
     (import (rnrs)
-          (sagittarius) ;; for get-keyword
-            (net socket)
-            (net http-server types)
+	    (clos user)
+	    (sagittarius) ;; for get-keyword
+	    (net socket)
+	    (net http-server types)
 	    (net http-server request)
-            (net http-server response)
+	    (net http-server response)
 	    (net http-server protocol)
 	    (net http-server upgrade)
 	    (rfc :5322)
@@ -24,6 +29,20 @@
 	    (srfi :2 and-let*)
 	    (srfi :13 strings)
 	    (util bytevector))
+
+(define +default-max-request-par-connection+ 100)
+(define +default-max-pipelined-requests+ 16)
+
+(define-class <http1-config> (<http-config>)
+  ((max-requests-per-connection :init-keyword :max-requests-per-connection
+				:init-value +default-max-request-par-connection+
+				:reader http1-config-max-request-par-connection)
+   (max-pipelined-requests :init-keyword :max-pipelined-requests
+			   :init-value +default-max-pipelined-requests+
+			   :reader http1-config-max-pipelined-requests)))
+
+(define (http1-config? o) (is-a? o <http1-config>))
+(define (make-http1-config . rest) (apply make <http1-config> rest))
 
 (define-record-type http-server:http1-connection
   (parent http-server:http-connection)
@@ -299,10 +318,11 @@
     ((chunked) (consume-chunk st buffer max-body-bytes))
     (else (values 'error 500 "Unknown body framing state" buffer #f))))
 
-(define (http-server:http1-consume conn
-                                   :key (max-header-bytes 65536)
-                                        (max-body-bytes 1048576)
-				   :allow-other-keys)
+(define (http-server:http1-consume conn)
+  (define config (or (http-server:http-connection-config conn)
+		     (make-http1-config)))
+  (define max-header-bytes (http-config-max-header-bytes config))
+  (define max-body-bytes (http-config-max-body-bytes config))
   (define buffer (http-server:http-connection-buffer conn))
   (define st (http-server:http-connection-parse-state conn))
   (define (consume st buffer)
@@ -324,10 +344,12 @@
 				      "text/plain; charset=utf-8")
     res))
 
-(define (http-server:http1-feed conn
-				:key max-requests-per-connection
-				     max-pipelined-requests
-				:allow-other-keys opts)
+(define (http-server:http1-feed conn)
+  (define config (or (http-server:http-connection-config conn)
+		     (make-http1-config)))
+  (define max-requests-per-connection
+    (http1-config-max-request-par-connection config))
+  (define max-pipelined-requests (http1-config-max-pipelined-requests config))
   (define driver (http-server:http-connection-driver conn))
   (define st (http-server:http-connection-parse-state conn))
   (define app-handler (http1-consume-state-app-handler st))
@@ -341,7 +363,7 @@
       (normalize-handler-result (app-handler req res) res)))
 
   (let loop ((served 0))
-    (let-values (((kind req b) (apply http-server:http1-consume conn opts)))
+    (let-values (((kind req b) (http-server:http1-consume conn)))
       (cond ((or (eq? kind 'start)
                  (eq? kind 'line)
                  (eq? kind 'header))

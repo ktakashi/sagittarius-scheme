@@ -28,6 +28,7 @@
 	    http-server:http-connection-parse-state-set!
 	    http-server:http-connection-driver
 	    http-server:http-connection-upgrade-registry
+	    http-server:http-connection-config
 
 
 	    http-server:protocol-driver?
@@ -36,13 +37,16 @@
 	    http-server:protocol-driver-connect
 	    http-server:protocol-driver-consume!
 	    http-server:protocol-driver-serve!
-	    http-server:connection-oriented-driver?
 	    http-server:protocol-driver-connect!
 
 	    make-http-server:protocol-registry
 	    http-server:register-protocol-driver!
-	    http-server:select-protocol-driver)
+	    http-server:deregister-protocol-driver!
+	    http-server:select-protocol-driver
+	    http-server:protocol-registry-driver-config
+	    http-server:protocol-registry-update-driver-config!)
     (import (rnrs)
+	    (clos user)
             (net socket)
 	    (net server)
 	    (net http-server types)
@@ -75,15 +79,21 @@
   (fields (mutable buffer)
           (mutable request-count)
           (mutable parse-state)
-          driver)
-  (protocol (lambda (n)
-	      (lambda (server socket process close state driver)
-		((n server socket process close) #vu8() 0 state driver)))))
+          driver
+	  ;; cache
+	  config)
+  (protocol
+   (lambda (n)
+     (lambda (server socket process close state driver)
+       (let* ((r (slot-ref server 'protocol-registry))
+	      (c (http-server:protocol-registry-driver-config r driver)))
+	 ((n server socket process close) #vu8()
+	  0 state driver c))))))
 
 (define (http-server:http-connection-upgrade-registry conn)
-  (http-server-upgrade-registry (http-server:connection-server conn)))
+  (slot-ref (http-server:connection-server conn) 'upgrade-registry))
 
-(define (http-server:http-connection-feed! conn chunk . rest)
+(define (http-server:http-connection-feed! conn chunk)
   (unless (http-server:http-connection? conn)
     (assertion-violation 'http-server:http-connection-feed!
                          "HTTP connection required"
@@ -92,10 +102,10 @@
     (http-server:http-connection-buffer-set!
      conn
      (bytevector-append (http-server:http-connection-buffer conn) chunk)))
-  (apply http-server:protocol-driver-consume!
-         (http-server:http-connection-driver conn)
-         conn
-         rest))
+
+  (http-server:protocol-driver-consume!
+   (http-server:http-connection-driver conn)
+   conn))
 
 (define (http-server:connection-process! conn chunk . rest)
   ((http-server:connection-process conn) conn chunk))
@@ -108,11 +118,12 @@
   (fields name consume serve connect))
 
 (define-record-type http-server:protocol-registry
-  (fields (mutable drivers)
-          (mutable default-driver))
+  (fields drivers
+          default-driver
+	  configs)
   (protocol (lambda (p)
 	      (lambda (driver)
-		(p '() driver)))))
+		(p (make-eq-hashtable) driver (make-eq-hashtable))))))
 
 ;; consume returns: status, req-or-code, extra, remainder, next-state (#f => fresh)
 (define (http-server:protocol-driver-consume! driver conn . rest)
@@ -127,9 +138,6 @@
    req
    result))
 
-(define (http-server:connection-oriented-driver? driver)
-  (and (http-server:protocol-driver-connect driver) #t))
-
 (define (http-server:protocol-driver-connect! driver server socket app-handler . rest)
   (let ((connect (http-server:protocol-driver-connect driver)))
     (if connect
@@ -139,12 +147,42 @@
 			     driver))))
 
 
-(define (http-server:register-protocol-driver! registry alpn-name driver)
-  (let ((name (and alpn-name (string-downcase alpn-name))))
-    (http-server:protocol-registry-drivers-set!
-     registry
-     (cons (cons name driver)
-           (http-server:protocol-registry-drivers registry)))))
+(define (http-server:deregister-protocol-driver! registry (alpn-name string?))
+  (let ((name (and alpn-name (string-downcase alpn-name)))
+	(drivers (http-server:protocol-registry-drivers registry))
+	(configs (http-server:protocol-registry-configs registry)))
+    (cond ((hashtable-ref drivers name #f) =>
+	   (lambda (driver) (hashtable-delete! configs driver))))
+    (hashtable-delete! drivers (string->symbol name))))
+
+(define (http-server:register-protocol-driver!
+	 registry
+	 (alpn-name string?)
+	 (driver http-server:protocol-driver?)
+	 :optional (config #f))
+  (let ((name (and alpn-name (string-downcase alpn-name)))
+	(drivers (http-server:protocol-registry-drivers registry)))
+    (hashtable-set! drivers (string->symbol name) driver)
+    (when config
+      (let ((configs (http-server:protocol-registry-configs registry)))
+	(hashtable-set! configs driver config)))))
+
+(define (http-server:protocol-registry-driver-config registry driver)
+  (let ((configs (http-server:protocol-registry-configs registry)))
+    (hashtable-ref configs driver #f)))
+
+(define (http-server:protocol-registry-update-driver-config!
+	 registry
+	 (alpn-name string?)
+	 config)
+  (let ((name (and alpn-name (string-downcase alpn-name)))
+	(drivers (http-server:protocol-registry-drivers registry)))
+    
+    (cond ((hashtable-ref drivers (string->symbol name) #f) =>
+	   (lambda (driver)
+	     (let ((configs (http-server:protocol-registry-configs registry)))
+	       (hashtable-set! configs driver config))))
+	  (else #f))))
 
 (define (assoc-string key alist)
   (let loop ((rest alist))
@@ -155,10 +193,9 @@
 
 (define (http-server:select-protocol-driver registry socket)
   (if (and (tls-socket? socket) (tls-socket-selected-alpn socket))
-      (let* ((alpn (string-downcase (tls-socket-selected-alpn socket)))
-             (kv (assoc-string alpn (http-server:protocol-registry-drivers registry))))
-        (if kv
-            (cdr kv)
-            (http-server:protocol-registry-default-driver registry)))
+      (let ((alpn (string-downcase (tls-socket-selected-alpn socket)))
+	    (drivers (http-server:protocol-registry-drivers registry)))
+	(cond ((hashtable-ref drivers (string->symbol alpn) #f))
+              (else (http-server:protocol-registry-default-driver registry))))
       (http-server:protocol-registry-default-driver registry)))
 )

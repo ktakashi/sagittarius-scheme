@@ -12,12 +12,17 @@
 	    http-server:http2-request-stream-id
 	    http-server:http2-connection?
 	    make-http-server:http2-connection
-	    *http-server:http2-driver*)
+	    *http-server:http2-driver*
+
+	    <http2-config> http2-config? make-http2-config
+	    http2-config-max-concurrent-streams
+	    http2-config-enable-push?)
     (import (rnrs)
 	    (clos user)
 	    (srfi :1)
 	    (srfi :18)
 	    (net socket)
+	    (net server)
 	    (net http-server protocol)
 	    (net http-server request)
 	    (net http-server response)
@@ -28,6 +33,22 @@
 	    (rfc http2 priority)
 	    (util bytevector))
 
+(define +default-max-concurrent-streams+ 100)
+(define +default-header-table-size+ 4096)
+(define +default-initial-window-size+ +http2-default-window-size+)
+(define +default-max-frame-size+ +http2-initial-frame-buffer-size+)
+(define +default-priority-wire-weight+ 15)
+
+(define-class <http2-config> (<http-config>)
+  ((max-concurrent-streams :init-keyword :max-concurrent-streams
+			   :init-value +default-max-concurrent-streams+
+			   :reader http2-config-max-concurrent-streams)
+   (enable-push? :init-keyword :enable-push? :init-value #f
+		 :reader http2-config-enable-push?)))
+
+(define (http2-config? o) (is-a? o <http2-config>))
+(define (make-http2-config . rest) (apply make <http2-config> rest))
+
 (define-record-type (http-server:http2-connection
                      %make-http-server:http2-connection
                      http-server:http2-connection?)
@@ -35,14 +56,6 @@
   (protocol (lambda (n)
 	      (lambda (server socket process close state driver)
 		((n server socket process close state driver))))))
-
-(define +default-max-header-bytes+ 65536)
-(define +default-max-body-bytes+ 1048576)
-(define +default-max-concurrent-streams+ 100)
-(define +default-header-table-size+ 4096)
-(define +default-initial-window-size+ +http2-default-window-size+)
-(define +default-max-frame-size+ +http2-initial-frame-buffer-size+)
-(define +default-priority-wire-weight+ 15)
 
 (define (frame-flag-set? flags mask)
   (not (zero? (bitwise-and flags mask))))
@@ -94,10 +107,6 @@
           (mutable connection-recv-window)
           (mutable connection-recv-consumed)
           priority-tree))
-
-(define (config-ref config name default)
-  (guard (e (else default))
-    (slot-ref config name)))
 
 (define (connection-closed? state)
   (eq? (http2-server-connection-state-stage state) 'closed))
@@ -185,23 +194,25 @@
         (values #f #f))))
 
 (define (decode-header-entry e)
+  (define (pseudo-header? name)
+    (and (> (string-length name) 0)
+	 (char=? (string-ref name 0) #\:)))
   (let-values (((name value) (entry->name&value e)))
     (if (not name)
-        (values #f #f "Malformed HPACK entry")
-        (guard (ex (else (values #f #f "Malformed UTF-8 in header")))
-          (values (utf8->string name) (utf8->string value) #f)))))
+        (values #f #f "Malformed HPACK entry" #f)
+        (guard (ex (else (values #f #f "Malformed UTF-8 in header" #f)))
+	  (let ((h (utf8->string name)))
+          (values h (utf8->string value) #f (pseudo-header? h)))))))
 
 (define (parse-http2-request-headers headers)
   (define header-map (make-http-server:headers))
-  (define pseudo-open? #t)
-  (define method #f)
-  (define scheme #f)
-  (define target #f)
-  (define authority #f)
-  (define (fail message)
-    (values #f #f #f #f #f message))
-
-  (let loop ((rest headers))
+  (define (fail message) (values #f #f #f #f #f message))
+  (let loop ((rest headers)
+	     (pseudo-open? #t)
+	     (method #f)
+	     (scheme #f)
+	     (target #f)
+	     (authority #f))
     (if (null? rest)
         (if (and method scheme target)
             (let-values (((path query) (parse-target target)))
@@ -215,52 +226,47 @@
                       header-map
                       #f))
             (fail "Missing required pseudo headers"))
-        (let-values (((name value err) (decode-header-entry (car rest))))
+        (let-values (((name value err pseudo?) (decode-header-entry (car rest))))
           (if err
               (fail err)
-              (let ((pseudo? (and (> (string-length name) 0)
-                                  (char=? (string-ref name 0) #\:))))
+              (cond
+               ((contains-uppercase-ascii? name)
+                (fail "Uppercase header name is not allowed"))
+               ((and pseudo? (not pseudo-open?))
+                (fail "Pseudo header must appear before regular headers"))
+               (pseudo?
                 (cond
-                 ((contains-uppercase-ascii? name)
-                  (fail "Uppercase header name is not allowed"))
-                 ((and pseudo? (not pseudo-open?))
-                  (fail "Pseudo header must appear before regular headers"))
-                 (pseudo?
-                  (cond
-                   ((string=? name ":method")
-                    (if method
-                        (fail "Duplicate :method")
-                        (begin (set! method value)
-                               (loop (cdr rest)))))
-                   ((string=? name ":scheme")
-                    (if scheme
-                        (fail "Duplicate :scheme")
-                        (begin (set! scheme value)
-                               (loop (cdr rest)))))
-                   ((string=? name ":path")
-                    (if target
-                        (fail "Duplicate :path")
-                        (begin (set! target value)
-                               (loop (cdr rest)))))
-                   ((string=? name ":authority")
-                    (if authority
-                        (fail "Duplicate :authority")
-                        (begin (set! authority value)
-                               (loop (cdr rest)))))
-                   (else
-                    (fail "Unknown pseudo header"))))
+                 ((string=? name ":method")
+                  (if method
+                      (fail "Duplicate :method")
+		      (loop (cdr rest)
+			    pseudo-open? value scheme target authority)))
+                 ((string=? name ":scheme")
+                  (if scheme
+                      (fail "Duplicate :scheme")
+		      (loop (cdr rest)
+			    pseudo-open? method value target authority)))
+                 ((string=? name ":path")
+                  (if target
+                      (fail "Duplicate :path")
+		      (loop (cdr rest)
+			    pseudo-open? method scheme value authority)))
+                 ((string=? name ":authority")
+                  (if authority
+                      (fail "Duplicate :authority")
+		      (loop (cdr rest)
+			    pseudo-open? method scheme target value)))
+                 (else (fail "Unknown pseudo header"))))
+               (else
+		(cond
+                 ((connection-specific-header? name)
+                  (fail "Connection-specific header is not allowed in HTTP/2"))
+                 ((and (string=? name "te")
+                       (not (string-ci=? value "trailers")))
+                  (fail "Only TE: trailers is allowed in HTTP/2"))
                  (else
-                  (begin
-                    (set! pseudo-open? #f)
-                    (cond
-                     ((connection-specific-header? name)
-                      (fail "Connection-specific header is not allowed in HTTP/2"))
-                     ((and (string=? name "te")
-                           (not (string-ci=? value "trailers")))
-                      (fail "Only TE: trailers is allowed in HTTP/2"))
-                     (else
-                      (http-server:headers-add! header-map name value)
-                      (loop (cdr rest)))))))))))))
+                  (http-server:headers-add! header-map name value)
+                  (loop (cdr rest) #f method scheme target authority))))))))))
 
 (define (stream->request state stream)
   (let ((body (bytevector-concatenate
@@ -346,16 +352,14 @@
         (let ((err (make-http-server:response 500)))
           (http-server:response-text! err "Unsupported response body type")
           (response->hpack-headers req err))
-        (let* ((skip-body? (or (status-has-no-body? status)
-                               (and req
-                                    (eq? (http-server:request-method req) 'HEAD))))
+        (let* ((skip-body?
+		(or (status-has-no-body? status)
+                    (and req (eq? (http-server:request-method req) 'HEAD))))
                (body-bytes (if skip-body? #vu8() body)))
           (unless (or skip-body?
                       (http-server:response-header-ref res "content-length" #f))
             (http-server:response-header-set! res
-                                              "content-length"
-                                              (number->string
-                                               (bytevector-length body-bytes))))
+             "content-length" (number->string (bytevector-length body-bytes))))
           (unless (http-server:response-header-ref res "date" #f)
             (http-server:response-header-set! res "date"
                                               (http-server:current-http-date)))
@@ -407,9 +411,7 @@
   (and req
        (http-server:http2-request? req)
        (odd? (http-server:http2-request-stream-id req))
-       (config-ref (http2-server-connection-state-config conn)
-                   'http2-enable-push?
-                   #f)
+       (http2-config-enable-push? (http2-server-connection-state-config conn))
        (http2-server-connection-state-remote-enable-push? conn)))
 
 (define (allocate-push-stream-id! conn)
@@ -428,7 +430,8 @@
         (and parent-req (http-server:request-header-ref parent-req "host" #f))
         "localhost"))
   (define method-token (method->http-token method))
-  (define push-headers (make-http-server:headers (http-server:headers->alist headers)))
+  (define push-headers 
+    (make-http-server:headers (http-server:headers->alist headers)))
   (unless (http-server:headers-ref push-headers "host" #f)
     (http-server:headers-add! push-headers "host" authority))
   (let-values (((path query) (parse-target target)))
@@ -441,10 +444,10 @@
                 #vu8()
                 stream-id)))
       (values req
-              (append (list (list (string->utf8 ":method") (string->utf8 method-token))
-                            (list (string->utf8 ":scheme") (string->utf8 scheme))
-                            (list (string->utf8 ":authority") (string->utf8 authority))
-                            (list (string->utf8 ":path") (string->utf8 target)))
+              (append `((#*":method"    ,(string->utf8 method-token))
+                        (#*":scheme"    ,(string->utf8 scheme))
+                        (#*":authority" ,(string->utf8 authority))
+                        (#*":path"      ,(string->utf8 target)))
                       (collect-push-headers push-headers))))))
 
 (define (make-push-stream conn stream-id parent-id)
@@ -504,8 +507,7 @@
              (let-values (((push-req promise-headers)
                            (prepare-pushed-request state req push-id method target headers)))
                (let ((push-stream (make-push-stream state
-                                                    push-id
-                                                    (http2-server-stream-id stream))))
+                                   push-id (http2-server-stream-id stream))))
                  (send-frame! state
                               (make-http2-frame-push-promise
                                0
@@ -556,16 +558,10 @@
            (> (http2-server-stream-send-window stream) 0)
            (> (http2-server-connection-state-connection-send-window conn) 0))))
 
-  (define (split-bytevector bv count)
-    (let ((size (bytevector-length bv)))
-      (values (bytevector-copy bv 0 count)
-              (bytevector-copy bv count size))))
-
   (let loop ()
     (let* ((tree (http2-server-connection-state-priority-tree conn))
            (sid (http2-priority-tree-schedule tree stream-active?)))
-      (if (not sid)
-          #t
+      (or (not sid)
           (let ((stream (find-stream conn sid)))
             (if (not stream)
                 (begin
@@ -577,9 +573,9 @@
                                        (http2-server-stream-send-window stream)
                                        (http2-server-connection-state-connection-send-window conn)
                                        (http2-server-connection-state-remote-max-frame-size conn))))
-                  (if (<= send-size 0)
-                      #t
-                      (let-values (((chunk remain) (split-bytevector pending send-size)))
+                  (or (<= send-size 0)
+                      (let-values (((chunk remain)
+				    (bytevector-split-at* pending send-size)))
                         (let ((end? (and (zero? (bytevector-length remain))
                                          (http2-server-stream-pending-end-stream? stream))))
                           (send-frame! conn (make-http2-frame-data 0 sid chunk) end?)
@@ -692,8 +688,7 @@
                                  value))
          (http2-server-connection-state-remote-max-frame-size-set! conn value)
          (update-frame-buffer! (http2-server-connection-state-write-buffer conn)
-                               value))
-        (else #f))))
+                               value)))))
    settings))
 
 (define (dispatch-frame! conn frame)
@@ -756,8 +751,9 @@
     (let-values (((dependency exclusive?)
                   (decode-priority-dependency
                    (http2-frame-priority-stream-dependency frame))))
-      (let ((stream (find-stream state sid)))
-        (http2-priority-tree-add! (http2-server-connection-state-priority-tree state)
+      (let ((stream (find-stream state sid))
+	    (tree (http2-server-connection-state-priority-tree state)))
+        (http2-priority-tree-add! tree
                                   sid
                                   dependency
                                   (http2-frame-priority-weight frame)
@@ -831,9 +827,8 @@
                  (stream-recv-window (http2-server-stream-recv-window stream))
                  (new-size (+ (http2-server-stream-body-size stream)
                               received))
-                 (max-body (config-ref (http2-server-connection-state-config state)
-                                       'max-body-bytes
-                                       +default-max-body-bytes+)))
+		 (config (http2-server-connection-state-config state))
+                 (max-body (http-config-max-body-bytes config)))
             (when (or (> received conn-recv-window)
                       (> received stream-recv-window))
               (http2-flow-control-error 'dispatch-frame!
@@ -886,14 +881,9 @@
             (else #f)))))
 
 (define (send-initial-settings! conn)
-  (let ((max-header-bytes
-	 (config-ref (http2-server-connection-state-config conn)
-                     'max-header-bytes
-                     +default-max-header-bytes+))
-        (max-concurrent-streams
-	 (config-ref (http2-server-connection-state-config conn)
-                     'http2-max-concurrent-streams
-                     +default-max-concurrent-streams+)))
+  (define config (http2-server-connection-state-config conn))
+  (let ((max-header-bytes (http-config-max-header-bytes config))
+        (max-concurrent-streams (http2-config-max-concurrent-streams config)))
     (send-frame! conn
                  (make-http2-frame-settings
                   0
@@ -933,14 +923,12 @@
 (define (process-ready! conn state)
   (let loop ()
     (let ((pending (http2-server-connection-state-pending state)))
-      (if (zero? (bytevector-length pending))
-          #t
+      (or (zero? (bytevector-length pending))
           (let ((end (http2-frame-block-end
                       pending
                       0
                       (http2-server-connection-state-local-max-frame-size state))))
-            (if (not end)
-                #t
+            (or (not end)
                 (let ((frame-bytes (bytevector-copy pending 0 end))
                       (next (bytevector-copy pending end (bytevector-length pending))))
                   (http2-server-connection-state-pending-set! state next)
@@ -985,11 +973,14 @@
                                            (settings '())
                                            (upgrade-request #f)
                                            (expect-preface? #t))
-  (let* ((config (slot-ref server 'config)) ;; FIXME
-	 (max-concurrent-streams
-          (config-ref config
-                      'http2-max-concurrent-streams
-                      +default-max-concurrent-streams+))
+  (define (driver-config server)
+    (define registry  (slot-ref server 'protocol-registry))
+    (define driver *http-server:http2-driver*)
+    (cond ((http-server:protocol-registry-driver-config registry driver))
+	  (else (make-http2-config))))
+  
+  (let* ((config (driver-config server))
+	 (max-concurrent-streams (http2-config-max-concurrent-streams config))
          (priority-node-cap (+ 5 (* 2 max-concurrent-streams)))
          (decoder (make-hpack-context +default-header-table-size+))
          (encoder (make-hpack-context +default-header-table-size+))
@@ -1033,10 +1024,7 @@
 (define (http-server:http2-connect server socket app-handler . opts)
   (apply make-http-server:http2-connection server socket app-handler opts))
 
-(define (http-server:http2-consume conn
-	  :key (max-header-bytes 65536)
-         (max-body-bytes 1048576)
-    :allow-other-keys)
+(define (http-server:http2-consume conn)
   (let ((chunk (http-server:http-connection-buffer conn)))
     (http-server:http-connection-buffer-set! conn #vu8())
     (process-connection! conn chunk)))

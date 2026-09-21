@@ -30,26 +30,36 @@
 
 #!nounbound
 (library (net http-server)
-    (export make-http-server
-
-	    http-server-config?
+    (export <http-server> make-http-server http-server?
+	    http-server-upgrade-registry
+	    http-server:connection-open?
 	    http-server:register-upgrade!
-	    make-http-server-config
-	    http-server-config-max-header-bytes
-	    http-server-config-max-body-bytes
-	    http-server-config-max-pipelined-requests
-	    http-server-config-max-requests-per-connection
+
+	    <http-server-config> make-http-server-config http-server-config?
 	    http-server-config-read-size
 	    http-server-config-cache
-	    http-server-config-http2?
-	    http-server-config-http2-cleartext?
-	    http-server-config-http2-enable-push?
+	    http-server-config-upgrades
+
+	    make-http-server:default-protocol-registry
+	    http-server:register-protocol-driver!
+	    http-server:deregister-protocol-driver!
+	    http-server:protocol-registry-update-driver-config!
 
             http-server:upgrade-registry?
             make-http-server:upgrade-registry
 	    http-server:upgrade-registry-register!
 	    http-server:upgrade-registry-registered?
 
+	    http-config?
+	    http-config-max-header-bytes
+	    http-config-max-body-bytes
+	    <http1-config> http1-config? make-http1-config
+	    http1-config-max-request-par-connection
+	    http1-config-max-pipelined-requests	    
+	    <http2-config> http2-config? make-http2-config
+	    http2-config-max-concurrent-streams
+	    http2-config-enable-push?
+	    
 	    http-server:request?
 	    make-http-server:request
 	    http-server:request-method
@@ -120,22 +130,63 @@
 	    (net http-server http2)
 	    (util bytevector))
 
+(define-class <http-server-config> (<server-config>)
+  ((read-size :init-keyword :read-size :init-value 8192
+	      :reader http-server-config-read-size)
+   (cache :init-keyword :cache :init-value #f
+	  :reader http-server-config-cache)
+   (upgrades :init-keyword :upgrades :init-value '()
+	     :reader http-server-config-upgrades)
+   (max-drain :init-keyword :max-drain :init-value 8)
+   (select-delay :init-keyword :select-delay :init-value 1)))
+
+(define (make-http-server-config . opts)
+  (define http2? (get-keyword :http2? opts #t))
+  (define opts*
+    (if (memq :alpn opts)
+        opts
+        (append (list :alpn (if http2? '("h2" "http/1.1") '("http/1.1"))) opts)))
+  (apply make <http-server-config>
+	 :close-socket? #f
+	 opts*))
+
+(define (http-server-config? o) (is-a? o <http-server-config>))
+
+(define-class <http-server> (<simple-server>)
+  ((protocol-registry :init-keyword :protocol-registry)
+   (upgrade-registry :init-keyword :upgrade-registry
+		     :reader http-server-upgrade-registry)
+   (app-handler :init-keyword :app-handler)
+   (states :init-form (make-eq-hashtable))
+   (lock :init-form (make-mutex))))
+(define (http-server? o) (is-a? o <http-server>))
+
+(define (http-server:connection-open? server socket)
+  (define lock (slot-ref server 'lock))
+  (define states (slot-ref server 'states))
+
+  (mutex-lock! lock)
+  (let ((alive (hashtable-ref states socket #f)))
+    (mutex-unlock! lock)
+    (and alive #t)))
+
+(define (make-http-server:default-protocol-registry)
+  (let ((r (make-http-server:protocol-registry *http-server:http1-driver*)))
+    (http-server:register-protocol-driver! r
+     "http/1.1" *http-server:http1-driver* (make-http1-config))
+    (http-server:register-protocol-driver! r 
+     "h2" *http-server:http2-driver* (make-http2-config))
+    r))
+
 (define (make-http-server port handler
 	  :key (config (make-http-server-config))
+	       (protocol-registry (make-http-server:default-protocol-registry))
 	       (upgrade-registry (make-http-server:upgrade-registry)))
   (define app-handler
     (let ((cache (http-server-config-cache config)))
       (if (http-server:cache? cache)
           (http-server:make-cache-middleware cache handler)
           handler)))
-
-  (define registry
-    (let ((r (make-http-server:protocol-registry *http-server:http1-driver*)))
-      (http-server:register-protocol-driver! r
-	"http/1.1" *http-server:http1-driver*)
-      (when (http-server-config-http2? config)
-        (http-server:register-protocol-driver! r "h2" *http-server:http2-driver*))
-      r))
 
   (define max-drain (slot-ref config 'max-drain))
   (define select-delay (slot-ref config 'select-delay))
@@ -162,7 +213,7 @@
   (make-simple-server port socket-handler
 		      :server-class <http-server>
 		      :config config
-		      :registry registry
+		      :protocol-registry protocol-registry
 		      :upgrade-registry upgrade-registry
 		      :app-handler app-handler))
 
@@ -172,7 +223,7 @@
 
 ;; internal
 (define (make-server-http-connection server socket app-handler)
-  (let* ((protocol-registry (slot-ref server 'registry))
+  (let* ((protocol-registry (slot-ref server 'protocol-registry))
          (driver (http-server:select-protocol-driver protocol-registry socket)))
     (http-server:protocol-driver-connect! driver server socket app-handler)))
 
@@ -200,26 +251,10 @@
   (mutex-unlock! lock))
 
 (define (serve-state! server socket conn chunk)
-  (define app-handler (slot-ref server 'app-handler))
-  (define config (slot-ref server 'config))
-  (define max-header-bytes (http-server-config-max-header-bytes config))
-  (define max-body-bytes (http-server-config-max-body-bytes config))
-  (define max-requests-per-connection
-    (http-server-config-max-requests-per-connection config))
-  (define max-pipelined-requests
-    (http-server-config-max-pipelined-requests config))
-
-  (let ((r (http-server:http-connection-feed!
-            conn
-            chunk
-            :max-header-bytes max-header-bytes
-            :max-body-bytes max-body-bytes
-	    :max-requests-per-connection max-requests-per-connection
-	    :max-pipelined-requests max-pipelined-requests)))
-    ;; `http-server:http-connection-feed!` may return a new connection
-    ;; (e.g. protocol upgrade) or a status boolean. Keep existing state
-    ;; unless a connection object is returned.
-    (when (http-server:connection? r)
+  (let ((r (http-server:http-connection-feed! conn chunk)))
+    ;; if the feed returned a new connection, then the
+    ;; upgrade happened, so update the state.
+    (when (and (http-server:connection? r) (not (eq? r conn)))
       (set-state! server socket r))
     (and (boolean? r)
 	 r

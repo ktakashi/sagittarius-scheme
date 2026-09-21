@@ -1,16 +1,17 @@
 #!read-macro=sagittarius/bv-string
 (import (rnrs)
-        (net socket)
-        (net http-server)
-        (net http-server protocol)
-        (net http-server response)
-        (net http-server http2)
-        (rfc http2 frame)
-  (rfc http2 conditions)
-        (rfc http2 hpack)
-        (srfi :1)
-        (srfi :18)
-        (srfi :64))
+	(clos user)
+	(net socket)
+	(net http-server)
+	(net http-server protocol)
+	(net http-server response)
+	(net http-server http2)
+	(rfc http2 frame)
+	(rfc http2 conditions)
+	(rfc http2 hpack)
+	(srfi :1)
+	(srfi :18)
+	(srfi :64))
 
 (test-begin "net/http-server-http2")
 
@@ -88,10 +89,14 @@
                     (+ sum (bytevector-length (http2-frame-data-data f))))
               (loop (cdr rest) sum))))))
 
-(define (with-http2-connection app proc :optional (config (make-http-server-config)))
+(define (with-http2-connection app proc :optional (config (make-http2-config)))
   (define server-sock #f)
   (define accepted #f)
   (define client #f)
+  (define registry
+    (let ((r (make-http-server:default-protocol-registry)))
+      (http-server:protocol-registry-update-driver-config! r "h2" config)
+      r))
   (dynamic-wind
     (lambda ()
       (set! server-sock (make-server-socket "0"))
@@ -100,7 +105,8 @@
         (set! accepted (socket-accept server-sock))))
     (lambda ()
       (let ((conn (make-http-server:http2-connection
-		   (make-http-server "0" (lambda (req resp) #t) :config config)
+		   (make-http-server "0" (lambda (req resp) #t)
+				     :protocol-registry registry)
                    accepted
                    app)))
         (proc client accepted conn)))
@@ -108,9 +114,6 @@
       (guard (e (else #f)) (when client (socket-close client)))
       (guard (e (else #f)) (when accepted (socket-close accepted)))
       (guard (e (else #f)) (when server-sock (socket-close server-sock))))))
-
-(test-assert "http2 driver is connection-oriented"
-             (http-server:connection-oriented-driver? *http-server:http2-driver*))
 
 (test-assert "protocol-driver-connect! returns connection"
              (with-http2-connection
@@ -404,7 +407,8 @@
       (#*":scheme" #*"http")
       (#*":path" #*"/index")
       (#*":authority" #*"localhost")))
-  (define config (make-http-server-config :http2-enable-push? #t))
+
+  (define config (make-http2-config :enable-push? #t))
   (with-http2-connection
    (lambda (req res)
      (cond ((string=? (http-server:request-path req) "/index")
@@ -474,7 +478,7 @@
       (#*":scheme" #*"http")
       (#*":path" #*"/push-disabled-by-peer")
       (#*":authority" #*"localhost")))
-  (define config (make-http-server-config :http2-enable-push? #t))
+  (define config (make-http2-config :enable-push? #t))
   (with-http2-connection
    (lambda (req res)
      (http-server:response-push! res 'GET "/asset.css" '())
