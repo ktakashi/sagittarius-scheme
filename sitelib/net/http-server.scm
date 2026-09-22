@@ -133,7 +133,7 @@
 (define-class <http-server-config> (<server-config>)
   ((read-size :init-keyword :read-size :init-value 8192
 	      :reader http-server-config-read-size)
-   (cache :init-keyword :cache :init-value #f
+   (cache :init-keyword :cache :init-form (make-http-server:memory-cache)
 	  :reader http-server-config-cache)
    (upgrades :init-keyword :upgrades :init-value '()
 	     :reader http-server-config-upgrades)
@@ -207,6 +207,7 @@
                  (unless (http-server:connection-process! conn chunk)
                    (http-server:close-connection! conn)))
 		(else (http-server:close-connection! conn)))))))
+
   (for-each (lambda (o)
 	      (http-server:upgrade-registry-register! upgrade-registry o))
 	    (http-server-config-upgrades config))

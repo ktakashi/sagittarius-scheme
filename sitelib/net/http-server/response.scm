@@ -6,42 +6,42 @@
 #!nounbound
 (library (net http-server response)
     (export http-server:response?
-            make-http-server:response
-            http-server:response-status
-            http-server:response-status-set!
-            http-server:response-reason
-            http-server:response-reason-set!
-            http-server:response-headers
-            http-server:response-body
-            http-server:response-body-set!
-          http-server:response-pushes
-            http-server:response-cacheable?
-            http-server:response-cacheable?-set!
-            http-server:response-cache-ttl
-            http-server:response-cache-ttl-set!
+	    make-http-server:response
+	    http-server:response-status
+	    http-server:response-status-set!
+	    http-server:response-reason
+	    http-server:response-reason-set!
+	    http-server:response-headers
+	    http-server:response-body
+	    http-server:response-body-set!
+	    http-server:response-pushes
+	    http-server:response-cacheable?
+	    http-server:response-cacheable?-set!
+	    http-server:response-cache-ttl
+	    http-server:response-cache-ttl-set!
 
-            http-server:response-header-ref
-            http-server:response-header-ref*
-            http-server:response-header-set!
-            http-server:response-header-add!
+	    http-server:response-header-ref
+	    http-server:response-header-ref*
+	    http-server:response-header-set!
+	    http-server:response-header-add!
 
-            http-server:response-push!
-            http-server:response-text!
-            http-server:response-bytes!
-            http-server:response-copy)
+	    http-server:response-push!
+	    http-server:response-text!
+	    http-server:response-bytes!
+	    http-server:response-copy)
     (import (rnrs)
-            (net http-server types))
+	    (net http-server types))
   
 (define-record-type (http-server:response
 		     %make-http-server:response
 		     http-server:response?)
-  (fields (mutable %status http-server:response-status %response-status-set!)
-          (mutable %reason http-server:response-reason http-server:response-reason-set!)
-          (immutable %headers http-server:response-headers)
-          (mutable %body http-server:response-body http-server:response-body-set!)
-    (mutable %pushes http-server:response-pushes http-server:response-pushes-set!)
-          (mutable %cacheable? http-server:response-cacheable? http-server:response-cacheable?-set!)
-          (mutable %cache-ttl http-server:response-cache-ttl http-server:response-cache-ttl-set!)))
+  (fields (mutable status http-server:response-status %response-status-set!)
+          (mutable reason)
+          headers
+          (mutable body)
+	  (mutable pushes)
+          (mutable cacheable?)
+          (mutable cache-ttl)))
 
 (define (make-http-server:response :optional (status 200))
   (%make-http-server:response status
