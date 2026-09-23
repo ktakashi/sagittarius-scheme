@@ -26,19 +26,19 @@
 	  (immutable key-maker cache-key-maker-proc)))
 
 (define (http-server:cache-lookup cache req)
-  ((cache-lookup-proc cache) (http-server:cache-key cache req) req))
+  ((cache-lookup-proc cache) cache (http-server:cache-key cache req) req))
 
 (define (http-server:cache-store! cache req res)
-  ((cache-store-proc cache) (http-server:cache-key cache req) req res))
+  ((cache-store-proc cache) cache (http-server:cache-key cache req) req res))
 
 (define (http-server:cache-invalidate! cache key)
-  ((cache-invalidate-proc cache) key))
+  ((cache-invalidate-proc cache) cache key))
 
 (define (http-server:cache-clear! cache)
-  ((cache-clear-proc cache)))
+  ((cache-clear-proc cache) cache))
 
 (define (http-server:cache-key cache req)
-  ((cache-key-maker-proc cache) req))
+  ((cache-key-maker-proc cache) cache req))
 
 (define (default-cache-key req)
   (string-append (symbol->string (http-server:request-method req))
