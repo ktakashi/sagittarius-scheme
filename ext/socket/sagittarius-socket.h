@@ -146,8 +146,6 @@ SG_CLASS_DECL(Sg_SocketInfoClass);
 typedef struct SgFdSetRec
 {
   SG_HEADER;
-  fd_set    fdset;
-  int       maxfd;
   SgObject  sockets;
 } SgFdSet;
 

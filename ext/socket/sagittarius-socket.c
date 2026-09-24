@@ -992,8 +992,7 @@ void Sg_SocketClose(SgSocket *socket)
 /* fdset */
 static void fdset_printer(SgObject self, SgPort *port, SgWriteContext *ctx)
 {
-  Sg_Printf(port, UC("#<fdset %d %S>"), SG_FDSET(self)->maxfd,
-	    SG_FDSET(self)->sockets);
+  Sg_Printf(port, UC("#<fdset %S>"), SG_FDSET(self)->sockets);
 }
 
 SG_DEFINE_BUILTIN_CLASS_SIMPLE(Sg_FdSetClass, fdset_printer);
@@ -1002,9 +1001,7 @@ static SgFdSet* make_fd_set()
 {
   SgFdSet *z = SG_NEW(SgFdSet);
   SG_SET_CLASS(z, SG_CLASS_FD_SET);
-  z->maxfd = -1;
   z->sockets = SG_NIL;
-  FD_ZERO(&z->fdset);
   return z;
 }
 
@@ -1015,8 +1012,6 @@ static SgFdSet* copy_fd_set(SgFdSet *src)
   } else {
     SgFdSet *z = SG_NEW(SgFdSet);
     SG_SET_CLASS(z, SG_CLASS_FD_SET);
-    z->fdset = src->fdset;
-    z->maxfd = src->maxfd;
     z->sockets = Sg_CopyList(src->sockets);
     return z;
   }
@@ -1027,36 +1022,9 @@ SgObject Sg_MakeFdSet()
   return SG_OBJ(make_fd_set());
 }
 
-static int collect_max_fd(int max, SgObject sockets, fd_set *fds)
-{
-  SgObject cp;
-  FD_ZERO(fds);
-  SG_FOR_EACH(cp, sockets) {
-    SOCKET fd;
-    if (!SG_SOCKETP(SG_CAR(cp))) {
-      Sg_WrongTypeOfArgumentViolation(SG_INTERN("socket-select"),
-				      SG_MAKE_STRING("socket"),
-				      SG_CAR(cp), sockets);
-    }
-    if (!Sg_SocketOpenP(SG_SOCKET(SG_CAR(cp)))) {
-      Sg_AssertionViolation(SG_INTERN("socket-select"),
-			    SG_MAKE_STRING("socket is closed"),
-			    SG_LIST2(SG_CAR(cp), sockets));
-    }
-    fd = SG_SOCKET(SG_CAR(cp))->socket;
-    /* MSDN says the first argument of select is ignored, so this is useless */
-#ifndef _WIN32
-    if (max < fd) max = fd;
-#endif
-    FD_SET(fd, fds);
-  }
-  return max;
-}
-
 SgObject Sg_SocketsToFdSet(SgObject sockets)
 {
   SgFdSet *fdset = make_fd_set();
-  fdset->maxfd = collect_max_fd(fdset->maxfd, sockets, &fdset->fdset);
   fdset->sockets = sockets;
   return SG_OBJ(fdset);
 }
@@ -1064,7 +1032,7 @@ SgObject Sg_SocketsToFdSet(SgObject sockets)
 static void check_fd_range(int fd)
 {
 #if !defined(_MSC_VER)
-  if (fd < 0 || fd >= FD_SETSIZE) {
+  if (fd >= FD_SETSIZE) {
     Sg_Error(UC("Socket descriptor value is out of range: (0 <= %d <= %d)"),
 	     fd, FD_SETSIZE);
   }
@@ -1075,13 +1043,15 @@ static void check_fd_range(int fd)
 void Sg_FdSetSet(SgFdSet *fdset, SgSocket *socket, int flag)
 {
   int fd = socket->socket;
+  if (fd < 0) {
+    Sg_AssertionViolation(SG_INTERN("fdset-set!"),
+			  SG_MAKE_STRING("Invalid socket"),
+			  socket);
+  }
   check_fd_range(fd);
   if (flag) {
-    FD_SET(fd, &fdset->fdset);
     fdset->sockets = Sg_Cons(socket, fdset->sockets);
-    if (fdset->maxfd < fd) fdset->maxfd = fd;
   } else {
-    FD_CLR(fd, &fdset->fdset);
     SgObject h, p = SG_FALSE;
     SG_FOR_EACH(h, fdset->sockets) {
       if (SG_EQ(SG_CAR(h), socket)) {
@@ -1090,14 +1060,6 @@ void Sg_FdSetSet(SgFdSet *fdset, SgSocket *socket, int flag)
 	break;
       }
       p = h;
-      if (fdset->maxfd == fd) {
-	for (int i = fd - 1; i >= 0; i--) {
-	  if (FD_ISSET(i, &fdset->fdset)) {
-	    fdset->maxfd = i;
-	    break;
-	  }
-	}
-      }
     }
   }
 }
@@ -1107,13 +1069,12 @@ int Sg_FdSetRef(SgFdSet *fdset, SgSocket *socket)
   int fd = socket->socket;
   if (fd < 0) return FALSE;
   check_fd_range(fd);
-  return FD_ISSET(fd, &fdset->fdset);
+  return !SG_FALSEP(Sg_Memq(socket, fdset->sockets));
 }
 
 void Sg_FdSetClear(SgFdSet *fdset)
 {
   fdset->sockets = SG_NIL;
-  FD_ZERO(&fdset->fdset);
 }
 
 static struct timeval *select_timeval(SgObject timeout, struct timeval *tm)
@@ -1183,28 +1144,28 @@ SgObject Sg_CollectSockets(SgObject fdset, SgObject sockets)
 }
 #endif
 
-static SgObject skip_sockets(SgObject sockets, SgFdSet *fds)
+static SgObject skip_sockets(SgObject sockets, SgFdSet *fds, fd_set *fdset)
 {
   SG_FOR_EACH(sockets, sockets) {
     SgSocket *sock = SG_SOCKET(SG_CAR(sockets));
-    if (FD_ISSET(sock->socket, &fds->fdset)) {
+    if (FD_ISSET(sock->socket, fdset)) {
       return sockets;
     }
   }
   return SG_NIL;		/* empty huh? */
 }
 
-static SgObject remove_socket(SgFdSet *fds)
+static SgObject remove_socket(SgFdSet *fds, fd_set *fdset)
 {
   SgObject ans = fds->sockets, cp, prev = SG_FALSE;
 
   if (SG_NULLP(ans)) return ans; /* simple */
   /* remove non set sockets first */
-  cp = ans = skip_sockets(ans, fds);
+  cp = ans = skip_sockets(ans, fds, fdset);
   for (;!SG_NULLP(cp);) {
     SgSocket *sock = SG_SOCKET(SG_CAR(cp));
-    if (!FD_ISSET(sock->socket, &fds->fdset)) {
-      SgObject next = skip_sockets(cp, fds);
+    if (!FD_ISSET(sock->socket, fdset)) {
+      SgObject next = skip_sockets(cp, fds, fdset);
       SG_SET_CDR(prev, next);
       if (SG_NULLP(next)) break;
       prev = next;
@@ -1214,6 +1175,20 @@ static SgObject remove_socket(SgFdSet *fds)
     }
   }
   return ans;
+}
+
+static int setup_fdset(SgFdSet *fdset, fd_set *fds)
+{
+  int maxfd = -1;
+  SgObject cp;
+  SG_FOR_EACH(cp, fdset->sockets) {
+    SgSocket *socket = SG_CAR(cp);
+    int fd = socket->socket;
+    if (fd < 0) continue;	/* closed socket */
+    if (maxfd < fd) maxfd = fd;
+    FD_SET(fd, fds);
+  }
+  return maxfd;
 }
 
 static int socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
@@ -1228,11 +1203,20 @@ static int socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
   HANDLE hEvents[2];
   hEvents[0] = CreateEvent(NULL, FALSE, FALSE, NULL);
 #endif
-  
-  if (rfds) max = rfds->maxfd;
-  if (wfds && wfds->maxfd > max) max = wfds->maxfd;
-  if (efds && efds->maxfd > max) max = efds->maxfd;
 
+  fd_set rfd, wfd, efd;
+  fd_set *prfd = NULL, *pwfd = NULL, *pefd = NULL;
+
+#define init_fds(fds, fd, pfd)			\
+  if (fds) {					\
+    pfd = &fd;					\
+    int t = setup_fdset(fds, pfd);		\
+    if (t > max) max = t;			\
+  }
+  init_fds(rfds, rfd, prfd);
+  init_fds(wfds, wfd, pwfd);
+  init_fds(efds, efd, pefd);
+  
   /* TODO wrap this with macro */
 #ifdef _WIN32
   ResetEvent((&vm->thread)->event);
@@ -1270,22 +1254,15 @@ static int socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
   CloseHandle(hEvents[0]);
   
   if (r == WAIT_OBJECT_0) {
-    numfds = select(max + 1, 
-		    (rfds ? &rfds->fdset : NULL), 
-		    (wfds ? &wfds->fdset : NULL), 
-		    (efds ? &efds->fdset : NULL), 
-		    tv2);
+    numfds = select(max + 1, prfd, pwfd, pefd, tv2);
   } else {
     WSASetLastError(EINTR);
     numfds = -1;
   }
+
 #else
  retry:
-  numfds = select(max + 1, 
-		  (rfds ? &rfds->fdset : NULL), 
-		  (wfds ? &wfds->fdset : NULL), 
-		  (efds ? &efds->fdset : NULL), 
-		  select_timeval(timeout, &tv));
+  numfds = select(max + 1, prfd, pwfd, pefd, select_timeval(timeout, &tv));
 
 #endif
 
@@ -1309,15 +1286,15 @@ static int socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
 				timeout));
   }
   
-#define REMOVE_SOCKET(fdset_)					\
+#define REMOVE_SOCKET(fdset_, fds__)				\
   do {								\
     if (fdset_) {						\
-      (fdset_)->sockets = remove_socket(fdset_);		\
+      (fdset_)->sockets = remove_socket(fdset_, fds__);		\
     }								\
   } while (0)
-  REMOVE_SOCKET(rfds);
-  REMOVE_SOCKET(wfds);
-  REMOVE_SOCKET(efds);
+  REMOVE_SOCKET(rfds, prfd);
+  REMOVE_SOCKET(wfds, pwfd);
+  REMOVE_SOCKET(efds, pefd);
 
 #undef REMOVE_SOCKET
   return numfds;
