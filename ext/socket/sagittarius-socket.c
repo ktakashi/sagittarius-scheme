@@ -571,10 +571,9 @@ SgObject Sg_SocketConnect(SgSocket *socket, SgAddrinfo* addrinfo,
   if (rc < 0) {
     int ec = last_error;
     if (ec == EINPROGRESS || ec == EWOULDBLOCK) {
-      SgFdSet *wfd = SG_FDSET(Sg_SocketsToFdSet(SG_LIST1(socket)));
-      int res = socket_select_int(NULL, wfd, NULL, timeout);
+      int res = Sg_SocketReadyP(socket, SG_SOCKET_WRITE, timeout);
       Sg_SocketBlocking(socket);
-      if (res != 1) {
+      if (!res) {
 	SgObject c = SG_LIST4(Sg_MakeConditionSocketConnection(socket),
 			      Sg_MakeWhoCondition(SG_INTERN("socket-connect!")),
 			      Sg_MakeMessageCondition(SG_MAKE_STRING("Connection timeout")),
