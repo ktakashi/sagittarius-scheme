@@ -1061,6 +1061,61 @@ SgObject Sg_SocketsToFdSet(SgObject sockets)
   return SG_OBJ(fdset);
 }
 
+static void check_fd_range(int fd)
+{
+#if !defined(_MSC_VER)
+  if (fd < 0 || fd >= FD_SETSIZE) {
+    Sg_Error(UC("Socket descriptor value is out of range: (0 <= %d <= %d)"),
+	     fd, FD_SETSIZE);
+  }
+			  
+#endif
+}
+
+void Sg_FdSetSet(SgFdSet *fdset, SgSocket *socket, int flag)
+{
+  int fd = socket->socket;
+  check_fd_range(fd);
+  if (flag) {
+    FD_SET(fd, &fdset->fdset);
+    fdset->sockets = Sg_Cons(socket, fdset->sockets);
+    if (fdset->maxfd < fd) fdset->maxfd = fd;
+  } else {
+    FD_CLR(fd, &fdset->fdset);
+    SgObject h, p = SG_FALSE;
+    SG_FOR_EACH(h, fdset->sockets) {
+      if (SG_EQ(SG_CAR(h), socket)) {
+	if (SG_FALSEP(p)) fdset->sockets = SG_CDR(h);
+	else SG_SET_CDR(p, SG_CDR(h));
+	break;
+      }
+      p = h;
+      if (fdset->maxfd == fd) {
+	for (int i = fd - 1; i >= 0; i--) {
+	  if (FD_ISSET(i, &fdset->fdset)) {
+	    fdset->maxfd = i;
+	    break;
+	  }
+	}
+      }
+    }
+  }
+}
+
+int Sg_FdSetRef(SgFdSet *fdset, SgSocket *socket)
+{
+  int fd = socket->socket;
+  if (fd < 0) return FALSE;
+  check_fd_range(fd);
+  return FD_ISSET(fd, &fdset->fdset);
+}
+
+void Sg_FdSetClear(SgFdSet *fdset)
+{
+  fdset->sockets = SG_NIL;
+  FD_ZERO(&fdset->fdset);
+}
+
 static struct timeval *select_timeval(SgObject timeout, struct timeval *tm)
 {
   if (SG_FALSEP(timeout)) return NULL;
