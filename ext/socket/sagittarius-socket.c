@@ -1162,7 +1162,7 @@ static int setup_fdset(SgFdSet *fdset, fd_set *fds)
   int maxfd = -1;
   SgObject cp;
   SG_FOR_EACH(cp, fdset->sockets) {
-    SgSocket *socket = SG_CAR(cp);
+    SgSocket *socket = SG_SOCKET(SG_CAR(cp));
     int fd = socket->socket;
     if (fd < 0) continue;	/* closed socket */
     if (maxfd < fd) maxfd = fd;
@@ -1208,7 +1208,6 @@ static int socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
   SET_EVENT(rfds, FD_READ | FD_OOB);
   SET_EVENT(wfds, FD_WRITE);
   SET_EVENT(efds, FD_READ | FD_OOB);
-#undef SET_EVENT
   
   tv2 = select_timeval(timeout, &tv);
   DWORD millis = tv2 ? tv.tv_sec * 1000 + tv.tv_usec/1000: INFINITE;
@@ -1227,8 +1226,10 @@ static int socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
   SET_EVENT(rfds, 0);
   SET_EVENT(wfds, 0);
   SET_EVENT(efds, 0);
+#undef SET_EVENT
+
   CloseHandle(hEvents[0]);
-  
+
   if (r == WAIT_OBJECT_0) {
     numfds = select(max + 1, prfd, pwfd, pefd, tv2);
   } else {
