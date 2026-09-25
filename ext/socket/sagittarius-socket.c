@@ -1123,26 +1123,7 @@ static struct timeval *select_timeval(SgObject timeout, struct timeval *tm)
   return NULL;                /* dummy */
 }
 
-/* not used */
-#if 0
-static SgObject collect_fds(SgObject sockets, fd_set *fds)
-{
-  SgObject h = SG_NIL, t = SG_NIL;
-  SG_FOR_EACH(sockets, sockets) {
-    SgSocket *socket = SG_SOCKET(SG_CAR(sockets));
-    if (FD_ISSET(socket->socket, fds)) {
-      SG_APPEND1(h, t, socket);
-    }
-  }
-  return h;
-}
-
-SgObject Sg_CollectSockets(SgObject fdset, SgObject sockets)
-{
-  return collect_fds(sockets, &SG_FDSET(fdset)->fdset);
-}
-#endif
-
+#if _WIN32
 static SgObject skip_sockets(SgObject sockets, SgFdSet *fds, fd_set *fdset)
 {
   SG_FOR_EACH(sockets, sockets) {
@@ -1193,15 +1174,11 @@ static int setup_fdset(SgFdSet *fdset, fd_set *fds)
 static int socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
 			     SgObject timeout)
 {
-  struct timeval tv;
+  struct timeval tv, *tv2;
   int max = 0, numfds;
-  
-#ifdef _WIN32
-  struct timeval *tv2;
   SgVM *vm = Sg_VM();
   HANDLE hEvents[2];
   hEvents[0] = CreateEvent(NULL, FALSE, FALSE, NULL);
-#endif
 
   fd_set rfd, wfd, efd;
   fd_set *prfd = NULL, *pwfd = NULL, *pefd = NULL;
@@ -1215,11 +1192,10 @@ static int socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
   init_fds(rfds, rfd, prfd);
   init_fds(wfds, wfd, pwfd);
   init_fds(efds, efd, pefd);
+#undef init_fds
   
-  /* TODO wrap this with macro */
-#ifdef _WIN32
   ResetEvent((&vm->thread)->event);
-# define SET_EVENT(fdset, flags)					\
+#define SET_EVENT(fdset, flags)						\
   do {									\
     if (fdset) {							\
       SgObject sockets = (fdset)->sockets;				\
@@ -1232,7 +1208,8 @@ static int socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
   SET_EVENT(rfds, FD_READ | FD_OOB);
   SET_EVENT(wfds, FD_WRITE);
   SET_EVENT(efds, FD_READ | FD_OOB);
-
+#undef SET_EVENT
+  
   tv2 = select_timeval(timeout, &tv);
   DWORD millis = tv2 ? tv.tv_sec * 1000 + tv.tv_usec/1000: INFINITE;
   /* Put minimum amount of wait */
@@ -1259,20 +1236,10 @@ static int socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
     numfds = -1;
   }
 
-#else
- retry:
-  numfds = select(max + 1, prfd, pwfd, pefd, select_timeval(timeout, &tv));
-
-#endif
-
   if (numfds < 0) {
     if (last_error == EINTR) {
       SG_INTERRUPTED_THREAD() {
 	return -1;
-#ifndef _WIN32
-      } SG_INTERRUPTED_THREAD_ELSE() {
-	goto retry;
-#endif
       } SG_INTERRUPTED_THREAD_END();
     }
     raise_socket_error(SG_INTERN("socket-select"), 
@@ -1298,6 +1265,108 @@ static int socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
 #undef REMOVE_SOCKET
   return numfds;
 }
+
+#else  /* using poll */
+
+typedef struct pollfd pollfd_t;
+
+static SgObject search_socket(int fd, SgObject sockets)
+{
+  SgObject cp;
+  SG_FOR_EACH(cp, sockets) {
+    SgSocket *s = SG_SOCKET(SG_CAR(cp));
+    if (fd == s->socket) return s;
+  }
+  return SG_FALSE;
+}
+
+/* This is O(N^2), it would be a problem when the fdset contains large
+   number of sockets. */
+static SgObject remove_socket(SgFdSet *fdset, pollfd_t *fds, nfds_t n, int flag)
+{
+  SgObject h = SG_NIL, t = SG_NIL;
+  for (int i = 0; i < n; i++) {
+    if (fds[i].revents && flag) {
+      SgObject s = search_socket(fds[i].fd, fdset->sockets);
+      if (!SG_FALSEP(s)) SG_APPEND1(h, t, s);
+    }
+  }
+  return h;
+}
+
+static int socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
+			     SgObject timeout)
+{
+  nfds_t n = 0;
+
+#define add_length(fds)						\
+  if (fds) {							\
+    int t = Sg_Length(fds->sockets);				\
+    if (t < 0) fds = NULL;	/* invalid sockets ignore*/	\
+    else n += t;						\
+  }
+  add_length(rfds);
+  add_length(wfds);
+  add_length(efds);
+#undef add_length
+  if (n == 0) return 0;		/* nothing to wait */
+
+  pollfd_t *fds = (pollfd_t *)malloc(sizeof(pollfd_t) * n);
+  int i = 0;
+#define init_fds(fdset, flag)				\
+  if (fdset) {						\
+    SgObject cp;					\
+    SG_FOR_EACH(cp, (fdset)->sockets) {			\
+      fds[i].fd = SG_SOCKET(SG_CAR(cp))->socket;	\
+      fds[i].events = (flag);				\
+      i++;						\
+    }							\
+  }
+  init_fds(rfds, POLLIN);
+  init_fds(wfds, POLLOUT);
+  init_fds(efds, POLLERR);
+#undef init_fds
+
+  struct timeval tv, *tm;
+  tm = select_timeval(timeout, &tv);
+  int timeoutValue = -1;
+  if (tm) {
+    timeoutValue = (int)(tm->tv_sec*(uint64_t)1000 + tm->tv_usec / 1000);
+    if (timeoutValue == 0 && tm->tv_usec > 0) timeoutValue = 1;
+  }
+  int numfds = 0;
+ retry:
+  numfds = poll(fds, n, timeoutValue);
+
+  if (numfds < 0) {
+    if (last_error == EINTR) {
+      SG_INTERRUPTED_THREAD() {
+	return -1;
+      } SG_INTERRUPTED_THREAD_ELSE() {
+	goto retry;
+      } SG_INTERRUPTED_THREAD_END();
+    }
+    raise_socket_error(SG_INTERN("socket-select"), 
+		       Sg_GetLastErrorMessageWithErrorCode(last_error),
+		       /* TODO should we make different condition? */
+		       Sg_MakeConditionSocket(SG_FALSE),
+		       SG_LIST4(rfds? rfds: SG_FALSE,
+				wfds? wfds: SG_FALSE,
+				efds? efds: SG_FALSE,
+				timeout));
+  }
+#define REMOVE_SOCKET(fdset, fds, flag)				\
+  if (fdset) {							\
+    (fdset)->sockets = remove_socket(fdset, fds, n, flag);	\
+  }
+  REMOVE_SOCKET(rfds, fds, POLLIN);
+  REMOVE_SOCKET(wfds, fds, POLLOUT);
+  REMOVE_SOCKET(efds, fds, POLLERR);
+#undef REMOVE_SOCKET
+
+  return numfds;
+}
+#endif
 
 static SgFdSet* check_fd(SgObject o)
 {
@@ -1396,7 +1465,7 @@ static int socket_ready_p(int fd, SgSocketEvents events,
 
   int timeout = -1;
   if (tm) {
-    timeout = (int)(tm->tv_sec * (uint64_t)1000) + (tm->tv_usec / 1000);
+    timeout = (int)(tm->tv_sec*(uint64_t)1000 + tm->tv_usec / 1000);
   }
 	   
   int state = poll(fds, 1, timeout);
