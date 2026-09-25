@@ -1161,8 +1161,11 @@ static int setup_fdset(SgFdSet *fdset, fd_set *fds)
 {
   int maxfd = -1;
   SgObject cp;
+
+  FD_ZERO(fds);
   SG_FOR_EACH(cp, fdset->sockets) {
     SgSocket *socket = SG_SOCKET(SG_CAR(cp));
+
     int fd = socket->socket;
     if (fd < 0) continue;	/* closed socket */
     if (maxfd < fd) maxfd = fd;
@@ -1174,6 +1177,11 @@ static int setup_fdset(SgFdSet *fdset, fd_set *fds)
 static int socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
 			     SgObject timeout)
 {
+  if (!rfds && !wfds && !efds) {
+    /* nothing to select */
+    return 0;
+  }
+
   struct timeval tv, *tv2;
   int max = 0, numfds;
   SgVM *vm = Sg_VM();
@@ -1203,12 +1211,12 @@ static int socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
 	SG_SET_SOCKET_EVENT(SG_CAR(sockets), hEvents[0], flags);	\
       }									\
     }									\
-  }while (0)
+  } while (0)
 
   SET_EVENT(rfds, FD_READ | FD_OOB);
   SET_EVENT(wfds, FD_WRITE);
   SET_EVENT(efds, FD_READ | FD_OOB);
-  
+
   tv2 = select_timeval(timeout, &tv);
   DWORD millis = tv2 ? tv.tv_sec * 1000 + tv.tv_usec/1000: INFINITE;
   /* Put minimum amount of wait */
@@ -1229,14 +1237,12 @@ static int socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
 #undef SET_EVENT
 
   CloseHandle(hEvents[0]);
-
   if (r == WAIT_OBJECT_0) {
     numfds = select(max + 1, prfd, pwfd, pefd, tv2);
   } else {
     WSASetLastError(EINTR);
     numfds = -1;
   }
-
   if (numfds < 0) {
     if (last_error == EINTR) {
       SG_INTERRUPTED_THREAD() {
