@@ -146,8 +146,6 @@ SG_CLASS_DECL(Sg_SocketInfoClass);
 typedef struct SgFdSetRec
 {
   SG_HEADER;
-  fd_set    fdset;
-  int       maxfd;
   SgObject  sockets;
 } SgFdSet;
 
@@ -316,6 +314,9 @@ SG_EXTERN void      Sg_ShutdownPort(SgPort *port, int how);
 /* fdset */
 SG_EXTERN SgObject  Sg_MakeFdSet();
 SG_EXTERN SgObject  Sg_SocketsToFdSet(SgObject sockets);
+SG_EXTERN void      Sg_FdSetSet(SgFdSet *fdset, SgSocket *socket, int flag);
+SG_EXTERN int       Sg_FdSetRef(SgFdSet *fdset, SgSocket *socket);
+SG_EXTERN void      Sg_FdSetClear(SgFdSet *fdset);
 /* SG_EXTERN SgObject  Sg_CollectSockets(SgObject fdset, SgObject sockets); */
 
 SG_EXTERN int       Sg_SocketReadyP(SgObject socket, SgSocketEvents events,
