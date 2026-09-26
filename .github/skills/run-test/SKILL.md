@@ -8,6 +8,8 @@ Using CTest
 
 Sagittarius' tests can be executed via `ctest` command
 
+Run all `ctest` commands from the configured CMake working directory that contains `CTestTestfile.cmake` (in this repository, typically the repository root).
+
 Execute full test
 -----------------
 
@@ -49,6 +51,8 @@ Example: execute tests for even numbers until 50
 ctest --output-on-failure -I 2,50,2
 ```
 
+The format is `-I Start,End,Stride`; `-I 2,50,2` runs tests 2, 4, 6, ... 50.
+
 ### Check the test name and number
 
 Use this command to check the name and test number
@@ -65,11 +69,13 @@ You can run the test by using `sagittarius` command as well.
 Basic command
 -------------
 
+If `./build/sagittarius` does not exist, build first with `cmake -B build . && cmake --build build -j 6` before running any tests.
+
 ```shell
 ./build/sagittarius -Llib -Lsitelib -L'ext/*' -Dbuild test/runner.scm {test-file}
 ```
 
-The test files are located in `test/` directly.
+Test files live under `test/tests/`; pass the path relative to the repository root, e.g. `test/tests/sagittarius/continuations.scm`.
 
 The command can be used to execute other Scheme files, if you want to check
 outside of the tests.
@@ -85,6 +91,8 @@ Test result analysis
 
 When the tests failed, then you may see some patterns. Below are some of the
 example pattern that showing test failures
+
+After a failure: re-run only the failing test with `-R <name>`; if the output is empty (Example 2), clear the cache and retry once; if SEGV, report the native stack trace to the user and do not retry.
 
 Example 1: unexpected failures
 ```
@@ -110,6 +118,8 @@ Example 2: no output
 ```
 The summary of the tests is missing. This means either test hanged or
 application is finished unexpectedly
+
+If a single test produces no summary within 2 minutes, terminate it and re-run with `ctest --output-on-failure --timeout 120 -R <name>`, then report that the test timed out.
 
 Example 3: SEGV
 You'll see native stack trace when SEGV happened.

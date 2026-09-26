@@ -20,11 +20,13 @@ This guide provides best practices for developing Scheme libraries for Sagittari
 |-----------|---------|--------------|
 | `lib/` | Core/builtin libraries (rnrs, core, clos) | No sitelib or ext dependencies |
 | `sitelib/` | Utility libraries (srfi, rfc, text, util) | Can depend on lib and other sitelib |
-| `ext/*/sagittarius/` | Extension libraries with C bindings | Can depend on lib only (with exceptions) |
+| `ext/*/sagittarius/` | Extension libraries with C bindings | Can depend on lib only. Permitted exceptions: `(srfi :xx ...)` libraries and `(sagittarius)` core modules; any other sitelib or ext dependency requires explicit approval. |
 
 ## Library Structure
 
 ### File Header
+
+Use the current year and copy the author name and email from an existing file in the same directory; if unknown, ask the user rather than inventing a name or email.
 
 ```scheme
 ;;; -*- mode:scheme; coding:utf-8 -*-
@@ -60,6 +62,8 @@ This guide provides best practices for developing Scheme libraries for Sagittari
 
 ### Library Form
 
+Place `#!nounbound` at the top of every new library file to enable unbound-variable detection at compile time; omit it only when the library intentionally references variables defined at runtime.
+
 ```scheme
 #!nounbound
 (library (library-path name)
@@ -88,6 +92,7 @@ This guide provides best practices for developing Scheme libraries for Sagittari
 Test files mirror library structure under `test/tests/`:
 - `sitelib/json.scm` → `test/tests/json.scm`
 - `sitelib/text/json.scm` → `test/tests/text/json.scm`
+- `sitelib/srfi/%3a64/testing.scm` → `test/tests/srfi/%3a64/testing.scm`
 
 ### Test Template
 
@@ -118,11 +123,13 @@ Test files mirror library structure under `test/tests/`:
 ctest --output-on-failure -R pattern
 ```
 
+If a new test file is added, register it in `test/CMakeLists.txt` (or the relevant CMake test list) so `ctest` discovers it.
+
 ## SRFI Implementation
 
 ### R7RS-style SRFI Libraries
 
-SRFI libraries should support both R6RS and R7RS naming:
+Write only the R6RS-named library file under `sitelib/srfi/%3aNN/`; the R7RS-named `(srfi NN)` wrapper is generated automatically by `./dist.sh srfi` and should not be hand-written.
 
 ```scheme
 ;; sitelib/srfi/%3a99/records.scm
@@ -167,8 +174,9 @@ Before submitting:
 
 - [ ] Library follows naming conventions
 - [ ] Copyright header present
-- [ ] Export list is complete and sorted
+- [ ] Export list is complete and sorted alphabetically (ASCII order) within groups: procedures first, then classes (`<name>`), then constants (`+name+`)
 - [ ] Test file created with adequate coverage
 - [ ] Documentation added (if user-facing)
 - [ ] `ctest --output-on-failure` passes
+- [ ] If `./build/sagittarius` is missing, build the project first instead of running tests; if tests fail, report failing test names and diffs rather than modifying tests to pass
 - [ ] Dependencies respect directory constraints
