@@ -84,6 +84,7 @@
 	    (util concurrent)
 	    (util duration))
 
+(define *default-protocols* (list *http2* *http1*))
 (define-record-type connection-manager
   (fields lease
 	  release
@@ -93,6 +94,7 @@
 	  dns-timeout
 	  read-timeout
 	  connection-timeout
+	  protocols
 	  socket-selector
 	  selector-terminator)
   (protocol
@@ -102,7 +104,10 @@
        (define dns (http-connection-config-dns-timeout config))
        (define read (http-connection-config-read-timeout config))
        (define conn (http-connection-config-connection-timeout config))
-       (p lease release detach shutdown km dns read conn selector terminator))
+       (define protocols (http-connection-config-protocols config))
+       (p lease release detach shutdown km dns read conn
+	  (or protocols *default-protocols*)
+	  selector terminator))
      (case-lambda
       ((lease release detach shutdown config)
        (define read (http-connection-config-read-timeout config))
@@ -118,7 +123,8 @@
 	  read-timeout
 	  connection-timeout
 	  selector-error-handler
-	  dns-lookup-executor))
+	  dns-lookup-executor
+	  protocols))
 (define-syntax http-connection-config-builder
   (make-record-builder http-connection-config))
 
@@ -278,16 +284,13 @@
 
 (define (ephemeral-lease-connection manager request option)
   (define uri (http:request-uri request))
-  (define (http2? socket)
-    (and (tls-socket? socket)
-	 (equal? (tls-socket-selected-alpn socket) "h2")))
-  
+  (define protocols (connection-manager-protocols manager))
+  (define ((check? s) p) (http-connection-check? p s))
   (let ((socket-option
 	 (http-connection-manager->socket-option manager request option)))
     (let-values (((socket host service option) (uri->socket uri socket-option)))
-      (if (http2? socket)
-	  (socket->http2-connection socket option host service)
-	  (socket->http1-connection socket option host service)))))
+      (let ((p (or (find (check? socket) protocols) *http1*)))
+	(socket->http-connection p socket option host service)))))
 
 (define (ephemeral-release-connection manager connection reuseable?)
   (http-connection-close! connection))

@@ -34,7 +34,8 @@
 #!read-macro=sagittarius/bv-string
 (library (net http-client http2)
     (export http2-connection-context?
-	    socket->http2-connection)
+	    socket->http2-connection
+	    *http2*)
     (import (rnrs)
 	    (net http-client connection)
 	    (net http-client request)
@@ -136,6 +137,14 @@
 	  (loop))))
     conn))
 
+(define (http2? socket)
+  (and (tls-socket? socket)
+       (equal? (tls-socket-selected-alpn socket) "h2")))
+
+(define *http2*
+  (make-http-connection-converter http2? socket->http2-connection))
+
+;; internal
 ;;; API
 ;; this must be done asynchronousely by client (otherwise blocks)
 (define (http2-send-header connection request)

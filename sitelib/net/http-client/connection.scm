@@ -30,7 +30,10 @@
 
 #!nounbound
 (library (net http-client connection)
-    (export make-http-connection
+    (export http-connection-converter? make-http-connection-converter
+	    http-connection-check? socket->http-connection
+
+	    make-http-connection
 	    http-connection? (rename (http-connection <http-connection>))
 	    http-connection-node http-connection-service
 	    http-connection-socket-options
@@ -63,6 +66,13 @@
 	    (net http-client logging)
 	    (sagittarius) ;; for sagittarius-version
 	    (srfi :39 parameters))
+
+(define-record-type http-connection-converter
+  (fields check convert))
+(define (http-connection-check? converter socket)
+  ((http-connection-converter-check converter) socket))
+(define (socket->http-connection converter socket option host service)
+  ((http-connection-converter-convert converter) socket option host service))
 
 (define-record-type http-connection-context)
 (define-record-type http-connection
