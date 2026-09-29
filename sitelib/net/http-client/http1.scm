@@ -33,7 +33,8 @@
 #!read-macro=sagittarius/regex
 (library (net http-client http1)
     (export http1-connection-context?
-	    socket->http1-connection)
+	    socket->http1-connection
+	    *http1*)
     (import (rnrs)
 	    (net http-client connection)
 	    (net http-client conditions)
@@ -70,6 +71,10 @@
 (define (socket->http1-connection socket socket-option node service . opts)
   (apply make-http1-connection socket socket-option node service opts))
 
+
+(define *http1* (make-http-connection-converter values socket->http1-connection))
+
+;; internal
 (define (http1-send-header connection request)
   (send-header! connection request))
 
