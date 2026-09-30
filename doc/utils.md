@@ -23,6 +23,7 @@
 * @[[utils/math.md](utils/math.md)]
 * @[[utils/net/amqp.md](utils/net/amqp.md)]
 * @[[utils/net/http-client.md](utils/net/http-client.md)]
+* @[[utils/net/http-server.md](utils/net/http-server.md)]
 * @[[utils/net/http.md](utils/net/http.md)]
 * @[[utils/net/mqtt.md](utils/net/mqtt.md)]
 * @[[utils/net/oauth.md](utils/net/oauth.md)]
