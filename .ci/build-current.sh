@@ -16,7 +16,7 @@ VERSION=$(curl -ksI "${RELEASES}/latest" \
 DOWNLOAD="${RELEASES}/download/v${VERSION}/sagittarius-${VERSION}.tar.gz"
 curl -kLo sagittarius.tar.gz $DOWNLOAD
 
-tar --no-same-owner -xzvf sagittarius.tar.gz
+tar --no-same-owner -xzf sagittarius.tar.gz
 if [ "$?" != "0" ]; then
     # It seems OpenBSD version of tar doesn't support --no-same-owner by default
     tar -xzvf sagittarius.tar.gz
