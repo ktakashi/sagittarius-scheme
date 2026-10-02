@@ -1,6 +1,7 @@
 ---
 name: document
-description: Guide for writing Sagittarius documents. Use this when asked to write a user reference manual or other Sagittarius documents.
+description: Instructions to write Sagittarius user reference documentation.
+applyTo: 'doc/**/*.md'
 ---
 
 Structure of the doc directory
@@ -76,7 +77,7 @@ The document inclusion must use the path as its title.
 
 Example code inclusion
 ```markdown
-* @[-[Title of the example](path/to/the/example/code.scm)]
+* @[-[Http Server](../../../example/net/http-server0.scm)]
 ```
 
 The code inclusion must specify the title and path.
@@ -119,10 +120,6 @@ For long examples:
 2. Write the example code in a `.scm` file
 3. Use the example code inclusion syntax in the documentation:
 
-```markdown
-* @[-[Title describing the example](example/category/example-name.scm)]
-```
-
 Build the document
 ==================
 
@@ -144,6 +141,29 @@ The result document will be `doc` directory of the building directory.
 One file document is `sagittarius-ref.html`, multiple file document, aka
 online document, is `sagittarius-online-ref.html` and its sections are
 located in `sections/` directory.
+
+Library documentation template
+------------------------------
+
+Add documentation in `doc/utils/` following the project's scribble-like format:
+
+```markdown
+[§2] (library name) - Brief description
+---------------------------------------
+
+Brief overview of the library purpose.
+
+###### [!Library] `(library name)`
+
+Library description.
+
+###### [!Function] `(procedure arg1 arg2)` 
+
+Describe function behavior and return value.
+
+- _arg1_: Parameter description
+- _arg2_: Parameter description
+```
 
 Checklist
 ---------
