@@ -36,9 +36,14 @@
     (export http:request? http:request-builder <http:request>
 
 	    http:response?
+	    <http:response>
 	    http:response-status http:response-headers
 	    http:response-cookies http:response-body
 	    http:response-time
+	    <http:response-context>
+	    http:response-context-request
+	    http:response-context-header-handler
+	    http:response-context-data-handler
 	    http:stream-response?
 	    http:stream-response-socket
 	    http:stream-response-close!
@@ -118,6 +123,10 @@
 	    http:bytevector-data-handler
 	    
 	    http:client-shutdown!
+	    http:operation?
+	    http:operation-state
+	    http:operation-cancel!
+	    http:client-start
 	    http:client-send
 	    http:client-send-async)
     (import (rnrs)
@@ -127,6 +136,7 @@
 	    (net http-client encoding)
 	    (net http-client http1)
 	    (net http-client http2)
+	    (net http-client operation)
 	    (net http-client key-manager)
 	    (net http-client logging)
 	    (net http-client request)
@@ -205,66 +215,150 @@
 (define (http:oport-data-handler sink flusher)
   (values sink (lambda (status hdrs) (flusher sink status hdrs))))
 
+(define (make-default-on-init data-handler)
+  (lambda (request header-handler data-handler*)
+    (make-response-context request header-handler data-handler* data-handler)))
+
+(define default-on-init
+  (make-default-on-init http:bytevector-data-handler))
+
+(define (default-on-finalize ctx . rest)
+  (apply response-context->response ctx rest))
+
+(define (default-on-headers operation ctx status headers has-data?)
+  (response-context-status-set! ctx status)
+  (response-context-headers-set! ctx headers)
+  (response-context-has-data?-set! ctx has-data?)
+  (let ((sink (response-context-sink ctx))
+	(encoding (rfc5322-header-ref headers "content-encoding" "none")))
+    (when sink
+      (response-context-sink-set! ctx (->decoding-output-port sink encoding))))
+  #t)
+
+(define (default-on-data operation ctx data end?)
+  (define sink (response-context-sink ctx))
+  (put-bytevector sink data)
+  #t)
+
+(define (default-on-complete operation response) #t)
+(define (default-on-error operation e) #t)
+
+(define (http:client-start client request
+	:key (on-init default-on-init)
+	     (on-headers default-on-headers)
+	     (on-data default-on-data)
+	     (on-complete default-on-complete)
+	     (on-finalize default-on-finalize)
+	     (on-error default-on-error))
+  (define operation
+    (make-http:operation request on-init on-headers on-data
+			 on-complete on-finalize on-error))
+  (request/response operation client request 0)
+  operation)
+
 (define (http:client-send-async client request 
 	 :key (data-handler http:bytevector-data-handler))
   (let-values (((f success failure) (make-piped-future)))
-    (request/response client request data-handler success failure)
+    (guard (e (else (failure e)))
+      (http:client-start client request
+	 :on-init (make-default-on-init data-handler)
+	 :on-complete (lambda (operation response) (success response))
+	 :on-error (lambda (operation e) (failure e))))
     f))
 
 ;;; helpers
 (define *http:idempotent-methods*
-	'(GET HEAD PUT DELETE OPTIONS TRACE))
+  '(GET HEAD PUT DELETE OPTIONS TRACE))
 
 (define (condition-who* e)
-	(and (who-condition? e) (condition-who e)))
+  (and (who-condition? e) (condition-who e)))
 
 (define (retryable-request-body? request)
-	(let ((body (http:request-body request)))
-		(or (not body) (bytevector? body))))
+  (let ((body (http:request-body request)))
+    (or (not body) (bytevector? body))))
 
 (define (retryable-connection-error? e)
-	(and (http-connection-error? e)
-	 (memq (condition-who* e) '(parse-status-line))))
+  (and (http-connection-error? e)
+       (memq (condition-who* e) '(parse-status-line))))
 
 (define (retryable-failure? request e attempt)
-	(and (= attempt 0)
-	 (memq (http:request-method request) *http:idempotent-methods*)
-	 (retryable-request-body? request)
-	 (retryable-connection-error? e)))
+  (and (= attempt 0)
+       (memq (http:request-method request) *http:idempotent-methods*)
+       (retryable-request-body? request)
+       (retryable-connection-error? e)))
 
-(define request/response
-	(case-lambda
-	 ((client request data-handler success failure)
-		(request/response client request data-handler success failure 0))
-	 ((client request data-handler success failure attempt)
-		(define ((release/fail conn) e)
-			(release-http-connection client conn #f)
-			(if (retryable-failure? request e attempt)
-	  (request/response client request data-handler success failure (+ attempt 1))
-	  (failure e)))
-		(define (submit-on-read conn handler fail)
-			(http-connection-manager-register-on-readable
-			 (http:client-connection-manager client) conn
-			 handler fail
-			 (http:request-timeout request)))
-		(lease-http-connection client request
-		 (lambda (conn)
-			 (executor-submit! (http:client-executor client)
-	(lambda ()
-	  (let ((fail (release/fail conn)))
-	    (guard (e (else (fail e) #f))
-	      (let* ((resp-handler (send-request client conn request))
-		     (handler (resp-handler client data-handler success fail)))
-		;; if it's already ready, just start reading it
-		(if (http-connection-data-ready? conn)
-		    (handler conn (lambda () (submit-on-read conn handler fail)))
-		    (submit-on-read conn handler fail))))))))
-		 failure))))
+(define (request/response operation client request :optional (attempt 0))
+  (define manager (http:client-connection-manager client))
+  (define executor (http:client-executor client))
+  (define current-connection #f)
+  (define detached? #f)
+  (define released? #f)
+  
+  (define (release-current reuse?)
+    (when (and current-connection (not detached?) (not released?))
+      (set! released? #t)
+      (release-http-connection client current-connection reuse?)))
+  
+  (define (detach-current! conn)
+    (unless detached?
+      (set! detached? #t)
+      (http-connection-manager-detach-connection! manager conn)))
+  
+  (define (operation-complete response)
+    (unless (http:operation-notify-complete! operation response)
+      (when (http:stream-response? response)
+	(http:stream-response-close! response))))
+  
+  (define (operation-failed e)
+    (release-current #f)
+    (cond ((and (retryable-failure? request e attempt)
+		(not (http:operation-cancelled? operation)))
+	   (request/response operation client request
+			     (+ attempt 1)))
+	  (else
+	   (http:operation-notify-error! operation e))))
+  
+  (define (submit-on-read conn handler)
+    (http-connection-manager-register-on-readable manager conn
+     (lambda (conn retry)
+       (if (http:operation-cancelled? operation)
+	   (release-current #f)
+	   (handler conn retry)))
+     operation-failed
+     (http:request-timeout request)))
+  
+  (http:operation-set-cancel-handler! operation (lambda () (release-current #f)))
+  (when (http:operation-transition! operation 'acquiring-connection)
+    (lease-http-connection 
+     client request
+     (lambda (conn)
+       (set! current-connection conn)
+       (if (http:operation-cancelled? operation)
+	   (release-current #f)
+	   (executor-submit! executor
+	    (lambda ()
+	      (guard (e (else (operation-failed e) #f))
+		(http:operation-transition! operation 'sending-request)
+		(let* ((resp-handler
+			(send-request operation client conn request
+				      release-current detach-current!))
+		       (handler (resp-handler
+				 client
+				 operation-complete
+				 operation-failed)))
+		  (if (http:operation-cancelled? operation)
+		      (release-current #f)
+		      (if (http-connection-data-ready? conn)
+			  (handler conn
+				   (lambda ()
+				     (submit-on-read conn handler)))
+			  (submit-on-read conn handler)))))))))
+     operation-failed)))
 
 (define (default-executor? client)
   (eq? (http:client-executor client) *http-client:default-executor*))
 
-(define (handle-redirect client data-handler request response success failure)
+(define (handle-redirect operation client request response success failure)
   (define (get-location response)
     (cond ((http:headers-ref (http:response-headers response) "Location") =>
 	   string->uri)
@@ -297,7 +391,7 @@
 	   (lambda (next)
 	     (let ((new-req (http:request-builder
 			     (from request) (method 'GET) (uri next))))
-	       (request/response client new-req data-handler success failure))))
+	       (request/response operation client new-req))))
 	  (else (success response))))
   (case (http:client-follow-redirects client)
     ((never) (success response))
@@ -310,33 +404,21 @@
 
 (define-record-type response-context
   (parent <http:response-context>)
-  (fields (mutable status)
+  (fields start
+	  (mutable status)
 	  (mutable headers)
 	  (mutable has-data?)
 	  retriever
 	  (mutable sink))
   (protocol (lambda (n)
-	      (lambda (request header-handler data-handler)
-		(let-values (((sink retriever) (data-handler)))
-		  ((n request header-handler body-data-handler)
-		   #f '() #f retriever sink))))))
+	      (lambda (request header-handler data-handler payload-handler)
+		(let-values (((sink retriever) (payload-handler)))
+		  ((n request header-handler data-handler)
+		   (current-time) #f '() #f retriever sink))))))
 
-(define (header-handler ctx status headers has-data?)
-  (response-context-status-set! ctx status)
-  (response-context-headers-set! ctx headers)
-  (response-context-has-data?-set! ctx has-data?)
-
-  (let ((sink (response-context-sink ctx))
-	(encoding (rfc5322-header-ref headers "content-encoding" "none")))
-    (when sink
-      (response-context-sink-set! ctx (->decoding-output-port sink encoding)))))
-
-(define (body-data-handler ctx data end?)
-  (define sink (response-context-sink ctx))
-  (put-bytevector sink data))
-
-(define (response-context->response ctx start)
+(define (response-context->response ctx)
   (define headers (http:make-headers))
+  (define start (response-context-start ctx))
   ;; stored headers are RFC 5322 alist, so convert it here
   (for-each (lambda (kv)
 	      (for-each (lambda (v) (http:headers-add! headers (car kv) v))
@@ -355,22 +437,34 @@
 			   (body (retriever status headers))
 			   (time (time-difference (current-time) start)))))
 
-(define (stream-response ctx connection request start)
+(define (stream-response status source-headers connection request)
   (define headers (http:make-headers))
   ;; stored headers are RFC 5322 alist, so convert it here
   (for-each (lambda (kv)
 	      (for-each (lambda (v) (http:headers-add! headers (car kv) v))
 			(cdr kv)))
-	    (response-context-headers ctx))
+	    source-headers)
   (let ((cookies (map parse-cookie-string
 		      (http:headers-ref* headers "Set-Cookie")))
-	(status (response-context-status ctx)))
-    (make-http:stream-response request status headers cookies
-     (time-difference (current-time) start) connection)))
+	(status status))
+    (make-http:stream-response request status headers cookies connection)))
 
-(define ((response-handler request start) client data-handler success failure)
+(define ((response-handler operation request release detach)
+	 client success failure)
+  (define response-status #f)
+  (define response-headers '())
+  (define has-data? #f)
+  (define (header-callback ctx status headers has-data)
+    (set! response-status status)
+    (set! response-headers headers)
+    (set! has-data? has-data)
+    (http:operation-notify-headers! operation ctx status headers has-data))
+  (define (data-callback ctx data end?)
+    (http:operation-notify-data! operation ctx data end?))
   (define response-context
-    (make-response-context request header-handler data-handler))
+    (http:operation-on-init! operation request header-callback data-callback))
+  (define (finalizer context)
+    (http:operation-on-finalize! operation context))
   (define executor (http:client-executor client))
   (define manager (http:client-connection-manager client))
   (define (handle-cookie! response)
@@ -378,18 +472,22 @@
       (add-cookie! client (http:response-cookies response)))
     response)
   (define (receive-data conn response-context retry)
-    (define (finish r)
-      (let ((status (http:response-status r)))
-	(if (and status (char=? #\3 (string-ref status 0)))
-	    (handle-redirect client data-handler request r success failure)
-	    (success r))))
-    (case (http-connection-receive-data! conn response-context)
-      ((continue) (retry))
-      (else =>
-       (lambda (state)
-	 (release-http-connection client conn (eq? state 'done))
-	 (let ((response (response-context->response response-context start)))
-	   (finish (handle-cookie! response)))))))
+    (if (http:operation-cancelled? operation)
+	(release #f)
+	(let ((finish (lambda (r)
+			(let ((status (http:response-status r)))
+			  (if (and status (char=? #\3 (string-ref status 0)))
+			      (handle-redirect operation client
+					       request r success failure)
+			      (success r))))))
+	  (http:operation-transition! operation 'receiving-body)
+	  (case (http-connection-receive-data! conn response-context)
+	    ((continue) (retry))
+	    (else =>
+	     (lambda (state)
+	       (release (eq? state 'done))
+	       (let ((response (finalizer response-context)))
+		 (finish (handle-cookie! response)))))))))
 
   (define (receive-header conn retry)
     (define (delay-data-receive)
@@ -398,34 +496,34 @@
 	 (executor-submit! executor
 	  (lambda () (receive-data conn response-context retry))))
        failure (http:request-timeout request)))
-    (guard (e (else (failure e)))
-      (let loop ()
-	(http-connection-receive-header! conn response-context)
-	(let ((status (response-context-status response-context))
-	      (headers (response-context-headers response-context))
-	      (has-data? (response-context-has-data? response-context)))
-	  ;; TODO extra handler for 1xx status, esp 103?
-	  (cond ((eqv? (string-ref status 0) #\1) (loop))
-		((not has-data?)
-		 (response-context->response response-context start))
-		((require-stream-response? headers)
-		 (http-connection-manager-detach-connection! manager conn)
-		 (success
-		  (handle-cookie!
-		   (stream-response response-context conn request start))))
-		((http-connection-data-ready? conn)
-		 (receive-data conn response-context delay-data-receive))
-		(else (delay-data-receive)))))))
+    (if (http:operation-cancelled? operation)
+	(release #f)
+	(guard (e (else (failure e)))
+	  (let loop ()
+	    (http:operation-transition! operation 'receiving-headers)
+	    (http-connection-receive-header! conn response-context)
+	    (let ((status response-status)
+		  (headers response-headers)
+		  (has-data? has-data?))
+	      ;; TODO extra handler for 1xx status, esp 103?
+	      (cond ((eqv? (string-ref status 0) #\1) (loop))
+		    ((require-stream-response? headers)
+		     (detach conn)
+		     (success
+		      (handle-cookie!
+		       (stream-response status headers conn request))))
+		    ((or (not has-data?) (http-connection-data-ready? conn))
+		     (receive-data conn response-context delay-data-receive))
+		    (else (delay-data-receive))))))))
 
   (lambda (conn retry)
     (executor-submit! executor (lambda () (receive-header conn retry)))))
 
-(define (send-request client conn request)
-  (define now (current-time))
+(define (send-request operation client conn request release detach)
   (let ((req (adjust-request client request)))
     (http-connection-send-header! conn req)
     (http-connection-send-data! conn req)
-    (response-handler req now)))
+    (response-handler operation req release detach)))
 
 (define (adjust-request client request)
   (let* ((copy (http:request-builder (from request)))

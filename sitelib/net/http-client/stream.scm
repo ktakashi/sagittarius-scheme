@@ -46,9 +46,9 @@
   (parent <http:response>)
   (fields connection)
   (protocol (lambda (n)
-	      (lambda (request status headers cookies time conn)
+	      (lambda (request status headers cookies conn)
 		(define input (connection->input-port request headers conn))
-		((n status headers cookies input time) conn)))))
+		((n status headers cookies input #f) conn)))))
 
 (define (http:stream-response-socket (response (http:stream-response?)))
   (http-connection-socket (http:stream-response-connection response)))
