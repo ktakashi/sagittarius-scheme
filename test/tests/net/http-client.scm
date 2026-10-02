@@ -235,13 +235,6 @@
                    (if (string? port) port (number->string port))
                    "/operation"))
 
-  (define make-base-response-context
-    (record-constructor
-     (make-record-constructor-descriptor
-      (record-type-descriptor <http:response-context>)
-      #f
-      #f)))
-
   (define make-http-response
     (record-constructor
      (make-record-constructor-descriptor
@@ -262,7 +255,7 @@
     (define response-headers '())
     (define response-body-parts '())
     (define (on-init request header-handler data-handler)
-      (make-base-response-context request header-handler data-handler))
+      (make-http:response-context request header-handler data-handler))
     (define on-finalize 
       (lambda (ctx)
         (define headers (http:make-headers))
@@ -311,7 +304,7 @@
     (define response-headers '())
     (define response-body-parts '())
     (define (on-init request header-handler data-handler)
-      (make-base-response-context request header-handler data-handler))
+      (make-http:response-context request header-handler data-handler))
     (define on-finalize
       (lambda (ctx)
         (define headers (http:make-headers))

@@ -44,17 +44,27 @@
 	    (net http-client request))
 (define-record-type http:stream-response
   (parent <http:response>)
-  (fields connection)
+  (fields connection
+    request)
   (protocol (lambda (n)
-	      (lambda (request status headers cookies conn)
-		(define input (connection->input-port request headers conn))
-		((n status headers cookies input #f) conn)))))
+        (lambda (request status headers cookies conn)
+    ((n status headers cookies (connection->input-port request headers conn)
+      #f)
+   conn request)))))
 
-(define (http:stream-response-socket (response (http:stream-response?)))
+(define (http:stream-response-socket response)
+  (unless (http:stream-response? response)
+    (assertion-violation 'http:stream-response-socket
+	"http:stream-response is required" response))
   (http-connection-socket (http:stream-response-connection response)))
 
-(define (http:stream-response-close! (response (http:stream-response?)))
-  (http-connection-close! (http:stream-response-connection response)))
+(define (http:stream-response-close! response)
+  (unless (http:stream-response? response)
+    (assertion-violation 'http:stream-response-close!
+	"http:stream-response is required" response))
+  (http-connection-abort-response-stream!
+   (http:stream-response-connection response)
+   (http:stream-response-request response)))
 
 ;; HTTP SSE
 (define (require-stream-response? headers)
@@ -89,7 +99,7 @@
 	       (cond (data-end? (+ read r))
 		     (else (fill!) (loop (- n r) (+ offset r) (+ read r)))))
 	      (else (+ read r))))))
-  ;; the underlying connection must be closed by stream-response-close!
+  ;; The stream lifecycle must be finalized by stream-response-close!.
   (define (close) #t)
   (make-custom-binary-input-port "stream-response-input-port" read! #f #f close))
 

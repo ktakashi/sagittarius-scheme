@@ -35,15 +35,20 @@
 (library (net http-client)
     (export http:request? http:request-builder <http:request>
 
-	    http:response?
+	    http:response? http:response-builder
 	    <http:response>
 	    http:response-status http:response-headers
 	    http:response-cookies http:response-body
 	    http:response-time
 	    <http:response-context>
+	    make-http:response-context
 	    http:response-context-request
 	    http:response-context-header-handler
 	    http:response-context-data-handler
+	    http:response-context-takeover-requested?
+	    http:response-context-takeover-kind
+	    http:response-context-takeover-resource
+	    http:response-context-takeover!
 	    http:stream-response?
 	    http:stream-response-socket
 	    http:stream-response-close!
@@ -134,8 +139,6 @@
 	    (net http-client conditions)
 	    (net http-client connection-manager)
 	    (net http-client encoding)
-	    (net http-client http1)
-	    (net http-client http2)
 	    (net http-client operation)
 	    (net http-client key-manager)
 	    (net http-client logging)
@@ -223,7 +226,13 @@
   (make-default-on-init http:bytevector-data-handler))
 
 (define (default-on-finalize ctx . rest)
-  (apply response-context->response ctx rest))
+  (cond ((http:response-context-takeover-requested? ctx)
+	 (or (http:response-context-takeover-resource ctx)
+	     (assertion-violation 'default-on-finalize
+	      "Takeover requested but no takeover resource is assigned"
+	      ctx)))
+	(else
+	 (apply response-context->response ctx rest))))
 
 (define (default-on-headers operation ctx status headers has-data?)
   (response-context-status-set! ctx status)
@@ -233,6 +242,8 @@
 	(encoding (rfc5322-header-ref headers "content-encoding" "none")))
     (when sink
       (response-context-sink-set! ctx (->decoding-output-port sink encoding))))
+	(when (require-stream-response? headers)
+		(http:response-context-takeover! ctx 'stream))
   #t)
 
 (define (default-on-data operation ctx data end?)
@@ -467,27 +478,43 @@
     (http:operation-on-finalize! operation context))
   (define executor (http:client-executor client))
   (define manager (http:client-connection-manager client))
-  (define (handle-cookie! response)
-    (when (http:client-cookie-handler client)
-      (add-cookie! client (http:response-cookies response)))
-    response)
+  (define (handle-cookie! result)
+    (cond ((http:response? result)
+	   (when (http:client-cookie-handler client)
+	     (add-cookie! client (http:response-cookies result)))
+	   result)
+	  (else result)))
+  (define (finish-result result)
+    (if (http:response? result)
+	(let ((status (http:response-status result)))
+	  (if (and status (char=? #\3 (string-ref status 0)))
+	      (handle-redirect operation client request result success failure)
+	      (success result)))
+	(success result)))
+  (define (prepare-takeover-response! conn status headers)
+    (define requested (http:response-context-takeover-kind response-context))
+    (let-values (((kind action)
+		  (http-connection-resolve-response-takeover
+		   conn requested)))
+      (define takeover-response (stream-response status headers conn request))
+      (http:response-context-takeover! response-context kind takeover-response)
+      (case action
+	((detach) (detach conn))
+	((shared) (release #t))
+	(else (assertion-violation 'response-handler
+				   "Unsupported takeover action" action)))))
   (define (receive-data conn response-context retry)
     (if (http:operation-cancelled? operation)
 	(release #f)
-	(let ((finish (lambda (r)
-			(let ((status (http:response-status r)))
-			  (if (and status (char=? #\3 (string-ref status 0)))
-			      (handle-redirect operation client
-					       request r success failure)
-			      (success r))))))
+	(let ()
 	  (http:operation-transition! operation 'receiving-body)
 	  (case (http-connection-receive-data! conn response-context)
 	    ((continue) (retry))
 	    (else =>
 	     (lambda (state)
 	       (release (eq? state 'done))
-	       (let ((response (finalizer response-context)))
-		 (finish (handle-cookie! response)))))))))
+	       (let ((result (finalizer response-context)))
+		 (finish-result (handle-cookie! result)))))))))
 
   (define (receive-header conn retry)
     (define (delay-data-receive)
@@ -507,15 +534,15 @@
 		  (has-data? has-data?))
 	      ;; TODO extra handler for 1xx status, esp 103?
 	      (cond ((eqv? (string-ref status 0) #\1) (loop))
-		    ((require-stream-response? headers)
-		     (detach conn)
-		     (success
-		      (handle-cookie!
-		       (stream-response status headers conn request))))
+		    ((http:response-context-takeover-requested?
+		      response-context)
+		     (prepare-takeover-response! conn status headers)
+		     (finish-result
+		      (handle-cookie! (finalizer response-context))))
 		    ((or (not has-data?) (http-connection-data-ready? conn))
 		     (receive-data conn response-context delay-data-receive))
 		    (else (delay-data-receive))))))))
-
+  
   (lambda (conn retry)
     (executor-submit! executor (lambda () (receive-header conn retry)))))
 

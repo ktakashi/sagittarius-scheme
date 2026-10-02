@@ -69,12 +69,23 @@
 		 1
 		 +window-size+
 		 +window-size+)))))
+
+(define (http2-resolve-response-takeover connection requested-kind)
+  (case requested-kind
+    ((stream http/2-stream) (values 'http/2-stream 'shared))
+    (else
+     (assertion-violation 'http2-resolve-response-takeover
+			  "Unsupported takeover kind"
+			  requested-kind connection))))
+
 (define (make-http2-connection socket socket-option node service . opts)
   (apply make-http-connection node service socket-option
 	 socket
 	 http2-send-header http2-send-data
 	 http2-receive-header http2-receive-data
 	 (make-http2-connection-context)
+	 :takeover-resolver http2-resolve-response-takeover
+	 :stream-aborter http2-abort-response-stream!
 	 opts))
 
 (define-enumeration http2:stream-state
@@ -143,6 +154,17 @@
 
 (define *http2*
   (make-http-connection-converter http2? socket->http2-connection))
+
+(define (http2-abort-response-stream! connection request)
+  (guard (e (else #f))
+    (let* ((stream (search-stream connection request))
+	   (sid (http2-stream-id stream)))
+      (send-frame connection
+		  (make-http2-frame-rst-stream 0 sid +http2-error-code-cancel+)
+		  #t)
+      (http2-stream-remote-state-set! stream (http2:stream-state closed))
+      (http2-remove-stream! connection sid)
+      #t)))
 
 ;; internal
 ;;; API
