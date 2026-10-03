@@ -12,6 +12,7 @@
 (define (start-server)
   (define (app req res)
     (let ((path (http-server:request-path req)))
+      (print "  server received request on: " path)
       (cond ((string=? path "/slow")
 	     (thread-sleep! 0.5)
 	     (http-server:response-text! res "slow"))
@@ -38,6 +39,8 @@
   (define (make-uri path)
     (format "http://localhost:~a~a" (server-port server) path))
   (define client (http:client-builder (version (http:version http/1.1))))
+
+  (print "testing client operation")
   (let ((events '())
 	(lock (make-mutex "operation-test-lock")))
     (define (record-event! e)
@@ -103,6 +106,8 @@
 	  (test-assert "headers callback called" (event-seen? 'headers))
 	  (test-assert "data callback called" (event-seen? 'data))
 	  (test-assert "complete callback called" (event-seen? 'complete))))))
+
+  (print "testing discarding response")
   (let-values (((f success failure) (make-piped-future)))
     (define chunk-count 0)
     (define byte-count 0)
@@ -133,6 +138,8 @@
       (test-equal "discard context operation state"
 		  'completed
 		  (http:operation-state operation))))
+
+  (print "testing stream response")
   (let-values (((f success failure) (make-piped-future)))
     (define request (http:request-builder 
 		     (method 'GET)
@@ -159,7 +166,7 @@
 		  (http:operation-state operation))
       (http:stream-response-close! response)))
   
-
+  (print "testing sse")
   (let* ((request (http:request-builder (method 'GET) (uri (make-uri "/sse"))))
 	 (response (http:client-send client request)))
     (test-assert "default SSE response uses stream response"
@@ -170,6 +177,7 @@
     (http:stream-response-close! response))
   
 
+  (print "testing takeover")
   (let* ((request (http:request-builder (method 'GET) (uri (make-uri "/ok"))))
 	 (ctx (make-http:response-context request (lambda args #t)
 					  (lambda args #t))))
@@ -205,7 +213,7 @@
     (test-equal "no completion callback after cancel" 0 completed)
     (test-equal "no error callback after cancel" 0 failed))
   
-
+  (print "testing send-async")
   (let* ((request (http:request-builder (method 'GET) (uri (make-uri "/ok"))))
 	 (response (future-get (http:client-send-async client request) 5 #f)))
     (test-assert "send-async adapter returns response"
@@ -213,6 +221,7 @@
     (test-equal "send-async adapter status" "200"
 		(http:response-status response)))
 
+  (print "testing send")
   (let* ((request (http:request-builder (method 'GET) (uri (make-uri "/ok"))))
 	 (response (http:client-send client request)))
     (test-equal "send compatibility status" "200"
