@@ -38,6 +38,9 @@ bench/spheres.pgm
 sagittarius-config
 sagittarius-package
 
+.vscode/**
+.copilot/**
+
 /ext-features.inc
 /doc/*.html
 /doc/sections

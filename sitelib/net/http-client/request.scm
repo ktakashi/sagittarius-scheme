@@ -68,6 +68,10 @@
 	    http:response-context-request
 	    http:response-context-header-handler
 	    http:response-context-data-handler
+	    http:response-context-takeover-requested?
+	    http:response-context-takeover-kind
+	    http:response-context-takeover-resource
+	    http:response-context-takeover!
 
 	    http:response-body-state
 	    )
@@ -182,7 +186,33 @@
 (define-record-type http:response-context
   (fields request
 	  header-handler
-	  data-handler))
+	  data-handler
+	  (mutable takeover-kind)
+	  (mutable takeover-resource))
+  (protocol (lambda (p)
+	      (lambda (request header-handler data-handler)
+		(p request header-handler data-handler #f #f)))))
+
+(define *http:response-context-takeover-kinds*
+  '(http/1.1-connection http/2-stream stream))
+
+(define (valid-response-context-takeover-kind? kind)
+  (memq kind *http:response-context-takeover-kinds*))
+
+(define (http:response-context-takeover-requested? ctx)
+  (and (http:response-context-takeover-kind ctx) #t))
+
+(define (http:response-context-takeover! ctx kind :optional (resource #f))
+  (unless (or (not kind)
+	      (eq? kind 'none)
+	      (valid-response-context-takeover-kind? kind))
+    (assertion-violation 'http:response-context-takeover!
+	"Unsupported takeover kind" kind
+	"Supported kinds are" *http:response-context-takeover-kinds*))
+  (let ((k (if (eq? kind 'none) #f kind)))
+    (http:response-context-takeover-kind-set! ctx k)
+    (http:response-context-takeover-resource-set! ctx resource)
+    ctx))
 
 ;; Managed headers (these headers are ignored if user set)
 ;; Host is not listed here deliberately

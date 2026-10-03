@@ -142,7 +142,11 @@ static SgObject win_selector_wait(win_context_t *ctx, int n,
       SgObject s = SG_CAAR(cp);						\
       /* avoid unwanted sockets */					\
       if (i == n) break;						\
-      if (WSAEventSelect(SG_SOCKET(s)->socket, event, flags) != 0) { \
+      /* in case of race condition, save it here */			\
+      SOCKET sock__ = SG_SOCKET(s)->socket;				\
+      /* skip closed socket */						\
+      if (!Sg_SocketOpenP(SG_SOCKET(s))) continue;			\
+      if (WSAEventSelect(sock__, event, flags) != 0) {			\
 	err = TRUE;							\
 	goto cleanup;							\
       }									\

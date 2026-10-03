@@ -50,6 +50,8 @@
 	    http-connection-open! http-connection-close!
 	    http-connection-reusable?
 	    http-connection-data-ready?
+	    http-connection-resolve-response-takeover
+	    http-connection-abort-response-stream!
 	    
 	    http-connection-send-header!
 	    http-connection-send-data!
@@ -75,6 +77,15 @@
   ((http-connection-converter-convert converter) socket option host service))
 
 (define-record-type http-connection-context)
+
+(define (default-response-takeover-resolver connection requested-kind)
+  (assertion-violation 'http-connection-resolve-response-takeover
+		       "Unsupported takeover kind"
+		       requested-kind connection))
+
+(define (default-response-stream-aborter connection request)
+  (http-connection-close! connection))
+
 (define-record-type http-connection
   (fields node
 	  service
@@ -86,7 +97,9 @@
 	  (mutable socket)
 	  (mutable input)
 	  (mutable output)
-	  context-data)
+	  context-data
+	  takeover-resolver
+	  stream-aborter)
   (protocol (lambda (p)
 	      (lambda (node
 		       service option socket
@@ -94,6 +107,8 @@
 		       header-receiver data-receiver
 		       data
 		       :key (buffer-mode 'block)
+		            (takeover-resolver default-response-takeover-resolver)
+		            (stream-aborter default-response-stream-aborter)
 		       :allow-other-keys)
 		(unless (or (not socket)
 			    (or (socket? socket) (tls-socket? socket)))
@@ -114,7 +129,9 @@
 					      buffer-mode))
 		   (and socket (buffered-port (socket-output-port socket)
 					      buffer-mode :managed? #f))
-		   data)))))
+		   data
+		   takeover-resolver
+		   stream-aborter)))))
 
 (define-record-type http-logging-connection
   (parent http-connection)
@@ -205,6 +222,13 @@
 (define (http-connection-data-ready? connection)
   (define in (http-connection-input connection))
   (and in (port-ready? in)))
+
+(define (http-connection-resolve-response-takeover connection requested-kind)
+	((http-connection-takeover-resolver connection)
+	 connection requested-kind))
+
+(define (http-connection-abort-response-stream! connection request)
+	((http-connection-stream-aborter connection) connection request))
 
 (define (http-connection-reusable? connection)
   (guard (e (else #f))

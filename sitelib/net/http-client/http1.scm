@@ -61,16 +61,27 @@
 	  framing-arg
 	  chunk-reader))
 
+(define (http1-resolve-response-takeover connection requested-kind)
+  (case requested-kind
+    ((stream http/1.1-connection) (values 'http/1.1-connection 'detach))
+    (else (assertion-violation 'http1-resolve-response-takeover
+			       "Unsupported takeover kind"
+			       requested-kind connection))))
+
+(define (http1-abort-response-stream! connection request)
+  (http-connection-close! connection))
+
 (define (make-http1-connection socket socket-option node service . opts)
   (apply make-http-connection node service socket-option socket
-			http1-send-header http1-send-data
-			http1-receive-header http1-receive-data 
-			(make-http1-connection-context)
-			opts))
+	 http1-send-header http1-send-data
+	 http1-receive-header http1-receive-data 
+	 (make-http1-connection-context)
+	 :takeover-resolver http1-resolve-response-takeover
+	 :stream-aborter http1-abort-response-stream!
+	 opts))
 
 (define (socket->http1-connection socket socket-option node service . opts)
   (apply make-http1-connection socket socket-option node service opts))
-
 
 (define *http1* (make-http-connection-converter values socket->http1-connection))
 
@@ -130,33 +141,33 @@
   (define data-handler (http:response-context-data-handler response-context))
   (define context (http-connection-context-data connection))
   (define state (http1-connection-context-state context))
-	(define version (http1-response-state-version state))
-	(define headers (http1-response-state-headers state))
-	(define framing (http1-response-state-framing state))
-	(define framing-arg (http1-response-state-framing-arg state))
-	(define chunk-reader (http1-response-state-chunk-reader state))
+  (define version (http1-response-state-version state))
+  (define headers (http1-response-state-headers state))
+  (define framing (http1-response-state-framing state))
+  (define framing-arg (http1-response-state-framing-arg state))
+  (define chunk-reader (http1-response-state-chunk-reader state))
   (define in (http-connection-input connection))
-	(define (reusable?)
-		(http:connection-reusable-after? headers version))
-	(define (finish framing)
-		(if (or (eq? framing 'until-close) (not (reusable?)))
+  (define (reusable?)
+    (http:connection-reusable-after? headers version))
+  (define (finish framing)
+    (if (or (eq? framing 'until-close) (not (reusable?)))
 	(http:response-body-state closed)
 	(http:response-body-state done)))
-	(define (emit data end?)
-		(data-handler response-context data end?))
-
-	(case framing
-		((none) (finish framing))
-		((length)
-		 (emit (ensure-read in framing-arg) #t)
-		 (finish framing))
-		((chunked)
-		 (if (eq? 'done (chunk-reader in emit))
+  (define (emit data end?)
+    (data-handler response-context data end?))
+  
+  (case framing
+    ((none) (finish framing))
+    ((length)
+     (emit (ensure-read in framing-arg) #t)
+     (finish framing))
+    ((chunked)
+     (if (eq? 'done (chunk-reader in emit))
 	 (finish framing)
 	 (http:response-body-state continue)))
-		(else
-		 (emit (get-bytevector-all in) #t)
-		 (http:response-body-state closed))))
+    (else
+     (emit (get-bytevector-all in) #t)
+     (http:response-body-state closed))))
 
 (define (read-one-line in)
   (let ((v (binary:get-line in)))
