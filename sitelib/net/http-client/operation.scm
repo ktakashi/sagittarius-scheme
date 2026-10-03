@@ -121,19 +121,18 @@
     #t))
 
 (define (http:operation-cancel! operation)
-  (let ((handler #f))
-    (let ((cancelled?
-           (with-operation-lock operation
-             (let ((current (http:operation-%state operation)))
-               (cond ((terminal-state? current) #f)
-                     (else
-                      (set! handler (http:operation-cancel-handler operation))
-                      (http:operation-cancel-handler-set! operation #f)
-                      (http:operation-%state-set! operation 'cancelled)
-                      #t))))))
-      (when cancelled?
-        (when handler (handler)))
-      cancelled?)))
+  (define (check-state! operation)
+    (with-operation-lock operation
+      (let ((current (http:operation-%state operation)))
+        (cond ((terminal-state? current) (values #f #f))
+              (else
+	       (let ((handler (http:operation-cancel-handler operation)))
+		 (http:operation-cancel-handler-set! operation #f)
+		 (http:operation-%state-set! operation 'cancelled)
+		 (values #t handler)))))))
+  (let-values (((cancelled? handler) (check-state! operation)))
+    (when (and cancelled? handler) (handler))
+    cancelled?))
 
 (define (http:operation-on-init! operation . args)
   (apply (http:operation-on-init operation) args))

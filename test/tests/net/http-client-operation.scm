@@ -192,7 +192,8 @@
     (test-eq "http/2 stream takeover resource"
 	     'dummy-stream
 	     (http:response-context-takeover-resource ctx)))
-  
+
+  (print "testing slow")
   (let ((completed 0)
 	(failed 0))
     (define slow-request
@@ -216,7 +217,6 @@
   (print "testing send-async")
   (let* ((request (http:request-builder (method 'GET) (uri (make-uri "/ok"))))
 	 (response (future-get (http:client-send-async client request) 5 #f)))
-    (print response)
     (test-assert "send-async adapter returns response"
 		 (http:response? response))
     (test-equal "send-async adapter status" "200"
