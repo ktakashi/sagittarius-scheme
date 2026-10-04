@@ -418,6 +418,39 @@ static void lookup_alpn(SgTLSSocket *tlsSocket)
   }
 }
 
+/* #define SSL_DEBUG */
+#ifdef SSL_DEBUG
+static void ssl_info_callback(const SSL *ssl, int where, int ret)
+{
+  if (where & SSL_CB_ALERT) {
+    fprintf(stderr, "TLS ALERT: %s: %s\n",
+	    (where & SSL_CB_READ) ? "read" : "write",
+	    SSL_alert_type_string_long(ret));
+    fprintf(stderr, "             %s\n",
+	    SSL_alert_desc_string_long(ret));
+  }
+
+  if (where & SSL_CB_HANDSHAKE_START) {
+    fprintf(stderr, "TLS handshake started\n");
+  }
+
+  if (where & SSL_CB_HANDSHAKE_DONE) {
+    fprintf(stderr, "TLS handshake completed\n");
+  }
+
+  if (where & SSL_CB_LOOP) {
+    fprintf(stderr, "TLS: %s\n", SSL_state_string_long(ssl));
+  }
+
+  if (where & SSL_CB_EXIT) {
+    if (ret <= 0) {
+      fprintf(stderr, "TLS operation failed: %s\n",
+	      SSL_state_string_long(ssl));
+    }
+  }
+}
+#endif
+
 int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket,
 			SgObject domainName,
 			SgObject alpn)
@@ -430,7 +463,12 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket,
   ERR_clear_error();		/* clear error */
 
   data->ssl = SSL_new(data->ctx);
-  
+
+#ifdef SSL_DEBUG
+  fprintf(stderr, "-----\n");
+  SSL_set_info_callback(data->ssl, ssl_info_callback);
+#endif
+
   if (SG_STRINGP(domainName)) {
     const char *hostname = Sg_Utf32sToUtf8s(SG_STRING(domainName));
     SSL_set_tlsext_host_name(data->ssl, hostname);
@@ -461,13 +499,21 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket,
   SSL_set_fd(data->ssl, socket->socket);
   r = SSL_connect(data->ssl);
   if (r < 0) {
+    int e = errno;
     int err = SSL_get_error(data->ssl, r);
-    const char *msg;
+    SgObject msg;
     if (SSL_ERROR_SSL == err) err = ERR_get_error();
-    msg = ERR_reason_error_string(err);
-    if (!msg) msg = "SSL_connect failed";
+    
+    if (SSL_ERROR_SYSCALL == err) {
+      msg = Sg_GetLastErrorMessageWithErrorCode(e);
+      err = e;
+    } else {
+      const char *m = ERR_reason_error_string(err);
+      if (!m) m = "SSL_connect failed";
+      msg = Sg_Utf8sToUtf32s(m, strlen(m));
+    }
     raise_socket_error(SG_INTERN("tls-socket-connect!"),
-		       Sg_Utf8sToUtf32s(msg, strlen(msg)),
+		       msg,
 		       Sg_MakeConditionSocket(tlsSocket),
 		       Sg_MakeIntegerU(err));
   }
