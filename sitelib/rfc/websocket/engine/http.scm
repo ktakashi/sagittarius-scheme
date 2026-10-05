@@ -120,12 +120,10 @@
     (for-each (lambda (m) (message-digest-process! md m)) msg)
     (message-digest-done md)))
 
-(define-record-type response-context
-  (parent <http:response-context>)
+(define-record-type response-state
   (fields (mutable headers))
   (protocol (lambda (p)
-	      (lambda (request header-handler)
-		((p request header-handler #f) #f)))))
+	      (lambda () (p '())))))
 
 ;; Client handshake, this handles both HTTP 1/1 and HTTP2
 (define (http-websocket-handshake engine socket socket-options uri
@@ -176,6 +174,7 @@
 	(websocket-http-engine-error 'http-websocket-handshake
 				     "Unexpected field value" field)))
   (define (header-handler ctx status headers has-data?)
+    (define state (http:response-context-state ctx))
     (unless (or (and (not http2?) (string=? status "101"))
 		(and http2? (string=? status "200")))
       (websocket-http-status-error 'http-websocket-handshake
@@ -189,7 +188,7 @@
 	(or (null? (rfc5322-header-ref* headers "Sec-WebSocket-Protocol"))
 	    (check-header headers "Sec-WebSocket-Protocol" ""))
 	(check-header-contains headers "Sec-WebSocket-Protocol" protocols))
-    (response-context-headers-set! ctx headers))
+    (response-state-headers-set! state headers))
   (define key (base64-encode (read-random-bytes 16)))
   (define expected-accept (utf8->string (base64-encode (sha1 key *uuid*))))
   (define request
@@ -197,14 +196,16 @@
      (method (if http2? 'CONNECT 'GET))
      (uri uri) ;; luckily, uri-scheme is not used :D
      (headers (setup-headers (utf8->string key)))))
-  (define response-context (make-response-context request header-handler))
+  (define state (make-response-state))
+  (define response-context 
+    (make-http:response-context request state header-handler #f))
 
   (http-connection-send-header! http-conn request)
   (http-connection-send-data! http-conn request)
 
   (http-connection-receive-header! http-conn response-context)
 
-  (let ((headers (response-context-headers response-context)))
+  (let ((headers (response-state-headers state)))
     ;; TODO convert http-conn to port if it's HTTP2
     (values (buffered-port (socket-port socket #f) (buffer-mode block))
 	    (rfc5322-header-ref headers "Sec-WebSocket-Protocol")
