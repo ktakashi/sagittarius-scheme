@@ -40,8 +40,7 @@
 	    http:response-status http:response-headers
 	    http:response-cookies http:response-body
 	    http:response-time
-	    <http:response-context>
-	    make-http:response-context
+	    <http:response-context> http:response-context?
 	    http:response-context-request
 	    http:response-context-header-handler
 	    http:response-context-data-handler
@@ -219,8 +218,7 @@
   (values sink (lambda (status hdrs) (flusher sink status hdrs))))
 
 (define (make-default-on-init data-handler)
-  (lambda (request header-handler data-handler*)
-    (make-response-context request header-handler data-handler* data-handler)))
+  (lambda (request) (make-response-context data-handler)))
 
 (define default-on-init
   (make-default-on-init http:bytevector-data-handler))
@@ -235,19 +233,21 @@
 	 (apply response-context->response ctx rest))))
 
 (define (default-on-headers operation ctx status headers has-data?)
-  (response-context-status-set! ctx status)
-  (response-context-headers-set! ctx headers)
-  (response-context-has-data?-set! ctx has-data?)
-  (let ((sink (response-context-sink ctx))
+  (define state (http:response-context-state ctx))
+  (response-context-status-set! state status)
+  (response-context-headers-set! state headers)
+  (response-context-has-data?-set! state has-data?)
+  (let ((sink (response-context-sink state))
 	(encoding (rfc5322-header-ref headers "content-encoding" "none")))
     (when sink
-      (response-context-sink-set! ctx (->decoding-output-port sink encoding))))
+      (response-context-sink-set! state (->decoding-output-port sink encoding))))
 	(when (require-stream-response? headers)
-		(http:response-context-takeover! ctx 'stream))
-  #t)
+	  (http:response-context-takeover! ctx 'stream))
+	#t)
 
 (define (default-on-data operation ctx data end?)
-  (define sink (response-context-sink ctx))
+  (define state (http:response-context-state ctx))
+  (define sink (response-context-sink state))
   (put-bytevector sink data)
   #t)
 
@@ -414,32 +414,31 @@
     (else (success response))))
 
 (define-record-type response-context
-  (parent <http:response-context>)
   (fields start
 	  (mutable status)
 	  (mutable headers)
 	  (mutable has-data?)
 	  retriever
 	  (mutable sink))
-  (protocol (lambda (n)
-	      (lambda (request header-handler data-handler payload-handler)
+  (protocol (lambda (p)
+	      (lambda (payload-handler)
 		(let-values (((sink retriever) (payload-handler)))
-		  ((n request header-handler data-handler)
-		   (current-time) #f '() #f retriever sink))))))
+		  (p (current-time) #f '() #f retriever sink))))))
 
 (define (response-context->response ctx)
+  (define state (http:response-context-state ctx))
   (define headers (http:make-headers))
-  (define start (response-context-start ctx))
+  (define start (response-context-start state))
   ;; stored headers are RFC 5322 alist, so convert it here
   (for-each (lambda (kv)
 	      (for-each (lambda (v) (http:headers-add! headers (car kv) v))
 			(cdr kv)))
-	    (response-context-headers ctx))
+	    (response-context-headers state))
   (let ((cookies (map parse-cookie-string
 		      (http:headers-ref* headers "Set-Cookie")))
-	(retriever (response-context-retriever ctx))
-	(status (response-context-status ctx))
-	(sink (response-context-sink ctx)))
+	(retriever (response-context-retriever state))
+	(status (response-context-status state))
+	(sink (response-context-sink state)))
     ;; To finish decompression
     (close-port sink)
     (http:response-builder (status status)
@@ -473,9 +472,11 @@
   (define (data-callback ctx data end?)
     (http:operation-notify-data! operation ctx data end?))
   (define response-context
-    (http:operation-on-init! operation request header-callback data-callback))
-  (define (finalizer context)
-    (http:operation-on-finalize! operation context))
+    (make-http:response-context request
+				(http:operation-on-init! operation request)
+				header-callback
+				data-callback))
+  (define (finalizer context) (http:operation-on-finalize! operation context))
   (define executor (http:client-executor client))
   (define manager (http:client-connection-manager client))
   (define (handle-cookie! result)

@@ -134,11 +134,15 @@
     (when (and cancelled? handler) (handler))
     cancelled?))
 
-(define (http:operation-on-init! operation . args)
-  (apply (http:operation-on-init operation) args))
+(define (http:operation-on-init! operation request)
+  (cond ((http:operation-on-init operation) =>
+	 (lambda (on-init) (on-init request)))
+	(else #f)))
 
-(define (http:operation-on-finalize! operation . args)
-  (apply (http:operation-on-finalize operation) args))
+(define (http:operation-on-finalize! operation context)
+  (cond ((http:operation-on-finalize operation) =>
+	 (lambda (on-finalize) (on-finalize context)))
+	(else #f)))
 
 (define (http:operation-notify-headers! operation context
              status headers has-data?)
