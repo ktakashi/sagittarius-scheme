@@ -64,8 +64,9 @@
 	    http:no-body-method?
 
 	    (rename (http:response-context <http:response-context>))
-	    make-http:response-context
+	    http:response-context? make-http:response-context
 	    http:response-context-request
+	    http:response-context-state
 	    http:response-context-header-handler
 	    http:response-context-data-handler
 	    http:response-context-takeover-requested?
@@ -185,13 +186,14 @@
 ;; internal use
 (define-record-type http:response-context
   (fields request
+	  state
 	  header-handler
 	  data-handler
 	  (mutable takeover-kind)
 	  (mutable takeover-resource))
   (protocol (lambda (p)
-	      (lambda (request header-handler data-handler)
-		(p request header-handler data-handler #f #f)))))
+	      (lambda (request state header-handler data-handler)
+		(p request state header-handler data-handler #f #f)))))
 
 (define *http:response-context-takeover-kinds*
   '(http/1.1-connection http/2-stream stream))

@@ -45,12 +45,13 @@
 (define-record-type http:stream-response
   (parent <http:response>)
   (fields connection
-    request)
+	  request)
   (protocol (lambda (n)
-        (lambda (request status headers cookies conn)
-    ((n status headers cookies (connection->input-port request headers conn)
-      #f)
-   conn request)))))
+              (lambda (request status headers cookies conn)
+		((n status headers cookies
+		    (connection->input-port request headers conn)
+		    #f)
+		 conn request)))))
 
 (define (http:stream-response-socket response)
   (unless (http:stream-response? response)
@@ -82,7 +83,7 @@
     (put-bytevector sink data)
     (when end? (set! data-end? end?) (close-port sink)))
   (define response-context
-    (make-http:response-context request header-handler data-handler))
+    (make-http:response-context request #f header-handler data-handler))
 
   (define (fill!)
     (chunked-binary-input/output-port-clear-buffer! buffer)

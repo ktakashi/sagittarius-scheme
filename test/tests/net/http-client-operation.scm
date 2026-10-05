@@ -1,6 +1,7 @@
 #!read-macro=sagittarius/bv-string
 (import (rnrs)
 	(net http-client)
+	(net http-client request) ;; for make-http:response-context
 	(net server)
 	(net http-server)
 	(srfi :18)
@@ -58,8 +59,6 @@
       (define response-status #f)
       (define response-headers '())
       (define response-body-parts '())
-      (define (on-init request header-handler data-handler)
-	(make-http:response-context request header-handler data-handler))
       (define on-finalize
 	(lambda (ctx)
 	  (define headers (http:make-headers))
@@ -77,7 +76,7 @@
 		       (uri (make-uri "/ok"))))
 	     (operation
 	      (http:client-start client request
-	       :on-init on-init
+	       :on-init #f
 	       :on-finalize on-finalize
 	       :on-headers (lambda (op ctx status headers has-data?)
 			     (record-event! 'headers)
@@ -116,15 +115,12 @@
 		     (uri (make-uri "/discard"))))
     (define operation
       (http:client-start client request
-       :on-init (lambda (request header-handler data-handler)
-		  (make-http:response-context request
-					      header-handler data-handler))
+       :on-init #f
        :on-headers (lambda (op ctx status headers has-data?) #t)
        :on-data (lambda (op ctx data end?)
 		  (set! chunk-count (+ chunk-count 1))
 		  (set! byte-count (+ byte-count (bytevector-length data))))
-       :on-finalize (lambda (ctx)
-		      (vector 'discarded chunk-count byte-count))
+       :on-finalize (lambda (ctx) (vector 'discarded chunk-count byte-count))
        :on-complete (lambda (op result) (success result))
        :on-error (lambda (op e) (failure e))))
     (let ((result (future-get f 5 #f)))
@@ -146,13 +142,10 @@
 		     (uri (make-uri "/stream"))))
     (define operation
       (http:client-start client request
-       :on-init (lambda (request header-handler data-handler)
-		  (make-http:response-context request
-					      header-handler data-handler))
+       :on-init #f
        :on-headers (lambda (op ctx status headers has-data?)
 		     (http:response-context-takeover! ctx 'http/1.1-connection))
-       :on-finalize (lambda (ctx)
-		      (http:response-context-takeover-resource ctx))
+       :on-finalize (lambda (ctx) (http:response-context-takeover-resource ctx))
        :on-complete (lambda (op response) (success response))
        :on-error (lambda (op e) (failure e))))
     (let ((response (future-get f 5 #f)))
@@ -179,7 +172,7 @@
 
   (print "testing takeover")
   (let* ((request (http:request-builder (method 'GET) (uri (make-uri "/ok"))))
-	 (ctx (make-http:response-context request (lambda args #t)
+	 (ctx (make-http:response-context request #f (lambda args #t)
 					  (lambda args #t))))
     (test-assert "takeover request predicate"
 		 (not (http:response-context-takeover-requested? ctx)))

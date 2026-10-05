@@ -254,8 +254,6 @@
     (define response-status #f)
     (define response-headers '())
     (define response-body-parts '())
-    (define (on-init request header-handler data-handler)
-      (make-http:response-context request header-handler data-handler))
     (define on-finalize 
       (lambda (ctx)
         (define headers (http:make-headers))
@@ -272,7 +270,7 @@
          #f)))
     (define operation
       (http:client-start client request
-        :on-init on-init
+        :on-init #f
 	:on-finalize on-finalize
         :on-headers (lambda (op ctx status headers has-data?)
                       (set! saw-headers? #t)
@@ -303,8 +301,6 @@
     (define response-status #f)
     (define response-headers '())
     (define response-body-parts '())
-    (define (on-init request header-handler data-handler)
-      (make-http:response-context request header-handler data-handler))
     (define on-finalize
       (lambda (ctx)
         (define headers (http:make-headers))
@@ -321,7 +317,7 @@
          #f)))
     (define operation
       (http:client-start client request
-        :on-init on-init
+        :on-init #f
 	:on-finalize on-finalize
         :on-headers (lambda (op ctx status headers has-data?)
                       (set! response-status status)
