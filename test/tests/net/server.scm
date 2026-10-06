@@ -5,7 +5,6 @@
 	(sagittarius)
 	(sagittarius crypto keys)
 	(util concurrent)
-	(rfc tls)
 	(rfc x509)
 	(srfi :18)
 	(srfi :19)
@@ -104,11 +103,13 @@
 				     :shutdown-handler shutdown-handler
 				     :alpn '("s0" "s1")))
   (define (handler server socket)
-    (let ((alpn (tls-socket-selected-alpn server))
+    (let ((alpn (tls-socket-selected-alpn socket))
 	  (bv (socket-recv socket 255)))
-      (socket-send socket (string->utf8 alpn))
-      (socket-send socket #*":")
-      (socket-send socket bv)))
+      (let-values (((out e) (open-bytevector-output-port)))
+	(put-bytevector out (string->utf8 alpn))
+	(put-bytevector out #*":")
+	(put-bytevector out bv)
+	(socket-send socket (e)))))
   (define server (make-simple-server "0" handler :config config))
   (define (test ai-family)
     (define option (tls-socket-options (ai-family ai-family) (alpn* '("s1"))))
@@ -119,6 +120,7 @@
 	(let ((alpn (tls-socket-selected-alpn sock)))
 	  (test-equal "s1" alpn)
 	  (socket-send sock #*"hello")
+	  (thread-sleep! 0.1)
 	  (test-equal "TLS echo back" #*"s1:hello" (socket-recv sock 255))
 	  (socket-close sock)))))
   (server-start! server :background #t)
@@ -140,13 +142,13 @@
 
 ;; call #135
 (let ()
-  (define server (make-simple-server "12345" (lambda (s sock) #t)))
+  (define server (make-simple-server "0" (lambda (s sock) #t)))
 
   (test-assert "socket not created"
-	       (let ((s (make-server-socket "12345")))
+	       (let ((s (make-server-socket (server-port server))))
 		 (socket-close s))))
 
-(let ((server (make-simple-server "12345" (lambda (s sock) #t)
+(let ((server (make-simple-server "0" (lambda (s sock) #t)
 				  :context 'context)))
   (test-equal 'context (server-context server))
   #;(test-error (server-status server)))
@@ -182,11 +184,11 @@
 		  :non-blocking? #t :max-thread 5
 		  :exception-handler print))
   (define server (make-simple-server
-		  "12345" (lambda (s sock)
-			    ;; Remove socket from server's management.
-			    (server-detach-socket! s sock)
-			    ;; Hand it over to external actor.
-			    (actor-send-message! detached-actor sock))
+		  "0" (lambda (s sock)
+			;; Remove socket from server's management.
+			(server-detach-socket! s sock)
+			;; Hand it over to external actor.
+			(actor-send-message! detached-actor sock))
 		  :config config))
   (define (check-status server)
     (let ((status (server-status server)))
@@ -208,7 +210,7 @@
   (test-assert (server-status server))
   (check-status server)
 
-  (let ((sock (make-client-socket "localhost" "12345")))
+  (let ((sock (make-client-socket "localhost" (server-port server))))
     ;; Trigger socket detachment by connecting.
     (socket-send sock #vu8(0))
     (test-equal 'ready (actor-receive-message! detached-actor))
@@ -229,6 +231,49 @@
     (socket-shutdown sock SHUT_RDWR)
     (socket-close sock))
 
+  (server-stop! server))
+
+;; Client certificate
+(let ()
+  (define kp (generate-key-pair *key:ecdsa*))
+  (define one-year (make-time time-duration 0 (* 3600 24 365)))
+  (define now (add-duration (current-time) (make-time time-duration 0 -300)))
+  (define cert (make-x509-basic-certificate kp 1
+		 (make-x509-issuer '((CN . "sagittarius")))
+		 (make-validity (time-utc->date now)
+				(time-utc->date (add-duration now one-year)))
+		 (make-x509-issuer '((CN . "sagittarius")))))
+  (define tls-config (make-server-tls-config
+		      :trusted-certificates (list cert)
+		      :client-certificate-required? #t
+		      :certificate-verifier #t))
+  (define config (make-server-config :secure? #t :tls-config tls-config
+				     :close-socket? #t))
+  (define (app server sock)
+    (let ((cert (tls-socket-peer-certificate sock)))
+      (test-assert "client certificate" (x509-certificate? cert))
+      (socket-send sock (x509-certificate->bytevector cert))))
+  (define server (make-simple-server "0" app :config config))
+  (define option
+    (tls-socket-options
+     (private-key (key-pair-private kp))
+     (certificates (list cert))))
+
+  (server-start! server :background #t)
+
+  (let ((sock (make-client-tls-socket "localhost" (server-port server) option)))
+    (socket-send sock #*"hello")
+    (let ((cert (socket-recv sock 2048)))
+      (test-assert "client cert" (bytevector->x509-certificate cert)))
+    (socket-shutdown sock SHUT_RDWR)
+    (socket-close sock))
+
+  ;; somehow the client share's client certificate...
+  ;; (let ((sock (make-client-tls-socket "localhost" (server-port server))))
+  ;;   (test-error "no auth" (socket-send sock #*"hello"))
+  ;;   (socket-shutdown sock SHUT_RDWR)
+  ;;   (socket-close sock))
+  
   (server-stop! server))
 
 (test-end)

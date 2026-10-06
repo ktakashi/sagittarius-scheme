@@ -196,11 +196,15 @@ _shutdown-handler_
 
 _exception-handler_
 : Specifying exception handler. The value must be a procedure accepts
-  3 arguments, _server_, _socket_ and _condition_. This
+  3 arguments, _server_, _source_ and _condition_. This
   is called when the server _handler_ raises an error. 
-  NOTE: The passing _socket_ is **not** closed so that the handler can
-  send messages to client socket.
 
+  _source_ can be either socket or symbol, depending on the location of
+  the exception. If it's caused by the server, then it'd be a socket,
+  if it's underlying socket selector, then symbol.
+
+  If the _source_ is a socket, then it be closed after the handler invocation.
+  
 _max-thread_
 : Specifying max thread count. Default value is 1.
 
