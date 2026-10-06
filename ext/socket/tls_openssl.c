@@ -63,7 +63,7 @@
     if (err != SSL_ERROR_NONE) {					\
       const char *msg = NULL;						\
       if (SSL_ERROR_SYSCALL == err) {					\
-	if (e < 0) {							\
+	if (e > 0) {							\
 	  switch (e) {							\
 	  case EINTR: continue;						\
 	  case EPIPE:							\
