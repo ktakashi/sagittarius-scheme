@@ -187,18 +187,8 @@
 
 (define (dispatch-application! state stream)
   (let* ((req (stream->request state stream))
-         (res (make-http-server:response))
-         (app-handler (http2-server-connection-state-app-handler state))
-         (result
-          (guard (e (else
-                     (let ((er (make-http-server:response 500)))
-                       (http-server:response-text!
-                        er
-                        "Unhandled application error")
-                       er)))
-            (let ((r (app-handler req res)))
-              (if (http-server:response? r) r res)))))
-    (write-stream-response! state stream req result)
+         (res (invoke-app-handler state stream req)))
+    (write-stream-response! state stream req res)
     #t))
 
 ;; helper

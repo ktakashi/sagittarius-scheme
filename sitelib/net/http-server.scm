@@ -233,15 +233,13 @@
   (define states (slot-ref server 'states))
 
   (mutex-lock! lock)
-  (let ((state (hashtable-ref states socket #f)))
-    (if state
-        (begin
-          (mutex-unlock! lock)
-          state)
-        (let ((new-state (make-server-http-connection server socket app-handler)))
-          (hashtable-set! states socket new-state)
-          (mutex-unlock! lock)
-          new-state))))
+  (cond ((hashtable-ref states socket #f) =>
+	 (lambda (state) (mutex-unlock! lock) state))
+	(else
+	 (let ((state (make-server-http-connection server socket app-handler)))
+           (hashtable-set! states socket state)
+           (mutex-unlock! lock)
+           state))))
 
 (define (set-state! server socket conn)
   (define lock (slot-ref server 'lock))

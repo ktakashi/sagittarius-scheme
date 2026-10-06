@@ -196,18 +196,8 @@
       wire-weight))))
 
 (define (dispatch-pushed-application! conn stream req)
-  (let* ((res (make-http-server:response))
-         (app-handler (http2-server-connection-state-app-handler conn))
-         (result
-          (guard (e (else
-                     (let ((er (make-http-server:response 500)))
-                       (http-server:response-text!
-                        er
-                        "Unhandled application error")
-                       er)))
-            (let ((r (app-handler req res)))
-              (if (http-server:response? r) r res)))))
-    (write-stream-response! conn stream req result)
+  (let ((res (invoke-app-handler conn stream req)))
+    (write-stream-response! conn stream req res)
     #t))
 
 (define (emit-push-responses! state stream req res)

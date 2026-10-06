@@ -79,12 +79,16 @@
 	    find-stream
 	    register-stream!
 	    drop-stream!
-	    for-each-stream)
+	    for-each-stream
+
+	    invoke-app-handler
+	    )
     (import (rnrs)
 	    (clos user)
 	    (net http-server types)
 	    (net http-server protocol)
 	    (net http-server request)
+	    (net http-server response)
 	    (net http-server http2 const)
 	    (rfc http2 priority))
 
@@ -190,4 +194,17 @@
      conn
      (http2-server-stream-id stream)))
   stream)
+
+(define (invoke-app-handler state stream req)
+  (let ((res (make-http-server:response))
+        (app-handler (http2-server-connection-state-app-handler state)))
+    (guard (e (else
+               (let ((er (make-http-server:response 500)))
+                 (http-server:response-text!
+                  er
+                  "Unhandled application error")
+                 er)))
+      (let ((r (app-handler req res)))
+        (if (http-server:response? r) r res)))))
+
 )

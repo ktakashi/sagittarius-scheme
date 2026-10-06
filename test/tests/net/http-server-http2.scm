@@ -143,7 +143,7 @@
          (list (cons (make-http2-frame-settings 0 0 '()) #f)
                (cons (make-http2-frame-headers 0 1 #f #f request-headers) #t)))))
      (test-assert "connection accepts request payload"
-                  (http-server:connection-process! conn payload))
+                  (not (http-server:connection-process! conn payload)))
      (thread-sleep! 0.02)
      (let* ((raw (recv-bytes client))
             (frames (decode-frames raw))
@@ -202,7 +202,7 @@
          (list (cons (make-http2-frame-settings 0 0 '()) #f)
                (cons (make-http2-frame-ping 0 0 ping-data) #f)))))
      (test-assert "connection accepts ping payload"
-                  (http-server:connection-process! conn payload))
+                  (not (http-server:connection-process! conn payload)))
      (thread-sleep! 0.02)
      (let* ((raw (recv-bytes client))
             (frames (decode-frames raw))
@@ -215,8 +215,8 @@
        (test-assert "server replies ping ack" ping-ack)
        (test-equal "ping payload"
                    ping-data
-              (and ping-ack
-                 (http2-frame-ping-opaque-data ping-ack)))))))
+		   (and ping-ack
+			(http2-frame-ping-opaque-data ping-ack)))))))
 
 (let ()
   (define invalid-headers
@@ -237,7 +237,7 @@
          (list (cons (make-http2-frame-settings 0 0 '()) #f)
                (cons (make-http2-frame-headers 0 1 #f #f invalid-headers) #t)))))
      (test-assert "connection accepts invalid-header payload"
-                  (http-server:connection-process! conn payload))
+                  (not (http-server:connection-process! conn payload)))
      (thread-sleep! 0.02)
      (let* ((raw (recv-bytes client))
             (frames (decode-frames raw))
@@ -275,11 +275,11 @@
      (define body-part-2
        (encode-frames (list (cons (make-http2-frame-data 0 1 #*"world") #t))))
      (test-assert "connection accepts split request headers"
-                  (http-server:connection-process! conn preface+headers))
+                  (not (http-server:connection-process! conn preface+headers)))
      (test-assert "connection accepts request data chunk 1"
-                  (http-server:connection-process! conn body-part-1))
+                  (not (http-server:connection-process! conn body-part-1)))
      (test-assert "connection accepts request data chunk 2"
-                  (http-server:connection-process! conn body-part-2))
+                  (not (http-server:connection-process! conn body-part-2)))
      (test-equal "split body is assembled"
                  "hello world"
                   seen-body))))
@@ -304,7 +304,7 @@
                (cons (make-http2-frame-headers 0 1 #f #f request-headers) #f)
                (cons (make-http2-frame-data 0 1 large-request-body) #t)))))
      (test-assert "connection accepts large request payload"
-                  (http-server:connection-process! conn payload))
+                  (not (http-server:connection-process! conn payload)))
      (thread-sleep! 0.02)
      (let* ((raw (recv-bytes client))
             (frames (decode-frames raw))
@@ -348,7 +348,7 @@
          (list (cons (make-http2-frame-settings 0 0 '()) #f)
                (cons (make-http2-frame-headers 0 1 #f #f request-headers) #t)))))
      (test-assert "connection accepts large response request"
-                  (http-server:connection-process! conn request-payload))
+                  (not (http-server:connection-process! conn request-payload)))
      (thread-sleep! 0.02)
      (let* ((frames-1 (decode-frames (recv-bytes client)))
             (sent-before-update (data-bytes-on-stream frames-1 1)))
@@ -360,7 +360,7 @@
          (list (cons (make-http2-frame-window-update 0 0 70000) #f)
           (cons (make-http2-frame-window-update 0 1 70000) #f)))))
         (test-assert "connection accepts peer window updates"
-           (http-server:connection-process! conn update-payload))
+		     (not (http-server:connection-process! conn update-payload)))
         (thread-sleep! 0.02)
         (let* ((frames-2 (decode-frames (recv-bytes client)))
           (sent-after-update (data-bytes-on-stream frames-2 1))
@@ -394,7 +394,7 @@
          (list (cons (make-http2-frame-settings 0 0 '()) #f)
                (cons (make-http2-frame-headers 0 1 #f #f request-headers) #t)))))
      (test-assert "connection accepts request when push is disabled"
-                  (http-server:connection-process! conn request-payload))
+                  (not (http-server:connection-process! conn request-payload)))
      (thread-sleep! 0.02)
      (let* ((frames (decode-frames (recv-bytes client)))
             (push-frame
@@ -431,7 +431,7 @@
          (list (cons (make-http2-frame-settings 0 0 '()) #f)
                (cons (make-http2-frame-headers 0 1 #f #f request-headers) #t)))))
      (test-assert "connection accepts request when push is enabled"
-                  (http-server:connection-process! conn request-payload))
+                  (not (http-server:connection-process! conn request-payload)))
      (thread-sleep! 0.03)
      (let* ((frames (decode-frames (recv-bytes client)))
             (push-frames (filter http2-frame-push-promise? frames))
@@ -492,7 +492,7 @@
            (list (cons (make-http2-frame-settings 0 0 `((,+http2-settings-enable-push+ 0))) #f)
                (cons (make-http2-frame-headers 0 1 #f #f request-headers) #t)))))
      (test-assert "connection accepts request with peer push disabled"
-                  (http-server:connection-process! conn request-payload))
+                  (not (http-server:connection-process! conn request-payload)))
      (thread-sleep! 0.02)
      (let* ((frames (decode-frames (recv-bytes client)))
             (push-frame

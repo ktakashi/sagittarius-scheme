@@ -171,10 +171,9 @@
 
     (when (eq? (http2-server-connection-state-stage state) 'await-preface)
       (consume-preface! state))
-
     (if (eq? (http2-server-connection-state-stage state) 'ready)
         (let ((result (process-ready! conn state)))
-          (and result (flush-pending-output! state)))
+          (and result (flush-pending-output! state) #f))
         #t)))
 
 (define (make-http-server:http2-connection server socket app-handler
