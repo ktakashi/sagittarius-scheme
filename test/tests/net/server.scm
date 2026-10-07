@@ -10,13 +10,18 @@
 	(srfi :19)
 	(srfi :64))
 
-(define (print . args) (for-each display args) (newline))
+(define (print . args)
+  (lock-port! (current-output-port))
+  (for-each display args) (newline)
+  (unlock-port! (current-output-port)))
 (test-begin "Simple server framework")
 
 (define-constant +shutdown-port+ "7500")
 
 ;; use default config
 ;; no IPv6, no shutdown port and signel thread
+
+(print "basic test")
 (let ()
   (define (handler server socket)
     (let ((bv (socket-recv socket 255)))
@@ -35,7 +40,7 @@
   (test-assert "stop server" (server-stop! server))
 )
 
-;; multi threading server
+(print "thread limitation")
 (let ()
   (define config (make-server-config :shutdown-port +shutdown-port+
 				     :exception-handler
@@ -81,6 +86,7 @@
   (test-assert "server-stopped?" (server-stopped? server))
 )
 
+(print "shutdown handler and alpn")
 (let ()
   (define (shutdown-handler server socket)
     ;; some heavy authentication process here
@@ -141,6 +147,7 @@
   )
 
 ;; call #135
+(print "lazy socket creation")
 (let ()
   (define server (make-simple-server "0" (lambda (s sock) #t)))
 
@@ -148,6 +155,7 @@
 	       (let ((s (make-server-socket (server-port server))))
 		 (socket-close s))))
 
+(print "server context")
 (let ((server (make-simple-server "0" (lambda (s sock) #t)
 				  :context 'context)))
   (test-equal 'context (server-context server))
@@ -160,6 +168,7 @@
 ;; The test creates a non-blocking server that detaches incoming connections
 ;; to a shared-queue-channel-actor which handles the actual socket
 ;; communication.
+(print "socket detachment")
 (let ()
   ;; the thread management is done outside of our threads
   ;; thus there's no way to guarantee. let's hope...
@@ -234,6 +243,7 @@
   (server-stop! server))
 
 ;; Client certificate
+(print "client certificate")
 (let ()
   (define kp1 (generate-key-pair *key:ecdsa*))
   (define kp2 (generate-key-pair *key:ecdsa*))
@@ -258,7 +268,9 @@
   (define config (make-server-config :secure? #t :tls-config tls-config
 				     :close-socket? #t))
   (define (app server sock)
+    (print "    = server: " sock)
     (let ((cert (tls-socket-peer-certificate sock)))
+      (print "    = cert: " (x509-certificate? cert))
       (test-assert "client certificate" (x509-certificate? cert))
       (socket-send sock (x509-certificate->bytevector cert))))
   (define server (make-simple-server "0" app :config config))
@@ -271,8 +283,10 @@
      (private-key (key-pair-private kp2))
      (certificates (list cert2))))
 
+  (print "  - start server")
   (server-start! server :background #t)
 
+  (print "  - ckient with cert 1")
   (let ((sock (make-client-tls-socket "localhost" (server-port server) option1)))
     (socket-send sock #*"hello")
     (let ((cert (socket-recv sock 2048)))
@@ -281,6 +295,7 @@
     (socket-shutdown sock SHUT_RDWR)
     (socket-close sock))
 
+  (print "  - ckient with cert 2")
   (let ((sock (make-client-tls-socket "localhost" (server-port server) option2)))
     (socket-send sock #*"hello")
     (let ((cert (socket-recv sock 2048)))
@@ -291,6 +306,7 @@
     (socket-shutdown sock SHUT_RDWR)
     (socket-close sock))
 
+  (print "  - ckient without certificate")
   (test-assert "no auth"
                (let ((sock #f))
 		 (define (close sock)
@@ -299,10 +315,14 @@
                      (socket-close sock)))
 		 (guard (e ((socket-error? e) (close sock) #t)
                            (else (close sock) #f))
+		   (print "    - making socket")
 		   (set! sock (make-client-tls-socket
                                "localhost" (server-port server)))
+		   (print "    - sock: " sock)
 		   (socket-send sock #*"hello")
+		   (print "    - send socket done")
                    (socket-recv sock 1)
+		   (print "    - recv socket done")
 		   (close sock)
 		   #f)))
   
