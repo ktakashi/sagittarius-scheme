@@ -401,6 +401,9 @@ static void client_init(SgTLSSocket *r)
 #ifdef SCH_USE_STRONG_CRYPTO
     SCH_USE_STRONG_CRYPTO |
 #endif
+  #ifdef SCH_CRED_DISABLE_RECONNECTS
+    SCH_CRED_DISABLE_RECONNECTS |
+  #endif
     SCH_CRED_REVOCATION_CHECK_CHAIN;
   credData.cCreds = context->certificateCount;
   credData.paCred = context->certificates;
@@ -1436,6 +1439,9 @@ static SgTLSSocket * to_server_socket(SgTLSSocket *parent, SgSocket *sock)
 #ifdef SCH_USE_STRONG_CRYPTO
     SCH_USE_STRONG_CRYPTO |
 #endif
+  #ifdef SCH_CRED_DISABLE_RECONNECTS
+    SCH_CRED_DISABLE_RECONNECTS |
+  #endif
     SCH_CRED_REVOCATION_CHECK_CHAIN;
   credData.dwMinimumCipherStrength = 128;
   credData.cCreds = data->tlsContext->certificateCount;
@@ -1473,6 +1479,7 @@ static int server_handshake(SgTLSSocket *tlsSocket)
   SecBuffer bufso[2], bufsi[2];
   int initialised = FALSE;
   DWORD sspiFlags = ASC_REQ_ALLOCATE_MEMORY;
+  DWORD finalOutFlags = 0;
   unsigned char *alpnBuffer = NULL;
   unsigned int alpnBufferSize = 0;
   int hasALPN = build_alpn_protocols_buffer(data->configuredALPN,
@@ -1532,7 +1539,10 @@ static int server_handshake(SgTLSSocket *tlsSocket)
 	}
       }
     }
-    if (ss == SEC_E_OK) break;
+    if (ss == SEC_E_OK) {
+      finalOutFlags = sspiOutFlags;
+      break;
+    }
     if (ss == SEC_I_CONTINUE_NEEDED
 	|| ss == SEC_I_INCOMPLETE_CREDENTIALS
 	|| ss == SEC_E_INCOMPLETE_MESSAGE) continue;
@@ -1544,6 +1554,16 @@ static int server_handshake(SgTLSSocket *tlsSocket)
 			 Sg_MakeIntegerU(ss));
     }
   }
+
+#ifdef ASC_RET_MUTUAL_AUTH
+  if (tlsSocket->peerCertificateRequiredP &&
+      !(finalOutFlags & ASC_RET_MUTUAL_AUTH)) {
+    raise_socket_error(SG_INTERN("tls-socket-server-handshake"),
+                       SG_MAKE_STRING("peer certificate is missing"),
+                       Sg_MakeConditionSocket(tlsSocket),
+                       SG_NIL);
+  }
+#endif
 
   return verify_certificate(tlsSocket,
 			    SG_INTERN("tls-socket-server-handshake"));
