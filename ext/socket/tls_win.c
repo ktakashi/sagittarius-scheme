@@ -1170,7 +1170,7 @@ static int verify_certificate(SgTLSSocket *tlsSocket, SgObject who)
   ISC_REQ_CONFIDENTIALITY    |			     \
   ISC_RET_EXTENDED_ERROR     |			     \
   ISC_REQ_ALLOCATE_MEMORY    |			     \
-  /* ISC_REQ_USE_SUPPLIED_CREDS | */		     \
+  ISC_REQ_USE_SUPPLIED_CREDS |			     \
   ISC_REQ_STREAM				     \
 
 static wchar_t * client_handshake0(SgTLSSocket *tlsSocket,
