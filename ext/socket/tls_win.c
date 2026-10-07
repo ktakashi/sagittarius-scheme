@@ -1173,7 +1173,7 @@ static int verify_certificate(SgTLSSocket *tlsSocket, SgObject who)
   ISC_REQ_CONFIDENTIALITY    |			     \
   ISC_RET_EXTENDED_ERROR     |			     \
   ISC_REQ_ALLOCATE_MEMORY    |			     \
-  ISC_REQ_USE_SUPPLIED_CREDS |			     \
+  /* ISC_REQ_USE_SUPPLIED_CREDS | */		     \
   ISC_REQ_STREAM				     \
 
 static wchar_t * client_handshake0(SgTLSSocket *tlsSocket,
@@ -1479,7 +1479,6 @@ static int server_handshake(SgTLSSocket *tlsSocket)
   SecBuffer bufso[2], bufsi[2];
   int initialised = FALSE;
   DWORD sspiFlags = ASC_REQ_ALLOCATE_MEMORY;
-  DWORD finalOutFlags = 0;
   unsigned char *alpnBuffer = NULL;
   unsigned int alpnBufferSize = 0;
   int hasALPN = build_alpn_protocols_buffer(data->configuredALPN,
@@ -1539,10 +1538,7 @@ static int server_handshake(SgTLSSocket *tlsSocket)
 	}
       }
     }
-    if (ss == SEC_E_OK) {
-      finalOutFlags = sspiOutFlags;
-      break;
-    }
+    if (ss == SEC_E_OK) break;
     if (ss == SEC_I_CONTINUE_NEEDED
 	|| ss == SEC_I_INCOMPLETE_CREDENTIALS
 	|| ss == SEC_E_INCOMPLETE_MESSAGE) continue;
@@ -1554,16 +1550,6 @@ static int server_handshake(SgTLSSocket *tlsSocket)
 			 Sg_MakeIntegerU(ss));
     }
   }
-
-#ifdef ASC_RET_MUTUAL_AUTH
-  if (tlsSocket->peerCertificateRequiredP &&
-      !(finalOutFlags & ASC_RET_MUTUAL_AUTH)) {
-    raise_socket_error(SG_INTERN("tls-socket-server-handshake"),
-                       SG_MAKE_STRING("peer certificate is missing"),
-                       Sg_MakeConditionSocket(tlsSocket),
-                       SG_NIL);
-  }
-#endif
 
   return verify_certificate(tlsSocket,
 			    SG_INTERN("tls-socket-server-handshake"));
