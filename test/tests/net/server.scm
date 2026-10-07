@@ -262,17 +262,23 @@
   (define cert1-bv (x509-certificate->bytevector cert1))
   (define cert2-bv (x509-certificate->bytevector cert2))
   (define tls-config (make-server-tls-config
-          :trusted-certificates (list cert1 cert2)
+		      :trusted-certificates (list cert1 cert2)
 		      :client-certificate-required? #t
 		      :certificate-verifier #t))
-  (define config (make-server-config :secure? #t :tls-config tls-config
+  (define config (make-server-config :secure? #t
+				     :tls-config tls-config
+				     :exception-handler print
 				     :close-socket? #t))
+  (define lock (make-mutex))
   (define (app server sock)
-    (print "    = server: " sock)
-    (let ((cert (tls-socket-peer-certificate sock)))
-      (print "    = cert: " (x509-certificate? cert))
-      (test-assert "client certificate" (x509-certificate? cert))
-      (socket-send sock (x509-certificate->bytevector cert))))
+    (mutex-lock! lock)
+    (guard (e (else (mutex-unlock! lock)))
+      (print "    = server: " sock)
+      (let ((cert (tls-socket-peer-certificate sock)))
+	(print "    = cert: " (x509-certificate? cert))
+	(test-assert "client certificate" (x509-certificate? cert))
+	(socket-send sock (x509-certificate->bytevector cert)))
+      (mutex-unlock! lock)))
   (define server (make-simple-server "0" app :config config))
   (define option1
     (tls-socket-options
@@ -287,8 +293,10 @@
   (server-start! server :background #t)
 
   (print "  - ckient with cert 1")
+  (mutex-lock! lock)
   (let ((sock (make-client-tls-socket "localhost" (server-port server) option1)))
     (socket-send sock #*"hello")
+    (mutex-unlock! lock)
     (let ((cert (socket-recv sock 2048)))
       (test-assert "client cert #1" (bytevector->x509-certificate cert))
       (test-equal "client cert #1 bytes" cert1-bv cert))
@@ -296,8 +304,10 @@
     (socket-close sock))
 
   (print "  - ckient with cert 2")
+  (mutex-lock! lock)
   (let ((sock (make-client-tls-socket "localhost" (server-port server) option2)))
     (socket-send sock #*"hello")
+    (mutex-unlock! lock)
     (let ((cert (socket-recv sock 2048)))
       (test-assert "client cert #2" (bytevector->x509-certificate cert))
       (test-equal "client cert #2 bytes" cert2-bv cert)
@@ -316,11 +326,13 @@
 		 (guard (e ((socket-error? e) (close sock) #t)
                            (else (close sock) #f))
 		   (print "    - making socket")
+		   (mutex-lock! lock)
 		   (set! sock (make-client-tls-socket
                                "localhost" (server-port server)))
 		   (print "    - sock: " sock)
 		   (socket-send sock #*"hello")
 		   (print "    - send socket done")
+		   (mutex-unlock! lock)
                    (socket-recv sock 1)
 		   (print "    - recv socket done")
 		   (close sock)

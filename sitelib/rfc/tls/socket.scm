@@ -257,6 +257,12 @@
           (values (keypair-private ks) (list cert)))))
   (let-values (((pkey certs)
       		(backward-compatiblity private-key certificates)))
+    (define (wrap verifier)
+      (if (procedure? verifier)
+	  (lambda args
+	    (guard (e (else #f))
+	      (apply verifier args)))
+	  verifier))
     (let-values (((ignored-sni alpn) (parse-hello-extensions hello-extensions)))
       (let ((r (tls:socket->tls-socket socket
 		      :certificates (certificates->bytevector certs)
@@ -265,7 +271,7 @@
 	(tls-socket-authorities-set! r
 	  (map x509-certificate->bytevector authorities))
 	(tls-socket-peer-certificate-verifier-set! r
-	  peer-certificate-required? certificate-verifier)
+	  peer-certificate-required? (wrap certificate-verifier))
 	(if (and client-socket handshake)
 	    (tls-client-handshake r :hello-extensions hello-extensions)
 	    r)))))

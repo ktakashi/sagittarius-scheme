@@ -401,9 +401,9 @@ static void client_init(SgTLSSocket *r)
 #ifdef SCH_USE_STRONG_CRYPTO
     SCH_USE_STRONG_CRYPTO |
 #endif
-  #ifdef SCH_CRED_DISABLE_RECONNECTS
+#ifdef SCH_CRED_DISABLE_RECONNECTS
     SCH_CRED_DISABLE_RECONNECTS |
-  #endif
+#endif
     SCH_CRED_REVOCATION_CHECK_CHAIN;
   credData.cCreds = context->certificateCount;
   credData.paCred = context->certificates;
@@ -1116,19 +1116,17 @@ static int verify_certificate(SgTLSSocket *tlsSocket, SgObject who)
   WinTLSData *data = (WinTLSData *)tlsSocket->data;
   PCCERT_CONTEXT cc = NULL;
   SgObject verifier = tlsSocket->peerCertificateVerifier;
+  SgObject errMsg = SG_FALSE;
 
   QueryContextAttributes(&data->context, SECPKG_ATTR_REMOTE_CERT_CONTEXT,
 			 (PVOID)&cc);
   if (tlsSocket->peerCertificateRequiredP) {
     if (cc == NULL) {
-      raise_socket_error(who,
-			 SG_MAKE_STRING("peer certificate is missing"),
-			 Sg_MakeConditionSocket(tlsSocket),
-			 SG_NIL);
+      errMsg = SG_MAKE_STRING("peer certificate is missing");
+      goto err;
     }
   }
   if (!SG_FALSEP(verifier) && cc != NULL) {
-    volatile SgObject errMsg = SG_FALSE;
     SgObject bv = pccert_context_to_bytevector(cc), cp;
     /* Default check */
     errMsg = default_verify_certificate(cc, tlsSocket);
@@ -1141,22 +1139,17 @@ static int verify_certificate(SgTLSSocket *tlsSocket, SgObject who)
 
     /* TODO get certificate chain here */
     if (SG_PROCEDUREP(verifier)) {
-      SG_UNWIND_PROTECT {
-	SgObject r = Sg_Apply3(verifier, SG_MAKE_INT(0),
-			       SG_FALSEP(errMsg) ? SG_TRUE : SG_FALSE,
-			       bv);
-	if (SG_FALSEP(r)) {
-	  errMsg = SG_MAKE_STRING("Certificate veirfication failed");
-	}
-      } SG_WHEN_ERROR {
-	errMsg = SG_MAKE_STRING("An error occurred during certificate veirfication");
-      } SG_END_PROTECT;
+      SgObject r = Sg_Apply3(verifier, SG_MAKE_INT(0),
+			     SG_FALSEP(errMsg) ? SG_TRUE : SG_FALSE,
+			     bv);
+      if (SG_FALSEP(r)) {
+	errMsg = SG_MAKE_STRING("Certificate veirfication failed");
+      }
     }
 
     CertFreeCertificateContext(cc);
     if (!SG_FALSEP(errMsg)) {
-      raise_socket_error(who, errMsg,
-			 Sg_MakeConditionSocket(tlsSocket), SG_NIL);
+      goto err;
     }
   } else if (cc != NULL) {
     CertFreeCertificateContext(cc);
@@ -1165,6 +1158,13 @@ static int verify_certificate(SgTLSSocket *tlsSocket, SgObject who)
   set_nagotiated_alpn(tlsSocket);
   /* default */
   return TRUE;
+ err:
+  Sg_TLSSocketClose(tlsSocket);
+  raise_socket_error(who,
+		     errMsg,
+		     Sg_MakeConditionSocket(tlsSocket),
+		     SG_NIL);
+  return FALSE;
 }
 
 #define SSPI_FLAGS  ISC_REQ_MANUAL_CRED_VALIDATION | \
@@ -1377,6 +1377,7 @@ static int client_handshake1(SgTLSSocket *tlsSocket, wchar_t *dn,
     DUMP_CTX_HANDLE(&data->context);
 
     if (ss == SEC_I_INCOMPLETE_CREDENTIALS) {
+      fmt_dump("[client] SERVER requested client certificate\n");
       /* if server ask client certificate but we don't have it,
          just proceed the process */
       doRead = FALSE;
@@ -1408,7 +1409,7 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket,
 			SgObject domainName,
 			SgObject alpn)
 {
-  wchar_t *dn;
+
   /* 
      On Windows, there's no way to add client certifucate after 
      acquiring a credential. So do it here. 
@@ -1416,7 +1417,7 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket,
   */
   try_load_client_certificate(tlsSocket);
   client_init(tlsSocket);
-  dn = client_handshake0(tlsSocket, domainName, alpn);
+  wchar_t *dn = client_handshake0(tlsSocket, domainName, alpn);
   return client_handshake1(tlsSocket, dn, TRUE);
 }
 
