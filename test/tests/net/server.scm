@@ -274,10 +274,14 @@
     (mutex-lock! lock)
     (guard (e (else (mutex-unlock! lock)))
       (print "    = server: " sock)
+      (socket-recv sock 255) ;; discard
       (let ((cert (tls-socket-peer-certificate sock)))
 	(print "    = cert: " (x509-certificate? cert))
 	(test-assert "client certificate" (x509-certificate? cert))
-	(socket-send sock (x509-certificate->bytevector cert)))
+	(socket-send sock (x509-certificate->bytevector cert))
+	(socket-shutdown sock SHUT_RDWR)
+	(socket-close sock)
+	)
       (mutex-unlock! lock)))
   (define server (make-simple-server "0" app :config config))
   (define option1
@@ -337,7 +341,7 @@
 		   (print "    - recv socket done")
 		   (close sock)
 		   #f)))
-  
+
   (server-stop! server))
 
 (test-end)
