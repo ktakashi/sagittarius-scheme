@@ -120,7 +120,6 @@ typedef struct OpenSSLDataRec
   SSL     *ssl;
   int      rootServerSocketP;
   SgObject configuredALPN;
-  SgObject peerCertificate;
 } OpenSSLData;
 
 static int validate_alpn_protocol_name_list(SgObject who, SgObject alpn)
@@ -233,7 +232,6 @@ static SgTLSSocket* make_tls_socket(SgSocket *socket, SSL_CTX *ctx,
   data->rootServerSocketP = rootServerSocketP;
   data->ssl = NULL;
   data->configuredALPN = SG_FALSE;
-  data->peerCertificate = SG_FALSE;
   
   Sg_RegisterFinalizer(r, tls_socket_finalizer, NULL);
   return r;
@@ -451,6 +449,13 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket,
   
   ERR_clear_error();		/* clear error */
 
+  if (data->ssl) {
+    SSL_shutdown(data->ssl);
+    SSL_free(data->ssl);
+    data->ssl = NULL;
+  }
+  tlsSocket->selectedALPN = SG_FALSE;
+
   data->ssl = SSL_new(data->ctx);
   SSL_set_ex_data(data->ssl, callback_data_index, tlsSocket);
 
@@ -625,7 +630,6 @@ void Sg_TLSSocketClose(SgTLSSocket *tlsSocket)
     SSL_CTX_free(data->ctx);
     data->ctx = NULL;
   }
-  data->peerCertificate = SG_FALSE;
   Sg_SocketClose(tlsSocket->socket);
 }
 
@@ -748,7 +752,8 @@ static SgObject x509_to_bytevector(X509 *x509)
 SgObject Sg_TLSSocketPeerCertificate(SgTLSSocket *tlsSocket)
 {
   OpenSSLData *tlsData = (OpenSSLData *)tlsSocket->data;
-  X509 *x509;
+  X509 *x509 = NULL;
+  SgObject cert = SG_FALSE;
 
   if (!tlsData->ssl) {
       raise_socket_error(SG_INTERN("tls-socket-peer-certificate"),
@@ -757,15 +762,17 @@ SgObject Sg_TLSSocketPeerCertificate(SgTLSSocket *tlsSocket)
 		       tlsSocket);
   }
   ERR_clear_error();		/* clear error */
-  /* we cache the certificate */
-  if (SG_FALSEP(tlsData->peerCertificate)) {
-    x509 = SSL_get_peer_certificate(tlsData->ssl);
-    if (x509) {
-      tlsData->peerCertificate = x509_to_bytevector(x509);
-      X509_free(x509);
-    }
+
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+  x509 = SSL_get1_peer_certificate(tlsData->ssl);
+#else
+  x509 = SSL_get_peer_certificate(tlsData->ssl);
+#endif
+  if (x509) {
+    cert = x509_to_bytevector(x509);
+    X509_free(x509);
   }
-  return tlsData->peerCertificate;
+  return cert;
 }
 
 static int verify_callback(int previously_ok, X509_STORE_CTX *x509_store_ctx)

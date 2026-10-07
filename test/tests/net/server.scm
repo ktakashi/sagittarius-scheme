@@ -235,16 +235,24 @@
 
 ;; Client certificate
 (let ()
-  (define kp (generate-key-pair *key:ecdsa*))
+  (define kp1 (generate-key-pair *key:ecdsa*))
+  (define kp2 (generate-key-pair *key:ecdsa*))
   (define one-year (make-time time-duration 0 (* 3600 24 365)))
   (define now (add-duration (current-time) (make-time time-duration 0 -300)))
-  (define cert (make-x509-basic-certificate kp 1
-		 (make-x509-issuer '((CN . "sagittarius")))
-		 (make-validity (time-utc->date now)
-				(time-utc->date (add-duration now one-year)))
-		 (make-x509-issuer '((CN . "sagittarius")))))
+  (define cert1 (make-x509-basic-certificate kp1 1
+      (make-x509-issuer '((CN . "sagittarius-client-1")))
+      (make-validity (time-utc->date now)
+         (time-utc->date (add-duration now one-year)))
+      (make-x509-issuer '((CN . "sagittarius-client-1")))))
+  (define cert2 (make-x509-basic-certificate kp2 2
+      (make-x509-issuer '((CN . "sagittarius-client-2")))
+      (make-validity (time-utc->date now)
+         (time-utc->date (add-duration now one-year)))
+      (make-x509-issuer '((CN . "sagittarius-client-2")))))
+  (define cert1-bv (x509-certificate->bytevector cert1))
+  (define cert2-bv (x509-certificate->bytevector cert2))
   (define tls-config (make-server-tls-config
-		      :trusted-certificates (list cert)
+          :trusted-certificates (list cert1 cert2)
 		      :client-certificate-required? #t
 		      :certificate-verifier #t))
   (define config (make-server-config :secure? #t :tls-config tls-config
@@ -254,25 +262,49 @@
       (test-assert "client certificate" (x509-certificate? cert))
       (socket-send sock (x509-certificate->bytevector cert))))
   (define server (make-simple-server "0" app :config config))
-  (define option
+  (define option1
     (tls-socket-options
-     (private-key (key-pair-private kp))
-     (certificates (list cert))))
+     (private-key (key-pair-private kp1))
+     (certificates (list cert1))))
+  (define option2
+    (tls-socket-options
+     (private-key (key-pair-private kp2))
+     (certificates (list cert2))))
 
   (server-start! server :background #t)
 
-  (let ((sock (make-client-tls-socket "localhost" (server-port server) option)))
+  (let ((sock (make-client-tls-socket "localhost" (server-port server) option1)))
     (socket-send sock #*"hello")
     (let ((cert (socket-recv sock 2048)))
-      (test-assert "client cert" (bytevector->x509-certificate cert)))
+      (test-assert "client cert #1" (bytevector->x509-certificate cert))
+      (test-equal "client cert #1 bytes" cert1-bv cert))
     (socket-shutdown sock SHUT_RDWR)
     (socket-close sock))
 
-  ;; somehow the client share's client certificate...
-  ;; (let ((sock (make-client-tls-socket "localhost" (server-port server))))
-  ;;   (test-error "no auth" (socket-send sock #*"hello"))
-  ;;   (socket-shutdown sock SHUT_RDWR)
-  ;;   (socket-close sock))
+  (let ((sock (make-client-tls-socket "localhost" (server-port server) option2)))
+    (socket-send sock #*"hello")
+    (let ((cert (socket-recv sock 2048)))
+      (test-assert "client cert #2" (bytevector->x509-certificate cert))
+      (test-equal "client cert #2 bytes" cert2-bv cert)
+      (test-assert "server cert result is refreshed"
+                   (not (bytevector=? cert cert1-bv))))
+    (socket-shutdown sock SHUT_RDWR)
+    (socket-close sock))
+
+  (test-assert "no auth"
+               (let ((sock #f))
+		 (define (close sock)
+		   (when sock
+		     (socket-shutdown sock SHUT_RDWR)
+                     (socket-close sock)))
+		 (guard (e ((socket-error? e) (close sock) #t)
+                           (else (close sock) #f))
+		   (set! sock (make-client-tls-socket
+                               "localhost" (server-port server)))
+		   (socket-send sock #*"hello")
+                   (socket-recv sock 1)
+		   (close sock)
+		   #f)))
   
   (server-stop! server))
 

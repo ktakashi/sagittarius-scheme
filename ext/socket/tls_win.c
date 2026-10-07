@@ -510,9 +510,12 @@ static SgTLSSocket * make_tls_socket(SgSocket *socket, WinTLSContext *ctx)
   data->tlsContext = context;
   data->configuredALPN = SG_FALSE;
   if (!ctx) {
+    context->certStore = NULL;
     context->certificateCount = 0;
+    context->certificates = NULL;
     context->privateKey = NULL;
     context->hProv = 0;
+    context->keyType = RSA;
     Sg_RegisterFinalizer(context, tls_context_finalize, NULL);
   }
   return r;
@@ -524,6 +527,17 @@ static void load_certificates(WinTLSData *data, SgObject certificates)
   int count = 0, len = Sg_Length(certificates);
   SgObject cp;
   WinTLSContext *context = data->tlsContext;
+
+  if (context->certificates && context->certificateCount > 0) {
+    int i;
+    for (i = 0; i < context->certificateCount; i++) {
+      if (context->certificates[i]) {
+        CertFreeCertificateContext(context->certificates[i]);
+        context->certificates[i] = NULL;
+      }
+    }
+  }
+  context->certificates = NULL;
 
   context->certificateCount = len;
   fmt_dump("# of certificates to be loaded %d\n", len);
