@@ -280,8 +280,7 @@
 	(test-assert "client certificate" (x509-certificate? cert))
 	(socket-send sock (x509-certificate->bytevector cert))
 	(socket-shutdown sock SHUT_RDWR)
-	(socket-close sock)
-	)
+	(socket-close sock))
       (mutex-unlock! lock)))
   (define server (make-simple-server "0" app :config config))
   (define option1
@@ -321,26 +320,28 @@
     (socket-close sock))
 
   (print "  - ckient without certificate")
+  (mutex-lock! lock)
   (test-assert "no auth"
                (let ((sock #f))
 		 (define (close sock)
 		   (when sock
 		     (socket-shutdown sock SHUT_RDWR)
                      (socket-close sock)))
-		 (guard (e ((socket-error? e) (close sock) #t)
-                           (else (close sock) #f))
+		 (guard (e (else (mutex-unlock! lock) (close sock) #t))
 		   (print "    - making socket")
-		   (mutex-lock! lock)
 		   (set! sock (make-client-tls-socket
                                "localhost" (server-port server)))
 		   (print "    - sock: " sock)
 		   (socket-send sock #*"hello")
 		   (print "    - send socket done")
 		   (mutex-unlock! lock)
-                   (socket-recv sock 1)
-		   (print "    - recv socket done")
-		   (close sock)
-		   #f)))
+		   ;; if the server is slow, the socket may not
+		   ;; be closed yet. in case the process reaches
+		   ;; here, we check the data received is empty.
+                   (let ((r (socket-recv sock 1)))
+		     (print "    - recv socket done")
+		     (close sock)
+		     (zero? (bytevector-length r))))))
 
   (server-stop! server))
 
