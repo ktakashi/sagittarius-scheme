@@ -35,6 +35,9 @@
 	    make-server-config
 	    server? server-port server-shutdown-port
 	    server-config? server-config server-context
+
+	    make-server-tls-config server-tls-config?
+	    
 	    server-start! on-server-start!
 	    server-running? server-stopping?
 	    server-stop!  on-server-stop! 
@@ -78,6 +81,30 @@
   ;; connecting this would shut it donw
   (define (default-shutdown-handler server socket) #t)
 
+  (define-class <server-tls-config> ()
+    ((certificates  :init-keyword :certificates  :init-value '())
+     (private-key   :init-keyword :private-key   :init-value #f)
+     (trusted-certificates :init-keyword :trusted-certificates :init-value '())
+     (client-certificate-required? :init-keyword :client-certificate-required?
+				   :init-value #f)
+     (certificate-verifier :init-keyword :certificate-verifier :init-value #t)
+     (alpn         :init-keyword :alpn         :init-value '())))
+  (define (server-tls-config? o) (is-a? o <server-tls-config>))
+  (define (make-server-tls-config . args) (apply make <server-tls-config> args))
+
+  ;; helpers
+  (define (ensure-tls-config o)
+    (define v (slot-ref o 'tls-config))
+    (let ((config (or v (make-server-tls-config))))
+      (unless v (slot-set! o 'tls-config config))
+      config))
+  (define ((delegate-ref slot) o)
+    (let ((config (ensure-tls-config o)))
+      (slot-ref config slot)))
+  (define ((delegate-set! slot) o v)
+    (let ((config (ensure-tls-config o)))
+      (slot-set! config slot v)))
+
   (define-class <server-config> (<allocation-mixin>)
     ((shutdown-port :init-keyword :shutdown-port :init-value #f)
      (shutdown-handler :init-keyword :shutdown-handler
@@ -93,8 +120,16 @@
      (use-ipv6?     :init-keyword :use-ipv6?     :init-value #f)
      ;; For TLS socket
      (secure?       :init-keyword :secure?       :init-value #f)
-     (certificates  :init-keyword :certificates  :init-value '())
-     (private-key   :init-keyword :private-key   :init-value #f)
+     (tls-config    :init-keyword :tls-config
+		    :init-form (make-server-tls-config))
+     (certificates  :init-keyword :certificates
+		    :allocation :virtual
+		    :slot-ref  (delegate-ref 'certificates)
+		    :slot-set! (delegate-set! 'certificates))
+     (private-key   :init-keyword :private-key
+		    :allocation :virtual
+		    :slot-ref  (delegate-ref 'private-key)
+		    :slot-set! (delegate-set! 'private-key))
      (close-socket? :init-keyword :close-socket? :init-value #f)
      ;; virtual slot for for backword compatibility
      (non-blocking? :allocation :virtual
@@ -104,7 +139,10 @@
      ;; default give 100ms for client socket to finish when server
      ;; stop is called
      (grace-period :init-keyword :grace-period :init-value 100)
-     (alpn         :init-keyword :alpn         :init-value '())))
+     (alpn         :init-keyword :alpn
+		   :allocation :virtual
+		   :slot-ref  (delegate-ref 'alpn)
+		   :slot-set! (delegate-set! 'alpn))))
   (define (server-config? o) (is-a? o <server-config>))
   
   (define-class <simple-server> ()
@@ -159,21 +197,29 @@
 				   ;; must have default config
 			           (config (make-server-config))
 			      :allow-other-keys rest)
-    (define-values (selector terminate) (make-socket-selector))
+    (define exception-handler (~ config 'exception-handler))
     (define-values (future put! cancel!) (make-piped-future))
     (define num-threads (~ config 'max-thread))
     (define fork-join-pool (make-fork-join-pool num-threads))
 
-    (apply make server-class
-	   :config config :port port
-	   :handler handler
-	   :fork-join-pool fork-join-pool
-	   :socket-selector selector
-	   :selector-terminate terminate
-	   :running-port port
-	   :server-stopped future
-	   :server-stopped-put put!
-	   rest))
+    (define (adjust handler server)
+      (lambda (event e)
+	(exception-handler server event e)))
+    
+    (let* ((server (apply make server-class
+			  :config config :port port
+			  :handler handler
+			  :fork-join-pool fork-join-pool
+			  :running-port port
+			  :server-stopped future
+			  :server-stopped-put put!
+			  rest))
+	   (error-reporter (adjust exception-handler server)))
+      (let-values (((selector terminate)
+		    (make-socket-selector #f error-reporter)))
+	(set! (~ server 'socket-selector) selector)
+	(set! (~ server 'selector-terminate) terminate)
+	server)))
 
   (define (initialise-server! server)
     (define selector (~ server 'socket-selector))
@@ -187,7 +233,9 @@
 
     (define (handle-exception e socket)
       (cond ((~ config 'exception-handler) =>
-	     (lambda (eh) (eh server socket e)))
+	     (lambda (eh)
+	       (guard (e (else #f)) (eh server socket e))
+	       (close-socket socket)))
 	    (else (close-socket socket))))
     ;; accepted socket task
     (define (socket-task socket e retry)
@@ -242,27 +290,37 @@
 		    shutdown-port))
 	  (selector stop-socket stop-process)))
       server))
-  
+
+  (define five-minutes (make-time time-duration 0 300))
+  (define one-year (make-time time-duration 0 (* 3600 24 365)))
   (define (config->socket-option config)
+    (define tls-config (~ config 'tls-config))
     (define (ensure-private-key config)
       (cond ((~ config 'private-key) =>
 	     (lambda (key) (values key (~ config 'certificates))))
 	    (else
 	     (let* ((kp (generate-key-pair *key:ecdsa*))
+		    (now (add-duration (current-time) five-minutes))
+		    (after (add-duration now one-year))
 		    (cert (make-x509-basic-certificate kp 1
 			   (make-x509-issuer '((CN . "sagittarius")))
-			   (make-validity (current-date) (current-date))
+			   (make-validity (time-utc->date now)
+					  (time-utc->date after))
 			   (make-x509-issuer '((CN . "sagittarius"))))))
 	       (values (key-pair-private kp) (list cert))))))
 	     
     (let ((ai-family (if (~ config 'use-ipv6?) AF_UNSPEC AF_INET)))
       (if (~ config 'secure?)
-	  (let-values (((key certs) (ensure-private-key config)))
+	  (let-values (((key certs) (ensure-private-key tls-config)))
 	    (server-tls-socket-options
 	     (ai-family ai-family)
+	     (trusted-certificates (~ tls-config 'trusted-certificates))
 	     (certificates certs)
 	     (private-key key)
-	     (alpn* (~ config 'alpn))))
+	     (client-certificate-required?
+	      (~ tls-config 'client-certificate-required?))
+	     (certificate-verifier (~ tls-config 'certificate-verifier))
+	     (alpn* (~ tls-config 'alpn))))
 	  (socket-options
 	   (ai-family ai-family)))))
 

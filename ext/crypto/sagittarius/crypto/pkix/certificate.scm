@@ -106,10 +106,15 @@
 (define (validity->x509-validity (validity validity?))
   (make <x509-validity> :validity validity))
 (define (make-x509-validity (not-before date?) (not-after date?))
+  ;; OpenSSL doesn't accept non-UTC format...
+  (define (ensure-utc date)
+    (if (zero? (date-zone-offset date))
+	date
+	(time-utc->date (date->time-utc date) 0)))
   (make <x509-validity>
     :validity (make <validity>
-		:not-before (date->der-generalized-time not-before)
-		:not-after (date->der-generalized-time not-after))))
+		:not-before (date->der-generalized-time (ensure-utc not-before))
+		:not-after (date->der-generalized-time (ensure-utc not-after)))))
 
 (define (x509-certificate? o) (is-a? o <x509-certificate>))
 (define (x509-certificate-c (o x509-certificate?)) (x509-signed-object-c o))

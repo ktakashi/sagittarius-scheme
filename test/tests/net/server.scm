@@ -5,19 +5,23 @@
 	(sagittarius)
 	(sagittarius crypto keys)
 	(util concurrent)
-	(rfc tls)
 	(rfc x509)
 	(srfi :18)
 	(srfi :19)
 	(srfi :64))
 
-(define (print . args) (for-each display args) (newline))
+(define (print . args)
+  (lock-port! (current-output-port))
+  (for-each display args) (newline)
+  (unlock-port! (current-output-port)))
 (test-begin "Simple server framework")
 
 (define-constant +shutdown-port+ "7500")
 
 ;; use default config
 ;; no IPv6, no shutdown port and signel thread
+
+(print "basic test")
 (let ()
   (define (handler server socket)
     (let ((bv (socket-recv socket 255)))
@@ -36,7 +40,7 @@
   (test-assert "stop server" (server-stop! server))
 )
 
-;; multi threading server
+(print "thread limitation")
 (let ()
   (define config (make-server-config :shutdown-port +shutdown-port+
 				     :exception-handler
@@ -82,6 +86,7 @@
   (test-assert "server-stopped?" (server-stopped? server))
 )
 
+(print "shutdown handler and alpn")
 (let ()
   (define (shutdown-handler server socket)
     ;; some heavy authentication process here
@@ -104,11 +109,13 @@
 				     :shutdown-handler shutdown-handler
 				     :alpn '("s0" "s1")))
   (define (handler server socket)
-    (let ((alpn (tls-socket-selected-alpn server))
+    (let ((alpn (tls-socket-selected-alpn socket))
 	  (bv (socket-recv socket 255)))
-      (socket-send socket (string->utf8 alpn))
-      (socket-send socket #*":")
-      (socket-send socket bv)))
+      (let-values (((out e) (open-bytevector-output-port)))
+	(put-bytevector out (string->utf8 alpn))
+	(put-bytevector out #*":")
+	(put-bytevector out bv)
+	(socket-send socket (e)))))
   (define server (make-simple-server "0" handler :config config))
   (define (test ai-family)
     (define option (tls-socket-options (ai-family ai-family) (alpn* '("s1"))))
@@ -119,6 +126,7 @@
 	(let ((alpn (tls-socket-selected-alpn sock)))
 	  (test-equal "s1" alpn)
 	  (socket-send sock #*"hello")
+	  (thread-sleep! 0.1)
 	  (test-equal "TLS echo back" #*"s1:hello" (socket-recv sock 255))
 	  (socket-close sock)))))
   (server-start! server :background #t)
@@ -139,14 +147,16 @@
   )
 
 ;; call #135
+(print "lazy socket creation")
 (let ()
-  (define server (make-simple-server "12345" (lambda (s sock) #t)))
+  (define server (make-simple-server "0" (lambda (s sock) #t)))
 
   (test-assert "socket not created"
-	       (let ((s (make-server-socket "12345")))
+	       (let ((s (make-server-socket (server-port server))))
 		 (socket-close s))))
 
-(let ((server (make-simple-server "12345" (lambda (s sock) #t)
+(print "server context")
+(let ((server (make-simple-server "0" (lambda (s sock) #t)
 				  :context 'context)))
   (test-equal 'context (server-context server))
   #;(test-error (server-status server)))
@@ -158,6 +168,7 @@
 ;; The test creates a non-blocking server that detaches incoming connections
 ;; to a shared-queue-channel-actor which handles the actual socket
 ;; communication.
+(print "socket detachment")
 (let ()
   ;; the thread management is done outside of our threads
   ;; thus there's no way to guarantee. let's hope...
@@ -182,11 +193,11 @@
 		  :non-blocking? #t :max-thread 5
 		  :exception-handler print))
   (define server (make-simple-server
-		  "12345" (lambda (s sock)
-			    ;; Remove socket from server's management.
-			    (server-detach-socket! s sock)
-			    ;; Hand it over to external actor.
-			    (actor-send-message! detached-actor sock))
+		  "0" (lambda (s sock)
+			;; Remove socket from server's management.
+			(server-detach-socket! s sock)
+			;; Hand it over to external actor.
+			(actor-send-message! detached-actor sock))
 		  :config config))
   (define (check-status server)
     (let ((status (server-status server)))
@@ -208,7 +219,7 @@
   (test-assert (server-status server))
   (check-status server)
 
-  (let ((sock (make-client-socket "localhost" "12345")))
+  (let ((sock (make-client-socket "localhost" (server-port server))))
     ;; Trigger socket detachment by connecting.
     (socket-send sock #vu8(0))
     (test-equal 'ready (actor-receive-message! detached-actor))
@@ -228,6 +239,109 @@
         (test-equal #vu8(1 2 3 4 5) bv)))
     (socket-shutdown sock SHUT_RDWR)
     (socket-close sock))
+
+  (server-stop! server))
+
+;; Client certificate
+(print "client certificate")
+(let ()
+  (define kp1 (generate-key-pair *key:ecdsa*))
+  (define kp2 (generate-key-pair *key:ecdsa*))
+  (define one-year (make-time time-duration 0 (* 3600 24 365)))
+  (define now (add-duration (current-time) (make-time time-duration 0 -300)))
+  (define cert1 (make-x509-basic-certificate kp1 1
+      (make-x509-issuer '((CN . "sagittarius-client-1")))
+      (make-validity (time-utc->date now)
+         (time-utc->date (add-duration now one-year)))
+      (make-x509-issuer '((CN . "sagittarius-client-1")))))
+  (define cert2 (make-x509-basic-certificate kp2 2
+      (make-x509-issuer '((CN . "sagittarius-client-2")))
+      (make-validity (time-utc->date now)
+         (time-utc->date (add-duration now one-year)))
+      (make-x509-issuer '((CN . "sagittarius-client-2")))))
+  (define cert1-bv (x509-certificate->bytevector cert1))
+  (define cert2-bv (x509-certificate->bytevector cert2))
+  (define tls-config (make-server-tls-config
+		      :trusted-certificates (list cert1 cert2)
+		      :client-certificate-required? #t
+		      :certificate-verifier #t))
+  (define config (make-server-config :secure? #t
+				     :tls-config tls-config
+				     :exception-handler print
+				     :close-socket? #t))
+  (define lock (make-mutex))
+  (define (app server sock)
+    (mutex-lock! lock)
+    (guard (e (else (mutex-unlock! lock)))
+      (print "    = server: " sock)
+      (socket-recv sock 255) ;; discard
+      (let ((cert (tls-socket-peer-certificate sock)))
+	(print "    = cert: " (x509-certificate? cert))
+	(test-assert "client certificate" (x509-certificate? cert))
+	(socket-send sock (x509-certificate->bytevector cert))
+	(socket-shutdown sock SHUT_RDWR)
+	(socket-close sock))
+      (mutex-unlock! lock)))
+  (define server (make-simple-server "0" app :config config))
+  (define option1
+    (tls-socket-options
+     (private-key (key-pair-private kp1))
+     (certificates (list cert1))))
+  (define option2
+    (tls-socket-options
+     (private-key (key-pair-private kp2))
+     (certificates (list cert2))))
+
+  (print "  - start server")
+  (server-start! server :background #t)
+
+  (print "  - ckient with cert 1")
+  (mutex-lock! lock)
+  (let ((sock (make-client-tls-socket "localhost" (server-port server) option1)))
+    (socket-send sock #*"hello")
+    (mutex-unlock! lock)
+    (let ((cert (socket-recv sock 2048)))
+      (test-assert "client cert #1" (bytevector->x509-certificate cert))
+      (test-equal "client cert #1 bytes" cert1-bv cert))
+    (socket-shutdown sock SHUT_RDWR)
+    (socket-close sock))
+
+  (print "  - ckient with cert 2")
+  (mutex-lock! lock)
+  (let ((sock (make-client-tls-socket "localhost" (server-port server) option2)))
+    (socket-send sock #*"hello")
+    (mutex-unlock! lock)
+    (let ((cert (socket-recv sock 2048)))
+      (test-assert "client cert #2" (bytevector->x509-certificate cert))
+      (test-equal "client cert #2 bytes" cert2-bv cert)
+      (test-assert "server cert result is refreshed"
+                   (not (bytevector=? cert cert1-bv))))
+    (socket-shutdown sock SHUT_RDWR)
+    (socket-close sock))
+
+  (print "  - ckient without certificate")
+  (mutex-lock! lock)
+  (test-assert "no auth"
+               (let ((sock #f))
+		 (define (close sock)
+		   (when sock
+		     (socket-shutdown sock SHUT_RDWR)
+                     (socket-close sock)))
+		 (guard (e (else (mutex-unlock! lock) (close sock) #t))
+		   (print "    - making socket")
+		   (set! sock (make-client-tls-socket
+                               "localhost" (server-port server)))
+		   (print "    - sock: " sock)
+		   (socket-send sock #*"hello")
+		   (print "    - send socket done")
+		   (mutex-unlock! lock)
+		   ;; if the server is slow, the socket may not
+		   ;; be closed yet. in case the process reaches
+		   ;; here, we check the data received is empty.
+                   (let ((r (socket-recv sock 1)))
+		     (print "    - recv socket done")
+		     (close sock)
+		     (zero? (bytevector-length r))))))
 
   (server-stop! server))
 

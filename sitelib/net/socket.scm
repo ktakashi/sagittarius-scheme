@@ -416,7 +416,7 @@
       :private-key private-key
       :client-socket #f
       :peer-certificate-required? client-cert-needed?
-      :authorities '()
+      :authorities trusted-certificates
       :certificate-verifier (tls-socket-options-certificate-verifier options)
       :hello-extensions (%make-hello-extension :alpn* alpn*))
      options)))
@@ -448,7 +448,7 @@
 	   :private-key private-key
 	   :client-socket #f
 	   :peer-certificate-required? client-cert-needed?
-	   :authorities '()
+	   :authorities trusted-certificates
 	   :certificate-verifier verifier
 	   :hello-extensions (%make-hello-extension :alpn* alpn*))
 	  options))

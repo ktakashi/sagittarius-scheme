@@ -120,7 +120,6 @@ typedef struct OpenSSLDataRec
   SSL     *ssl;
   int      rootServerSocketP;
   SgObject configuredALPN;
-  SgObject peerCertificate;
 } OpenSSLData;
 
 static int validate_alpn_protocol_name_list(SgObject who, SgObject alpn)
@@ -168,9 +167,8 @@ static int alpn_select_cb(SSL *ssl,
                           unsigned int inlen,
                           void *arg)
 {
-  SSL_CTX *ctx = SSL_get_SSL_CTX(ssl);
   SgTLSSocket *tlsSocket =
-    (SgTLSSocket *)SSL_CTX_get_ex_data(ctx, callback_data_index);
+    (SgTLSSocket *)SSL_get_ex_data(ssl, callback_data_index);
   SgObject alpn;
   uint8_t *server;
   int serverLen;
@@ -234,9 +232,6 @@ static SgTLSSocket* make_tls_socket(SgSocket *socket, SSL_CTX *ctx,
   data->rootServerSocketP = rootServerSocketP;
   data->ssl = NULL;
   data->configuredALPN = SG_FALSE;
-  data->peerCertificate = SG_FALSE;
-  /* we set socket as data for convenience */
-  SSL_CTX_set_ex_data(data->ctx, callback_data_index, r);
   
   Sg_RegisterFinalizer(r, tls_socket_finalizer, NULL);
   return r;
@@ -256,9 +251,9 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
 				  /* list of bytevectors */
 				  SgObject certificates,
 				  /* encoded private key, bytevector */
-          SgByteVector *privateKey,
-          /* encoded ALPN extension payload */
-          SgObject alpn)
+				  SgByteVector *privateKey,
+				  /* encoded ALPN extension payload */
+				  SgObject alpn)
 {
   SgObject cp;
   SSL_CTX *ctx;
@@ -300,28 +295,24 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
   /* TODO handle certificates and private key */
   SG_FOR_EACH(cp, Sg_Reverse(certificates)) {
     SgObject c = SG_CAR(cp);
-    int r;
     if (!SG_BVECTORP(c)) {
       SSL_CTX_free(ctx);
       Sg_AssertionViolation(SG_INTERN("socket->tls-socket"),
 			    Sg_Sprintf(UC("bytevector required but got %S"), c),
 			    certificates);
     }
-    r = SSL_CTX_use_certificate_ASN1(ctx, (int)SG_BVECTOR_SIZE(c),
-				     SG_BVECTOR_ELEMENTS(c));
+    int r = SSL_CTX_use_certificate_ASN1(ctx, (int)SG_BVECTOR_SIZE(c),
+					 SG_BVECTOR_ELEMENTS(c));
     if (r != 1) goto err;
     loaded |= CERTIFICATE_LOADED;
   }
   if (privateKey) {
-    EVP_PKEY *pkey = NULL;
-    int r;
-
-    pkey = d2i_AutoPrivateKey(NULL,
-			      (const unsigned char **)&SG_BVECTOR_ELEMENTS(privateKey),
-			      SG_BVECTOR_SIZE(privateKey));
+    EVP_PKEY *pkey = d2i_AutoPrivateKey(NULL,
+			(const unsigned char **)&SG_BVECTOR_ELEMENTS(privateKey),
+			SG_BVECTOR_SIZE(privateKey));
     if (!pkey) goto err;
     
-    r = SSL_CTX_use_PrivateKey(ctx, pkey);
+    int r = SSL_CTX_use_PrivateKey(ctx, pkey);
     if (r != 1) {
       EVP_PKEY_free(pkey);
       goto err;
@@ -334,30 +325,29 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
     EVP_PKEY_free(pkey);
     loaded |= PRIVATE_KEY_LOADED;
   }
+
   if (socket->type == SG_SOCKET_SERVER && loaded != SERVER_READY) {
     Sg_AssertionViolation(SG_INTERN("socket->tls-socket"),
 			  SG_MAKE_STRING("Both certificate and private key must be provided"),
 			  SG_FALSE);
   }
 
-  {
-    SgTLSSocket *r = make_tls_socket(socket, ctx, serverP);
-    OpenSSLData *data = (OpenSSLData *)r->data;
-    if (hasALPN) {
-      data->configuredALPN = alpn;
-    }
-#if OPENSSL_VERSION_NUMBER >= 0x10002000L
-    if (serverP && hasALPN) {
-      SSL_CTX_set_alpn_select_cb(ctx, alpn_select_cb, NULL);
-    }
-#else
-    if (serverP && hasALPN) {
-      Sg_Warn(UC("ALPN is not supported on this version of OpenSSL."));
-      Sg_Warn(UC("Please consider to update your OpenSSL runtime."));
-    }
-#endif
-    return r;
+  SgTLSSocket *r = make_tls_socket(socket, ctx, serverP);
+  OpenSSLData *data = (OpenSSLData *)r->data;
+  if (hasALPN) {
+    data->configuredALPN = alpn;
   }
+#if OPENSSL_VERSION_NUMBER >= 0x10002000L
+  if (serverP && hasALPN) {
+    SSL_CTX_set_alpn_select_cb(ctx, alpn_select_cb, NULL);
+  }
+#else
+  if (serverP && hasALPN) {
+    Sg_Warn(UC("ALPN is not supported on this version of OpenSSL."));
+    Sg_Warn(UC("Please consider to update your OpenSSL runtime."));
+  }
+#endif
+  return r;
 
  err: {
     unsigned long e = ERR_get_error();
@@ -385,12 +375,11 @@ static void handle_accept_error(SgTLSSocket *tlsSocket, int r)
 {
   OpenSSLData *newData = (OpenSSLData *)tlsSocket->data;
   unsigned long err = SSL_get_error(newData->ssl, r);
-  const char *msg = NULL;
       
   if (SSL_ERROR_SSL == err) {
     err = ERR_get_error();
   }
-  msg = ERR_reason_error_string(err);
+  const char *msg = ERR_reason_error_string(err);
   if (!msg) msg = "failed to handshake";
   Sg_TLSSocketClose(tlsSocket);
   raise_socket_error(SG_INTERN("tls-socket-accept"),
@@ -457,12 +446,18 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket,
 {
   SgSocket *socket = tlsSocket->socket;
   OpenSSLData *data = (OpenSSLData *)tlsSocket->data;
-  int r;
-  long cert;
   
   ERR_clear_error();		/* clear error */
 
+  if (data->ssl) {
+    SSL_shutdown(data->ssl);
+    SSL_free(data->ssl);
+    data->ssl = NULL;
+  }
+  tlsSocket->selectedALPN = SG_FALSE;
+
   data->ssl = SSL_new(data->ctx);
+  SSL_set_ex_data(data->ssl, callback_data_index, tlsSocket);
 
 #ifdef SSL_DEBUG
   fprintf(stderr, "-----\n");
@@ -497,7 +492,7 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket,
 #undef PREFIX_LENGTH
   
   SSL_set_fd(data->ssl, socket->socket);
-  r = SSL_connect(data->ssl);
+  int r = SSL_connect(data->ssl);
   if (r < 0) {
     int e = errno;
     int err = SSL_get_error(data->ssl, r);
@@ -523,12 +518,21 @@ int Sg_TLSSocketConnect(SgTLSSocket *tlsSocket,
     lookup_alpn(tlsSocket);
   }
   if (!SG_FALSEP(tlsSocket->peerCertificateVerifier)) {
-    cert = SSL_get_verify_result(data->ssl);
+    long cert = SSL_get_verify_result(data->ssl);
     if (cert != X509_V_OK) {
       handle_verify_error(tlsSocket, SG_INTERN("tls-socket-connect!"), cert);
     }
   }
   return r;
+}
+
+static SgObject copy_authorities(SgObject authorities)
+{
+  SgObject h = SG_NIL, t = SG_NIL, cp;
+  SG_FOR_EACH(cp, authorities) {
+    SG_APPEND1(h, t, Sg_ByteVectorCopy(SG_CAR(cp), 0, -1));
+  }
+  return h;
 }
 
 /* 
@@ -541,7 +545,8 @@ SgObject Sg_TLSSocketAccept(SgTLSSocket *tlsSocket, int handshake)
   if (SG_SOCKETP(sock)) {
     OpenSSLData *newData, *data = (OpenSSLData *)tlsSocket->data;
     SgTLSSocket *newSock = make_tls_socket(SG_SOCKET(sock), data->ctx, FALSE);
-    int r;
+
+    /* do setup */
     ERR_clear_error();		/* clear error */
     /* this will be shared among the server socket, so increase the 
        reference count.
@@ -551,7 +556,19 @@ SgObject Sg_TLSSocketAccept(SgTLSSocket *tlsSocket, int handshake)
     newData = (OpenSSLData *)newSock->data;
     newData->configuredALPN = data->configuredALPN;
     newData->ssl = SSL_new(data->ctx);
-    r = SSL_set_fd(newData->ssl, SG_SOCKET(sock)->socket);
+
+    SG_TLS_SOCKET_AUTHORITIES(newSock) =
+      copy_authorities(SG_TLS_SOCKET_AUTHORITIES(tlsSocket));
+    SG_TLS_SOCKET_PEER_CERTIFICATE_VERIFIER(newSock) =
+      SG_TLS_SOCKET_PEER_CERTIFICATE_VERIFIER(tlsSocket);
+    SG_TLS_SOCKET_PEER_CERTIFICATE_REQUIREDP(newSock) =
+      SG_TLS_SOCKET_PEER_CERTIFICATE_REQUIREDP(tlsSocket);
+    Sg_TLSSocketPeerCertificateVerifier(newSock);
+
+    SSL_set_ex_data(newData->ssl, callback_data_index, newSock);
+
+    int r = SSL_set_fd(newData->ssl, SG_SOCKET(sock)->socket);
+
     if (r <= 0) handle_accept_error(newSock, r);
     if (handshake) {
       return Sg_TLSServerSocketHandshake(newSock);
@@ -613,7 +630,6 @@ void Sg_TLSSocketClose(SgTLSSocket *tlsSocket)
     SSL_CTX_free(data->ctx);
     data->ctx = NULL;
   }
-  data->peerCertificate = SG_FALSE;
   Sg_SocketClose(tlsSocket->socket);
 }
 
@@ -696,24 +712,48 @@ int Sg_TLSSocketPendingP(SgTLSSocket *tlsSocket)
   return SSL_pending(tlsData->ssl) > 0;
 }
 
+#if 0
+static void dump_not_before(X509 *cert)
+{
+  ASN1_TIME *not_before = X509_get0_notBefore(cert);
+
+  fprintf(stderr, "notBefore:\n");
+  fprintf(stderr, "  type   = %d\n", not_before->type);
+  fprintf(stderr, "  length = %d\n", not_before->length);
+
+  fprintf(stderr, "  data   = ");
+  for (int i = 0; i < not_before->length; i++) {
+    fprintf(stderr, "%02x ", not_before->data[i]);
+  }
+  fprintf(stderr, "\n");
+
+  fprintf(stderr, "  text   = %.*s\n",
+	  not_before->length,
+	  (char *)not_before->data);
+
+  BIO *bio = BIO_new_fp(stderr, BIO_NOCLOSE);
+  fprintf(stderr, "  parsed = ");
+  ASN1_TIME_print(bio, not_before);
+  fprintf(stderr, "\n");
+  BIO_free(bio);
+}
+#endif
+
 static SgObject x509_to_bytevector(X509 *x509)
 {
-  int len;
-  unsigned char *p;
-  SgObject bv;
-  
-  len = i2d_X509(x509, NULL);
-  bv = Sg_MakeByteVector(len, 0);
-  p = SG_BVECTOR_ELEMENTS(bv);
+  int len = i2d_X509(x509, NULL);
+  SgObject bv = Sg_MakeByteVector(len, 0);
+  unsigned char *p = SG_BVECTOR_ELEMENTS(bv);
   i2d_X509(x509, &p);
-  
+
   return bv;
 }
 
 SgObject Sg_TLSSocketPeerCertificate(SgTLSSocket *tlsSocket)
 {
   OpenSSLData *tlsData = (OpenSSLData *)tlsSocket->data;
-  X509 *x509;
+  X509 *x509 = NULL;
+  SgObject cert = SG_FALSE;
 
   if (!tlsData->ssl) {
       raise_socket_error(SG_INTERN("tls-socket-peer-certificate"),
@@ -722,59 +762,44 @@ SgObject Sg_TLSSocketPeerCertificate(SgTLSSocket *tlsSocket)
 		       tlsSocket);
   }
   ERR_clear_error();		/* clear error */
-  /* we cache the certificate */
-  if (SG_FALSEP(tlsData->peerCertificate)) {
-    x509 = SSL_get_peer_certificate(tlsData->ssl);
-    if (x509) {
-      tlsData->peerCertificate = x509_to_bytevector(x509);
-      X509_free(x509);
-    }
+
+#if OPENSSL_VERSION_NUMBER >= 0x30000000L
+  x509 = SSL_get1_peer_certificate(tlsData->ssl);
+#else
+  x509 = SSL_get_peer_certificate(tlsData->ssl);
+#endif
+  if (x509) {
+    cert = x509_to_bytevector(x509);
+    X509_free(x509);
   }
-  return tlsData->peerCertificate;
+  return cert;
 }
 
 static int verify_callback(int previously_ok, X509_STORE_CTX *x509_store_ctx)
 {
-  SgTLSSocket *socket;
-  SgObject verifier, authorities, bv, cp;
-  X509    *cert;
-  int      depth;
-  SSL     *ssl;
-  SSL_CTX *ctx;
-  
-  cert = X509_STORE_CTX_get_current_cert(x509_store_ctx);
-  depth = X509_STORE_CTX_get_error_depth(x509_store_ctx);
-  ssl = (SSL *)X509_STORE_CTX_get_ex_data(x509_store_ctx,
-					  SSL_get_ex_data_X509_STORE_CTX_idx());
-  /* our data is stored in the SSL_CTX */
-  ctx = SSL_get_SSL_CTX(ssl);
-  socket = (SgTLSSocket *)SSL_CTX_get_ex_data(ctx, callback_data_index);
-  verifier = SG_TLS_SOCKET_PEER_CERTIFICATE_VERIFIER(socket);
-  authorities = SG_TLS_SOCKET_AUTHORITIES(socket);
+  X509 *cert = X509_STORE_CTX_get_current_cert(x509_store_ctx);
+  int depth = X509_STORE_CTX_get_error_depth(x509_store_ctx);
+  SSL *ssl = (SSL *)X509_STORE_CTX_get_ex_data(x509_store_ctx,
+		       SSL_get_ex_data_X509_STORE_CTX_idx());
+  SgTLSSocket *socket =
+    (SgTLSSocket *)SSL_get_ex_data(ssl, callback_data_index);
+  SgObject verifier = SG_TLS_SOCKET_PEER_CERTIFICATE_VERIFIER(socket);
 
-  bv = x509_to_bytevector(cert);
+  SgObject bv = x509_to_bytevector(cert);
   /* if the verifier is a procedure, then the result matters */
   if (SG_PROCEDUREP(verifier)) {
-    volatile int err = 0;
-    SG_UNWIND_PROTECT {
-      /* passing depth, system-result, certificate */
-      SgObject result = Sg_Apply3(verifier, SG_MAKE_INT(depth),
-				  SG_MAKE_BOOL(previously_ok), bv);
-      if (SG_FALSEP(result)) {
-	/* TODO which error code? */
-	err = 1; 
-      }
-    } SG_WHEN_ERROR {
-      /* TODO which error code? */
-      err = 1;
-    } SG_END_PROTECT;
-    if (err) {
-      X509_STORE_CTX_set_error(x509_store_ctx, err);
+    /* passing depth, system-result, certificate */
+    SgObject result = Sg_Apply3(verifier, SG_MAKE_INT(depth),
+				SG_MAKE_BOOL(previously_ok), bv);
+    if (SG_FALSEP(result)) {
+      X509_STORE_CTX_set_error(x509_store_ctx, 1);
       return 0;
     }
     X509_STORE_CTX_set_error(x509_store_ctx, X509_V_OK);
     return 1;
   }
+  SgObject cp, authorities = SG_TLS_SOCKET_AUTHORITIES(socket);
+
   SG_FOR_EACH(cp, authorities) {
     if (Sg_ByteVectorCmp(SG_BVECTOR(bv), SG_BVECTOR(SG_CAR(cp))) == 0) {
       int err = X509_STORE_CTX_get_error(x509_store_ctx);
@@ -817,25 +842,22 @@ int Sg_X509VerifyCertificate(SgObject bv)
 
 int client_cert_callback(SSL *ssl, X509 **x509, EVP_PKEY **pkey)
 {
-  SSL_CTX *ctx = SSL_get_SSL_CTX(ssl);
   SgTLSSocket *socket =
-    (SgTLSSocket *)SSL_CTX_get_ex_data(ctx, callback_data_index);
+    (SgTLSSocket *)SSL_get_ex_data(ssl, callback_data_index);
   SgObject r = Sg_Apply1(socket->clientCertificateCallback, socket);
   /* A list of (priv-key x509 ca-certs ...)*/
-  SgObject bvX509, priv;
-  EVP_PKEY *er;
-  X509 *xr;
   int len = Sg_Length(r);
   if (len < 2 || !SG_BVECTORP(SG_CAR(r)) || !SG_BVECTORP(SG_CADR(r))) {
     return 0;
   }
-  priv = SG_CAR(r);
-  bvX509 = SG_CADR(r);
+
+  SgObject priv = SG_CAR(r);
+  SgObject bvX509 = SG_CADR(r);
   
-  er = d2i_AutoPrivateKey(pkey,
+  EVP_PKEY *er = d2i_AutoPrivateKey(pkey,
 			  (const unsigned char **)&SG_BVECTOR_ELEMENTS(priv),
 			  SG_BVECTOR_SIZE(priv));
-  xr = d2i_X509(x509, (const unsigned char **)&SG_BVECTOR_ELEMENTS(bvX509),
+  X509 *xr = d2i_X509(x509, (const unsigned char **)&SG_BVECTOR_ELEMENTS(bvX509),
 		SG_BVECTOR_SIZE(bvX509));
   if (!er || !xr) return 0;
   /* TODO use SSL_CTX_add_extra_chain_cert */

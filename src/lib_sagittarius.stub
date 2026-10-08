@@ -560,10 +560,16 @@
      `(when (Sg_PortClosedP ,p)
 	(wrong-type-of-argument-violation ',name "opened port" ,p))))
 
+  (define-c-proc lock-port! (port::<port>) ::<void>
+    (SG_PORT_LOCK_WRITE port))
+
+  (define-c-proc unlock-port! (port::<port>) ::<void>
+    (SG_PORT_UNLOCK_WRITE port))
+  
   (define-c-proc lock-port-resource!
     (port::<port> :key (lock-type::<symbol> shared) (wait::<boolean> #t)
 		  (raise::<boolean> #t))
-    (check-port-open lock-port! port)
+    (check-port-open lock-port-resource! port)
     (let ((flags::int 0))
       (cond ((SG_EQ lock-type 'shared)    (set! flags SG_SHARED))
 	    ((SG_EQ lock-type 'exclusive) (set! flags SG_EXCLUSIVE))
@@ -575,7 +581,7 @@
       (if (Sg_LockPortResource port flags)
 	  (result port)
 	  (when raise
-	    (Sg_IOError -1 'lock-port! (Sg_GetLastErrorMessage)
+	    (Sg_IOError -1 'lock-port-resource! (Sg_GetLastErrorMessage)
 			NULL port)))))
 
   (define-c-proc unlock-port-resource! (port::<port>)
@@ -819,7 +825,7 @@
 	"\n    SG_NEXT_HANDLER;"
 	"\n  } SG_END_PROTECT;"
 	"\n} while (0);\n")))
-  
+
   ;; moved from (binary io) so that we don't have to
   ;; allocate bytevectors
   ;;
