@@ -76,6 +76,7 @@
 	    http-server:request-header-ref*
 	    http-server:request-attribute-ref
 	    http-server:request-attribute-set!
+	    http-server:request-peer-certificate
 
 	    http-server:response?
 	    make-http-server:response
@@ -229,6 +230,14 @@
     (http-server:protocol-driver-connect! driver server socket app-handler)))
 
 (define (get-state server socket app-handler)
+  (define (certificate-handler socket app-handler)
+    (if (tls-socket? socket)
+	(lambda (req res)
+	  (cond ((tls-socket-peer-certificate socket) =>
+		 (lambda (cert)
+		   (http-server:request-peer-certificate-set! req cert))))
+	  (app-handler req res))
+	app-handler))
   (define lock (slot-ref server 'lock))
   (define states (slot-ref server 'states))
 
@@ -236,7 +245,8 @@
   (cond ((hashtable-ref states socket #f) =>
 	 (lambda (state) (mutex-unlock! lock) state))
 	(else
-	 (let ((state (make-server-http-connection server socket app-handler)))
+	 (let* ((handler (certificate-handler socket app-handler))
+		(state (make-server-http-connection server socket handler)))
            (hashtable-set! states socket state)
            (mutex-unlock! lock)
            state))))
@@ -261,5 +271,3 @@
 	 #t)))
 
 )
-
-

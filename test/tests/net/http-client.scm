@@ -1,5 +1,7 @@
 (import (rnrs)
 	(srfi :13)
+	(srfi :18)
+	(srfi :19)
 	(rfc base64)
 	(rsa pkcs :8)
 	(rsa pkcs :12)
@@ -10,209 +12,135 @@
 	(net socket)
 	(text json)
 	(text json pointer)
-	(srfi :18)
 	(util concurrent)
 	(util logging)
+	(sagittarius crypto keys)
 	(security keystore)
 	(srfi :64))
 
 (test-begin "HTTP client")
 
-(define (idrix-eu p)
-  (define node (socket-parameter-socket-node p))
-  (cond ((string-suffix? ".certauth.dev" node) "eckey.pem")
-	(else #f)))
-(define (badssl-com p)
-  (define node (socket-parameter-socket-node p))
-  (and (string-suffix? ".badssl.com" node) "1"))
-(define keystores
-  ;; keystore file,  store pass, key pass, alias selector
-  `(("test/data/keystores/keystore0.b64" "password" "password" ,idrix-eu)
-    ("test/data/keystores/badssl-client.b64" "badssl.com" "badssl.com" ,badssl-com)))
-    
+(let ()
+  (define kp1 (generate-key-pair *key:ecdsa*))
+  (define kp2 (generate-key-pair *key:ecdsa*))
+  (define one-year (make-time time-duration 0 (* 3600 24 365)))
+  (define now (add-duration (current-time) (make-time time-duration 0 -300)))
+  (define cert1 (make-x509-basic-certificate kp1 1
+		  (make-x509-issuer '((CN . "sagittarius-client-1")))
+		  (make-validity (time-utc->date now)
+				 (time-utc->date (add-duration now one-year)))
+		  (make-x509-issuer '((CN . "sagittarius-client-1")))))
+  (define cert2 (make-x509-basic-certificate kp2 2
+		  (make-x509-issuer '((CN . "sagittarius-client-2")))
+		  (make-validity (time-utc->date now)
+				 (time-utc->date (add-duration now one-year)))
+		  (make-x509-issuer '((CN . "sagittarius-client-2")))))
+  (define keystore
+    (let ((ks (make-keystore 'pkcs12)))
+      (keystore-set-key! ks "client-1"
+			 (key-pair-private kp1) "pass1" (list cert1))
+      (keystore-set-key! ks "client-2"
+			 (key-pair-private kp2) "pass2" (list cert2))
+      ks))
+  (define (client-1 parameter) "client-1")
+  (define (client-2 parameter) "client-2")
+  (define strategy
+    `(("pass1" ,client-1)
+      ("pass2" ,client-2)))
+  (define tls-config (make-server-tls-config 
+		      :trusted-certificates (list cert1 cert2)
+		      :certificate-verifier #t))
+  (define config (make-http-server-config :secure? #t :tls-config tls-config))
+  
+  (define (app req res)
+    (http-server:response-header-set! res "Content-Type" "application/json")
+    (cond ((http-server:request-peer-certificate req) =>
+	   (lambda (cert)
+	     (http-server:response-status-set! res 200)
+	     (http-server:response-bytes! res
+	      (x509-certificate->bytevector cert))))
+	  (else (http-server:response-status-set! res 400)))
+    res)
+  (define server (make-http-server "0" app :config config))
 
-(define (test-key-manager)
-  (define (->keystore-key-provider keystore-info)
-    (let ((file (car keystore-info))
-	  (storepass (cadr keystore-info))
-	  (keypass (caddr keystore-info))
-	  (strategy (cadddr keystore-info)))
-      (make-keystore-key-provider
-       (call-with-input-file file
-	 (lambda (in)
-	   (let ((bin (open-base64-decode-input-port in)))
-	     (load-keystore 'pkcs12 bin storepass)))
-	 :transcoder #f)
-       keypass
-       strategy)))
-  (make-key-manager (map ->keystore-key-provider keystores)))
+  (define (test-key-manager)
+    (define ((->keystore-key-provider ks) keystore-info)
+      (let ((keypass (car keystore-info))
+	    (strategy (cadr keystore-info)))
+	(make-keystore-key-provider ks keypass strategy)))
+    (make-key-manager (map (->keystore-key-provider keystore) strategy)))
 
-(define (bytevector-formatter bv)
-  (map (lambda (u8) (string-append "0x" (number->string u8 16)))
-       (bytevector->uint-list bv (endianness little) 1)))
+  (define (bytevector-formatter bv)
+    (map (lambda (u8) (string-append "0x" (number->string u8 16)))
+	 (bytevector->uint-list bv (endianness little) 1)))
 
-(test-error "Invalid format of route-max-connections"
-	    (http-pooling-connection-config-builder
-	     (route-max-connections '(("httpbin.org" . 10)))))
-(test-error "Invalid value of route-max-connections"
-	    (http-pooling-connection-config-builder
-	     (route-max-connections '(("httpbin.org" a)))))
-
-(define pooling-config
-  (http-pooling-connection-config-builder
-   (connection-request-timeout 100)
-   (time-to-live 3)
-   (key-manager (test-key-manager))
-   (route-max-connections '(("httpbin.org" 10)))
-   (selector-error-handler (lambda args (for-each display args) (newline)))
-   #;(delegate-provider
-    (make-logging-delegate-connection-provider
+  (define pooling-config
+    (http-pooling-connection-config-builder
+     (connection-request-timeout 100)
+     (time-to-live 3)
+     (key-manager (test-key-manager))
+     (route-max-connections '(("httpbin.org" 10)))
+     (selector-error-handler (lambda args (for-each display args) (newline)))
+     #;(delegate-provider
+     (make-logging-delegate-connection-provider
      (http-client-logger-builder
-      (connection-logger
-       (http-connection-logger-builder
-	(logger (make-logger +debug-level+ (make-appender "~m")))))
-      (loggers
-       `((connection-manager
-	  ,(make-logger +debug-level+ (make-appender "~m")))))
-      (wire-logger
-       (http-wire-logger-builder
-	(logger (make-logger +debug-level+ (make-appender "~m")))
-	(data-formatter bytevector-formatter))))))))
+     (connection-logger
+     (http-connection-logger-builder
+     (logger (make-logger +debug-level+ (make-appender "~m")))))
+     (loggers
+     `((connection-manager
+     ,(make-logger +debug-level+ (make-appender "~m")))))
+     (wire-logger
+     (http-wire-logger-builder
+     (logger (make-logger +debug-level+ (make-appender "~m")))
+     (data-formatter bytevector-formatter))))))))
 
-(let ()
-  (define (test-future f status body-checks)
-    (define (check-body check body)
-      (case (car check)
-	((json) (let ((json (json-read (open-string-input-port body)))
-		      (pointer (json-pointer (cadr check)))
-		      (expected (cddr check)))
-		  (test-equal expected (pointer json))))))
-    (let ((res (future-get f)))
-      (test-equal (list status) status (http:response-status res))
-      (let ((body (utf8->string (http:response-body res))))
-	(for-each (lambda (check) (check-body check body)) body-checks))))
-  (define (run-test url status . body-checks)
-    (define request (http:request-builder (uri url) (method 'GET)))
-    (test-future (http:client-send-async client request) status body-checks))
-  
-  (define client (http:client-builder
-		  (cookie-handler (http:make-default-cookie-handler))
-		  (version (http:version http/1.1))
-		  (connection-manager
-		   (make-http-pooling-connection-manager pooling-config))
-		  (follow-redirects (http:redirect normal))))
+  (server-start! server :background #t)
+  (test-error "Invalid format of route-max-connections"
+	      (http-pooling-connection-config-builder
+	       (route-max-connections '(("httpbin.org" . 10)))))
+  (test-error "Invalid value of route-max-connections"
+	      (http-pooling-connection-config-builder
+	       (route-max-connections '(("httpbin.org" a)))))
 
-  (test-assert (http:client? client))
-  ;; NOTE certautth.dev TLS certificate is expired
-  (cond-expand
-   ((not openbsd)
-    (run-test "https://mtls.certauth.dev/" "403" '(json "/ssl" . #t)))
-   (else
-    ;; seems OpenBSD doesn't send if the certificate is expired
-    ;; LibreSSL thing?
-    (run-test "https://mtls.certauth.dev/" "401" '(json "/ssl" . #f))))
-  (run-test "https://client.badssl.com/" "200")
-  (http:client-shutdown! client)
-  )
-
-#;(let ()
-  (define basic-api "https://httpbin.org/basic-auth/foo/bar")
-  (define bearer-api "https://httpbin.org/bearer")
-  (define (run url auth)
-    (define request (http:request-builder (uri url) (auth auth) (timeout 3000)))
-    (guard (e ((socket-read-timeout-error? e)
-	       (test-expect-fail 1)
-	       (test-assert "Read timeout" #f)
-	       #f)
-	      (else (test-assert (condition-message e) #f)))
-      (http:client-send client request)))
-
-  (define (test-status status res)
-    (test-equal (string-append "Auth " status)
-		status (http:response-status res)))
-  
-  (define client (http:client-builder
-		  (cookie-handler (http:make-default-cookie-handler))
-		  (connection-manager
-		   (make-http-pooling-connection-manager pooling-config))
-		  (follow-redirects (http:redirect normal))))
-  (test-status "200" (run basic-api (http:request-basic-auth "foo" "bar")))
-  (test-status "401" (run basic-api (http:request-basic-auth "foo" "baz")))
-  (test-status "200" (run bearer-api (http:request-bearer-auth "foo")))
-
-  (http:client-shutdown! client)
-  )
-
-#;(let ()
-  (define (test-http-client version)
-    (define client (http:client-builder
-		    (version version)
-		    (follow-redirects (http:redirect never))))
-    (define client2 (http:client-builder
-		     (version version)
-		     (follow-redirects (http:redirect normal))))
-
-    (define methods '(GET POST PUT DELETE PATCH))
-    (define (run thunk)
-      (guard (e ((socket-read-timeout-error? e)
-		 ;; ok, ignore as we're using external sevice
-		 (test-expect-fail 1)
-		 (test-assert "Read timeout" #f))
-		(else (test-assert (condition-message e) #f)))
-	(thunk)))
-    (define (test-200s client)
-      (define (test-200 method)
-	(define request (http:request-builder
-			 (method method)
-			 (timeout 3000) ;; 3s
-			 (uri "https://httpbin.org/status/200")))
-	(run (lambda ()
-	       (let ((resp (http:client-send client request)))
-		 (test-equal "200" (http:response-status resp))))))
-      (print "Testing 200 responses")
-      (for-each test-200 methods))
-
-    (define (test-303s client)
-      (define (test-303 method)
-	(define request (http:request-builder
-			 (method method)
-			 (timeout 3000) ;; 3s
-			 (uri "https://httpbin.org/status/303")))
-	(run (lambda ()
-	       (let ((resp (http:client-send client request)))
-		 (test-equal "303" (http:response-status resp))))))
-      (print "Testing 303 responses")
-      (for-each test-303 methods))
-
-    (define (test-redirect client)
-      (define (test-302 method)
-	(define request (http:request-builder
-			 (method method)
-			 (timeout 3000) ;; 3s
-			 (uri "https://httpbin.org/status/302")))
-	(run (lambda ()
-	       (let ((resp (http:client-send client request)))
-		 (test-equal "200" (http:response-status resp))))))
-      (print "Testing redirect responses")
-      (for-each test-302 methods))
+  (let ()
+    (define (test-future f status body-checks)
+      (define (check-body check body)
+	(case (car check)
+	  ((json) (let ((json (json-read (open-string-input-port body)))
+			(pointer (json-pointer (cadr check)))
+			(expected (cddr check)))
+		    (test-equal expected (pointer json))))))
+      (let ((res (future-get f)))
+	(test-equal (list status) status (http:response-status res))
+	(let ((body (utf8->string (http:response-body res))))
+	  (for-each (lambda (check) (check-body check body)) body-checks))))
+    (define (run-test url status . body-checks)
+      (define request (http:request-builder (uri url) (method 'GET)))
+      (test-future (http:client-send-async client request) status body-checks))
     
-    (print "HTTP client for " version)
-    (test-200s client)
-    (test-303s client)
-    (test-redirect client2)
-    (print "Done!")
+    (define client (http:client-builder
+		    (cookie-handler (http:make-default-cookie-handler))
+		    (version (http:version http/1.1))
+		    (connection-manager
+		     (make-http-pooling-connection-manager pooling-config))
+		    (follow-redirects (http:redirect normal))))
+    (define uri (format "https://localhost:~a/" (server-port server)))
+    (test-assert (http:client? client))
+    (run-test uri "200")
+    (http:client-shutdown! client))
 
-    (http:client-shutdown! client)
-    (http:client-shutdown! client2))
-  
-  (test-http-client (http:version http/1.1))
-  (test-http-client (http:version http/2)))
+  (let ()
+    (define uri (format "https://localhost:~a/" (server-port server)))
+    (define client (http:client-builder
+		    (follow-redirects (http:redirect always))))
+    (define request (http:request-builder (uri uri)))
+    (test-assert "wrong constructer arguments on HTTP2"
+		 (http:client-send client request))
+    (http:client-shutdown! client))
 
-(let ()
-  (define client (http:client-builder (follow-redirects (http:redirect always))))
-  (define request (http:request-builder (uri "https://google.com")))
-  (test-assert "wrong constructer arguments on HTTP2"
-	       (http:client-send client request)))
+  (server-stop! server)
+)
 
 (let ()
   (define (start-http-client-test-server)

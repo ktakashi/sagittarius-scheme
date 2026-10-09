@@ -21,7 +21,9 @@
 	    http-server:request-header-ref
 	    http-server:request-header-ref*
 	    http-server:request-attribute-ref
-	    http-server:request-attribute-set!)
+	    http-server:request-attribute-set!
+	    http-server:request-peer-certificate
+	    http-server:request-peer-certificate-set!)
     (import (rnrs)
 	    (net http-server types))
 
@@ -62,4 +64,11 @@
             (append (reverse out)
                     (cons (cons key value) (cdr rest)))))
           (else (loop (cdr rest) (cons (car rest) out))))))
+
+(define peer-certificate-key (list 'peer-certificate))
+(define (http-server:request-peer-certificate req)
+  (http-server:request-attribute-ref req peer-certificate-key))
+(define (http-server:request-peer-certificate-set! req cert)
+  (http-server:request-attribute-set! req peer-certificate-key cert))
+
 )
