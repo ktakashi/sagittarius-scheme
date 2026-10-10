@@ -284,7 +284,7 @@
       (let ((pos (get-position))
 	    (size (~ chunked-port 'buffer-size)))
 	(when (>= (+ pos count) size)
-	  ;; compute how many chuns required for this
+	  ;; compute how many chunks required for this
 	  (let ((required (ceiling (/ (+ pos count) chunk-size)))
 		(size (vector-length (~ chunked-port 'chunks))))
 	    (expand! (- required size))))
@@ -344,7 +344,11 @@
 (define (chunked-binary-input/output-port-clear-buffer!
 	 (p chunked-binary-input/output-port?))
   (set! (~ p 'buffer 'chunks) #())
-  (set! (~ p 'buffer 'buffer-size) 0))
+  (set! (~ p 'buffer 'position) 0)
+  (set! (~ p 'buffer 'offset) 0)
+  (set! (~ p 'buffer 'buffer-size) 0)
+  (set! (~ p 'buffer 'threshold) 0)
+  )
 
 ;; common procedure
 ;; read must consider threshold for input/output...
