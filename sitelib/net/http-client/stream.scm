@@ -98,7 +98,7 @@
 		   (and (fill!) (loop offset n read))))
 	      ((< r n)
 	       (cond (data-end? (+ read r))
-		     (else (fill!) (loop (- n r) (+ offset r) (+ read r)))))
+		     (else (fill!) (loop (+ offset r) (- n r) (+ read r)))))
 	      (else (+ read r))))))
   ;; The stream lifecycle must be finalized by stream-response-close!.
   (define (close) #t)

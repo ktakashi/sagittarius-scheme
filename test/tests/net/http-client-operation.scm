@@ -13,8 +13,19 @@
 
 (define (large-payload)
   (string-concatenate
-   (map (lambda (i) (make-string 1024 (integer->char (+ (char->integer #\a) i))))
+   (map (lambda (i) (make-string 501 (integer->char (+ (char->integer #\a) i))))
 	(iota 16))))
+
+(define (slow-port src)
+  (define offset 0)
+  (define len (bytevector-length src))
+  (define (read! bv start count)
+    (cond ((= offset len) 0)
+	  (else (bytevector-u8-set! bv start (bytevector-u8-ref src offset))
+		(set! offset (+ offset 1))
+		1)))
+  (define (close) #t)
+  (make-custom-binary-input-port "slow-sse-large-port" read! #f #f close))
 
 (define (start-server)
   (define (app req res)
@@ -32,9 +43,8 @@
 	     (http-server:response-bytes! res #*"data: hello\n\n"
 					  "text/event-stream"))
 	    ((string=? path "/sse-large")
-	     ;; TODO support port instead of oneshot bytevector
-	     (http-server:response-bytes! res
-	      (string->utf8 (large-payload))
+	     (http-server:response-port! res
+	      (slow-port (string->utf8 (large-payload)))
 	      "text/event-stream"))
 	    (else
 	     (http-server:response-text! res "hello"))))
