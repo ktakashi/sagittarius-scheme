@@ -30,6 +30,8 @@
 	    http2-server-stream-recv-consumed-set!
 	    http2-server-stream-pending-output
 	    http2-server-stream-pending-output-set!
+	    http2-server-stream-pending-input-port
+	    http2-server-stream-pending-input-port-set!
 	    http2-server-stream-pending-end-stream?
 	    http2-server-stream-pending-end-stream?-set!
 	    http2-server-stream-priority-dependency
@@ -124,6 +126,7 @@
           (mutable recv-window)
           (mutable recv-consumed)
           (mutable pending-output)
+          (mutable pending-input-port)
           (mutable pending-end-stream?)
           (mutable priority-dependency)
           (mutable priority-weight)))
@@ -170,9 +173,16 @@
   (hashtable-ref (http2-server-connection-state-streams conn) sid #f))
 
 (define (drop-stream! conn sid)
-  (hashtable-delete! (http2-server-connection-state-streams conn) sid)
-  (http2-priority-tree-remove! (http2-server-connection-state-priority-tree conn)
-                               sid))
+  (let ((stream (find-stream conn sid)))
+    (when (and stream
+               (http2-server-stream-pending-input-port stream))
+      (guard (e (else #f))
+        (close-port (http2-server-stream-pending-input-port stream)))
+      (http2-server-stream-pending-input-port-set! stream #f))
+    (hashtable-delete! (http2-server-connection-state-streams conn) sid)
+    (http2-priority-tree-remove!
+     (http2-server-connection-state-priority-tree conn)
+     sid)))
 
 (define (for-each-stream conn proc)
   (let-values (((keys values)

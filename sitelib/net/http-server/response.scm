@@ -28,6 +28,7 @@
 	    http-server:response-push!
 	    http-server:response-text!
 	    http-server:response-bytes!
+	    http-server:response-port!
 	    http-server:response-copy)
     (import (rnrs)
 	    (net http-server types))
@@ -68,13 +69,21 @@
   (%response-status-set! res status)
   (http-server:response-reason-set! res (http-server:reason-phrase status)))
 
-(define (http-server:response-text! res text :optional (content-type "text/plain; charset=utf-8"))
+(define (http-server:response-text! res (text string?)
+	  :optional (content-type "text/plain; charset=utf-8"))
   (http-server:response-body-set! res (string->utf8 text))
   (http-server:response-header-set! res "content-type" content-type)
   res)
 
-(define (http-server:response-bytes! res body :optional (content-type "application/octet-stream"))
+(define (http-server:response-bytes! res (body bytevector?)
+	  :optional (content-type "application/octet-stream"))
   (http-server:response-body-set! res body)
+  (http-server:response-header-set! res "content-type" content-type)
+  res)
+
+(define (http-server:response-port! res (port (and input-port? binary-port?))
+	  :optional (content-type "application/octet-stream"))
+  (http-server:response-body-set! res port)
   (http-server:response-header-set! res "content-type" content-type)
   res)
 

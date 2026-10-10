@@ -376,6 +376,70 @@
           (test-assert "final data frame carries END_STREAM" end-frame)))))))
 
 (let ()
+  (define streamed-response-body (make-bytevector 70000 66))
+  (define request-headers
+    '((#*":method" #*"GET")
+      (#*":scheme" #*"http")
+      (#*":path" #*"/stream-port")
+      (#*":authority" #*"localhost")))
+  (with-http2-connection
+   (lambda (req res)
+     (http-server:response-port!
+      res
+      (open-bytevector-input-port streamed-response-body))
+     res)
+   (lambda (client accepted conn)
+     (define request-payload
+       (bytevector-append
+        +http2-connection-preface+
+        (encode-frames
+         (list (cons (make-http2-frame-settings 0 0 '()) #f)
+               (cons (make-http2-frame-headers 0 1 #f #f request-headers) #t)))))
+     (test-assert "connection accepts response-port request"
+                  (not (http-server:connection-process! conn request-payload)))
+     (thread-sleep! 0.02)
+     (let* ((frames-1 (decode-frames (recv-bytes client)))
+            (headers-frame
+             (find (lambda (f)
+                     (and (http2-frame-headers? f)
+                          (= (http2-frame-stream-identifier f) 1)))
+                   frames-1))
+            (sent-before-update (data-bytes-on-stream frames-1 1)))
+       (test-assert "response-port emits response headers" headers-frame)
+       (test-equal "response-port default content-type"
+                   "application/octet-stream"
+                   (and headers-frame
+                        (header-value (http2-frame-headers-headers headers-frame)
+                                      "content-type")))
+       (test-eqv "response-port omits implicit content-length"
+                 #f
+                 (and headers-frame
+                      (header-value (http2-frame-headers-headers headers-frame)
+                                    "content-length")))
+       (test-equal "response-port send side is capped by initial peer window"
+                   65535
+                   sent-before-update)
+       (let ((update-payload
+              (encode-frames
+               (list (cons (make-http2-frame-window-update 0 0 70000) #f)
+                     (cons (make-http2-frame-window-update 0 1 70000) #f)))))
+         (test-assert "connection accepts peer window updates for response-port"
+                      (not (http-server:connection-process! conn update-payload)))
+         (thread-sleep! 0.02)
+         (let* ((frames-2 (decode-frames (recv-bytes client)))
+                (sent-after-update (data-bytes-on-stream frames-2 1))
+                (end-frame
+                 (find (lambda (f)
+                         (and (http2-frame-data? f)
+                              (= (http2-frame-stream-identifier f) 1)
+                              (http2-frame-end-stream? f)))
+                       frames-2)))
+           (test-equal "response-port flushes remaining bytes after window update"
+                       70000
+                       (+ sent-before-update sent-after-update))
+           (test-assert "response-port stream ends with END_STREAM" end-frame)))))))
+
+(let ()
   (define request-headers
     '((#*":method" #*"GET")
       (#*":scheme" #*"http")

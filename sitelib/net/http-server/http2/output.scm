@@ -109,15 +109,21 @@
 ;; write response
 (define (write-stream-response! conn stream req res)
   (emit-push-responses! conn stream req res)
-  (let-values (((headers body skip-body?) (response->hpack-headers req res)))
+  (let-values (((headers body body-port skip-body?)
+                (response->hpack-headers req res)))
     (define sid (http2-server-stream-id stream))
     (send-frame! conn
                  (make-http2-frame-headers 0 sid #f #f headers)
-                 (or skip-body? (zero? (bytevector-length body))))
-    (if (or skip-body? (zero? (bytevector-length body)))
+                 (or skip-body?
+                     (and (zero? (bytevector-length body))
+                          (not body-port))))
+    (if (or skip-body?
+            (and (zero? (bytevector-length body))
+                 (not body-port)))
         (drop-stream! conn sid)
         (begin
           (http2-server-stream-pending-output-set! stream body)
+          (http2-server-stream-pending-input-port-set! stream body-port)
           (http2-server-stream-pending-end-stream?-set! stream #t)
           (flush-pending-output! conn)))))
 
@@ -192,6 +198,7 @@
       0
       #vu8()
       #f
+      #f
       dependency
       wire-weight))))
 
@@ -229,7 +236,10 @@
   (define (stream-active? sid)
     (let ((stream (find-stream conn sid)))
       (and stream
-           (> (bytevector-length (http2-server-stream-pending-output stream)) 0)
+           (or (> (bytevector-length
+                   (http2-server-stream-pending-output stream))
+                  0)
+               (http2-server-stream-pending-input-port stream))
            (> (http2-server-stream-send-window stream) 0)
            (> (http2-server-connection-state-connection-send-window conn) 0))))
 
@@ -242,28 +252,51 @@
                 (begin
                   (http2-priority-tree-remove! tree sid)
                   (loop))
-                (let* ((pending (http2-server-stream-pending-output stream))
-                       (pending-size (bytevector-length pending))
-                       (send-size (min pending-size
-                                       (http2-server-stream-send-window stream)
-                                       (http2-server-connection-state-connection-send-window conn)
-                                       (http2-server-connection-state-remote-max-frame-size conn))))
-                  (or (<= send-size 0)
-                      (let-values (((chunk remain)
-				    (bytevector-split-at* pending send-size)))
-                        (let ((end? (and (zero? (bytevector-length remain))
-                                         (http2-server-stream-pending-end-stream? stream))))
-                          (send-frame! conn (make-http2-frame-data 0 sid chunk) end?)
-                          (http2-server-stream-pending-output-set! stream remain)
-                          (http2-server-connection-state-connection-send-window-set!
-                           conn
-                           (- (http2-server-connection-state-connection-send-window conn)
-                              send-size))
-                          (http2-server-stream-send-window-set!
-                           stream
-                           (- (http2-server-stream-send-window stream) send-size))
-                          (http2-priority-tree-account! tree sid send-size)
-                          (when end?
-                            (drop-stream! conn sid))
-                          (loop)))))))))))
-)
+                (let ((pending (http2-server-stream-pending-output stream))
+                      (port (http2-server-stream-pending-input-port stream)))
+                  (when (and port
+                             (zero? (bytevector-length pending)))
+                    (let* ((budget (min (http2-server-stream-send-window stream)
+                                        (http2-server-connection-state-connection-send-window conn)
+                                        (http2-server-connection-state-remote-max-frame-size conn)))
+                           (chunk (and (> budget 0)
+                                       (get-bytevector-n port budget))))
+                      (if (or (not chunk) (eof-object? chunk))
+                          (begin
+                            (guard (e (else #f))
+                              (close-port port))
+                            (http2-server-stream-pending-input-port-set! stream #f))
+                          (http2-server-stream-pending-output-set! stream chunk))))
+                  (let* ((pending (http2-server-stream-pending-output stream))
+                         (pending-size (bytevector-length pending))
+                         (send-size (min pending-size
+                                         (http2-server-stream-send-window stream)
+                                         (http2-server-connection-state-connection-send-window conn)
+                                         (http2-server-connection-state-remote-max-frame-size conn))))
+                    (cond ((<= send-size 0)
+                           (when (and (zero? pending-size)
+                                      (not (http2-server-stream-pending-input-port stream))
+                                      (http2-server-stream-pending-end-stream? stream))
+                             (send-frame! conn (make-http2-frame-data 0 sid #vu8()) #t)
+                             (drop-stream! conn sid))
+                           #f)
+                          (else
+                           (let-values (((chunk remain)
+				         (bytevector-split-at* pending send-size)))
+                             (let ((end? (and (zero? (bytevector-length remain))
+                                              (not (http2-server-stream-pending-input-port stream))
+                                              (http2-server-stream-pending-end-stream? stream))))
+                               (send-frame! conn (make-http2-frame-data 0 sid chunk) end?)
+                               (http2-server-stream-pending-output-set! stream remain)
+                               (http2-server-connection-state-connection-send-window-set!
+                                conn
+                                (- (http2-server-connection-state-connection-send-window conn)
+                                   send-size))
+                               (http2-server-stream-send-window-set!
+                                stream
+                                (- (http2-server-stream-send-window stream) send-size))
+                               (http2-priority-tree-account! tree sid send-size)
+                               (when end?
+                                 (drop-stream! conn sid))
+                               (loop))))))))))))
+))

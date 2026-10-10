@@ -99,6 +99,7 @@
 	    http-server:response-push!
 	    http-server:response-text!
 	    http-server:response-bytes!
+	    http-server:response-port!
 
 	    http-server:router?
 	    make-http-server:router

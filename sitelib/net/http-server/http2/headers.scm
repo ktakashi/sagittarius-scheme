@@ -106,27 +106,38 @@
   (let* ((status (http-server:response-status res))
          (reason (or (http-server:response-reason res)
                      (http-server:reason-phrase status)))
-         (body (response-body->bytevector (http-server:response-body res))))
-    (if (not body)
+        (body (http-server:response-body res)))
+      (let-values (((body-kind body-bytes body-port)
+           (response-body->payload body)))
+     (if (not body-kind)
         (let ((err (make-http-server:response 500)))
           (http-server:response-text! err "Unsupported response body type")
           (response->hpack-headers req err))
         (let* ((skip-body?
 		(or (status-has-no-body? status)
                     (and req (eq? (http-server:request-method req) 'HEAD))))
-               (body-bytes (if skip-body? #vu8() body)))
-          (unless (or skip-body?
-                      (http-server:response-header-ref res "content-length" #f))
+            (ignore (and skip-body?
+                   (eq? body-kind 'port)
+                   (guard (e (else #f))
+                  (close-port body-port)
+                  #t)))
+        (bytes (if skip-body? #vu8()
+             (if (eq? body-kind 'bytes) body-bytes #vu8())))
+        (port (if (or skip-body? (eq? body-kind 'bytes)) #f body-port)))
+      (unless (or skip-body?
+            (not (eq? body-kind 'bytes))
+            (http-server:response-header-ref res "content-length" #f))
             (http-server:response-header-set! res
-             "content-length" (number->string (bytevector-length body-bytes))))
+         "content-length" (number->string (bytevector-length bytes))))
           (unless (http-server:response-header-ref res "date" #f)
             (http-server:response-header-set! res "date"
                                               (http-server:current-http-date)))
           (values (cons (header-entry ":status" (number->string status))
                         (collect (http-server:headers->alist
                                   (http-server:response-headers res))))
-                  body-bytes
-                  skip-body?)))))
+           bytes
+           port
+           skip-body?))))))
 
 (define (collect-push-headers headers)
   (define (header-entry name value)
@@ -187,10 +198,12 @@
           (values h (utf8->string value) #f (pseudo-header? h)))))))
 
 
-(define (response-body->bytevector body)
-  (cond ((bytevector? body) body)
-        ((string? body) (string->utf8 body))
-        (else #f)))
+(define (response-body->payload body)
+  (cond ((bytevector? body) (values 'bytes body #f))
+        ((string? body) (values 'bytes (string->utf8 body) #f))
+        ((and (input-port? body) (binary-port? body))
+         (values 'port #vu8() body))
+        (else (values #f #f #f))))
 
 (define (status-has-no-body? code)
   (or (eqv? code 204)

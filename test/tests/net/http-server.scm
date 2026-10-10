@@ -308,6 +308,28 @@
   (server-stop! server))
 
 (let ()
+  (define payload #*"hello-stream")
+  (define (app req res)
+    (http-server:response-port! res (open-bytevector-input-port payload))
+    res)
+  (define server (make-http-server "0" app :config default-config))
+  (server-start! server :background #t)
+  (thread-sleep! 0.2)
+  (let ((sock (make-client-socket "localhost" (server-port server))))
+    (socket-send sock #*"GET /stream HTTP/1.1\r\nHost: localhost\r\n\r\n")
+    (let ((txt (recv-text sock)))
+      (test-assert "response-port sets default content-type"
+                   (contains? txt "content-type: application/octet-stream"))
+      (test-assert "response-port uses chunked transfer"
+                   (contains? txt "transfer-encoding: chunked"))
+      (test-assert "response-port does not force content-length"
+                   (not (contains? txt "content-length:")))
+      (test-assert "response-port emits chunked payload"
+                   (contains? txt "c\r\nhello-stream\r\n0\r\n\r\n")))
+    (socket-close sock))
+  (server-stop! server))
+
+(let ()
   (define (app req res)
     (http-server:response-text! res "ok")
     res)

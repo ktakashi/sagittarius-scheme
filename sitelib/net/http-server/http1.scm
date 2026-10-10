@@ -403,10 +403,47 @@
                            #f)))))))))))
     
 
-(define (body->bytevector body)
-  (cond ((bytevector? body) body)
-        ((string? body) (string->utf8 body))
-        (else #f)))
+(define +http1-stream-chunk-size+ 8192)
+(define +chunked-stream-end+ #vu8(#x30 #x0d #x0a #x0d #x0a))
+
+(define (response-body->payload body)
+  (cond ((bytevector? body) (values 'bytes body))
+        ((string? body) (values 'bytes (string->utf8 body)))
+        ((and (input-port? body) (binary-port? body)) (values 'port body))
+        (else (values #f #f))))
+
+(define (close-input-port-quietly port)
+  (guard (e (else #f))
+    (close-port port)))
+
+(define (stream-body-to-socket! socket port chunk-handler)
+  (guard (e (else #f))
+    (let loop ()
+      (let ((bv (get-bytevector-n port +http1-stream-chunk-size+)))
+	(unless (eof-object? bv)
+          (chunk-handler bv)
+          (loop))))
+    (close-port port)))
+
+(define (stream-raw-body! socket port)
+  (stream-body-to-socket! socket port
+   (lambda (chunk)
+     (socket-send socket chunk))))
+
+(define (stream-chunked-body! socket port)
+  (stream-body-to-socket! socket port
+   (lambda (chunk)
+     (let ((size (bytevector-length chunk)))
+       (socket-send socket (string->utf8 (string-append (number->string size 16)
+                                                        "\r\n")))
+       (socket-send socket chunk)
+       (socket-send socket +crlf+))))
+  (socket-send socket +chunked-stream-end+))
+
+(define (status-has-no-body? code)
+  (or (eqv? code 204)
+      (eqv? code 304)
+      (and (<= 100 code) (< code 200))))
 
 (define utf8-transcoder (make-transcoder (utf-8-codec) (eol-style lf)))
 (define (write-head! socket code reason headers)
@@ -450,22 +487,49 @@
       (http-server:response-header-set! res name value)))
   (let* ((code (http-server:response-status res))
          (reason (or (http-server:response-reason res)
-                     (http-server:reason-phrase code)))
-         (body (body->bytevector (http-server:response-body res))))
-    (if (not body)
+                     (http-server:reason-phrase code))))
+    (let-values (((body-kind body)
+                  (response-body->payload (http-server:response-body res))))
+      (if (not body-kind)
         (let ((err (make-http-server:response 500)))
           (http-server:response-text! err "Unsupported response body type")
           (http-server:http1-serve socket req err))
-        (let* ((close? (or (not req)
-			   (request-close? req)
+        (let* ((skip-body? (or (status-has-no-body? code)
+                               (and req
+                                    (eq? (http-server:request-method req)
+                                         'HEAD))))
+               (streaming? (eq? body-kind 'port))
+               (chunked-stream?
+                (and streaming?
+                     (or (not req)
+                         (string=? (http-server:request-http-version req)
+                                   "HTTP/1.1"))))
+               (close? (or (not req)
+                           (request-close? req)
                            (http-server:headers-contains-token?
                             (http-server:response-headers res)
                             "connection"
-                            "close")))
+                            "close")
+                           (and streaming? (not chunked-stream?))))
 	       (value (if close? "close" "keep-alive")))
 	  (ensure-header res "date" (http-server:current-http-date))
-	  (ensure-header res "content-length" 
-			 (number->string (bytevector-length body)))
+          (cond (chunked-stream?
+                 (http-server:headers-delete!
+                  (http-server:response-headers res)
+                  "content-length")
+                 (http-server:response-header-set! res
+                                                  "transfer-encoding"
+                                                  "chunked"))
+                (streaming?
+                 (http-server:headers-delete!
+                  (http-server:response-headers res)
+                  "content-length")
+                 (http-server:headers-delete!
+                  (http-server:response-headers res)
+                  "transfer-encoding"))
+                (else
+		 (ensure-header res "content-length" 
+				(number->string (bytevector-length body)))))
 	  (http-server:response-header-set! res "connection" value)
           (write-head!
            socket
@@ -473,12 +537,15 @@
            reason
            (filter-response-headers
             (http-server:headers->alist (http-server:response-headers res))))
-          (unless (or (eqv? code 204)
-                      (eqv? code 304)
-                      (and (<= 100 code) (< code 200))
-		      (and req (eq? (http-server:request-method req) 'HEAD)))
-            (socket-send socket body))
-          close?))))
+          (when (and skip-body? streaming?)
+            (close-input-port-quietly body))
+          (unless skip-body?
+            (if streaming?
+                (if chunked-stream?
+                    (stream-chunked-body! socket body)
+                    (stream-raw-body! socket body))
+                (socket-send socket body)))
+          close?)))))
 
 (define (http-server:http1-connect server socket app-handler . rest)
   (let* ((conn (make-http-server:http1-connection
