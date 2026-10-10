@@ -4,11 +4,17 @@
 	(net http-client request) ;; for make-http:response-context
 	(net server)
 	(net http-server)
+	(srfi :1)
 	(srfi :18)
 	(srfi :64)
 	(util concurrent))
 
 (test-begin "net/http-client operation")
+
+(define (large-payload)
+  (string-concatenate
+   (map (lambda (i) (make-string 1024 (integer->char (+ (char->integer #\a) i))))
+	(iota 16))))
 
 (define (start-server)
   (define (app req res)
@@ -24,7 +30,12 @@
 	     (http-server:response-text! res "stream-body"))
 	    ((string=? path "/sse")
 	     (http-server:response-bytes! res #*"data: hello\n\n"
-					 "text/event-stream"))
+					  "text/event-stream"))
+	    ((string=? path "/sse-large")
+	     ;; TODO support port instead of oneshot bytevector
+	     (http-server:response-bytes! res
+	      (string->utf8 (large-payload))
+	      "text/event-stream"))
 	    (else
 	     (http-server:response-text! res "hello"))))
     res)
@@ -168,7 +179,23 @@
 		#*"data: hello\n\n"
 		(get-bytevector-all (http:response-body response)))
     (http:stream-response-close! response))
+
   
+  (print "testing large SSE stream partial reads")
+  (let* ((payload (large-payload))
+	 (request
+          (http:request-builder
+           (method 'GET)
+           (uri (make-uri "/sse-large"))))
+	 (response (http:client-send client request)))
+    (test-assert "large SSE response uses stream response"
+		 (http:stream-response? response))
+    (test-equal "large SSE stream preserves every byte"
+		(string->utf8 payload)
+		(get-bytevector-all
+		 (http:response-body response)))
+    (http:stream-response-close! response))
+
 
   (print "testing takeover")
   (let* ((request (http:request-builder (method 'GET) (uri (make-uri "/ok"))))
