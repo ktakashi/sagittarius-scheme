@@ -217,5 +217,13 @@
   (test-equal "get-bytevector-n (1)" #vu8(1 2 3 4 5) (get-bytevector-n in/out 5))
   (test-assert "get-bytevector-n (2)" (eof-object? (get-bytevector-n in/out 5))))
 
+(let ()
+  (define in/out (open-chunked-binary-input/output-port))
+  (put-bytevector in/out #vu8(1 2 3 4 5))
+  (chunked-binary-input/output-port-clear-buffer! in/out)
+  (put-bytevector in/out #vu8(6 7 8 9 10))
+  (set-port-position! in/out 0)
+  
+  (test-equal #vu8(6 7 8 9 10) (get-bytevector-all in/out)))
 
 (test-end)
