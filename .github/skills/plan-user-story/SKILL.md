@@ -1,10 +1,9 @@
 ---
-description: "Create a detailed implementation plan for an existing user story. Use after a user story is created and approved."
-name: "Plan User Story"
+name: plan-user-story
+description: Create a detailed implementation plan for an existing user story. Use after a user story is created and approved.
+disable-model-invocation: true
 argument-hint: "Feature name or path to requirements.md..."
-agent: "agent"
 ---
-
 # Plan User Story
 
 Create a detailed implementation plan for an existing user story.
