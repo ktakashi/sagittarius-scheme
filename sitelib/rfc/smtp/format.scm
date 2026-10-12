@@ -63,8 +63,10 @@
 (define ascii/graphic (char-set-intersection char-set:ascii char-set:graphic))
 (define unicode-non-ascii (char-set-difference char-set:full char-set:ascii))
 
-(define qtext-set (char-set-difference ascii/printing (char-set #\\ #\")
-				       unicode-non-ascii))
+(define qtext-set
+  (char-set-union
+   (char-set-difference ascii/printing (char-set #\\ #\"))
+   unicode-non-ascii))
 (define alpha-set (char-set-intersection char-set:ascii char-set:letter))
 (define digit-set (char-set-intersection char-set:ascii char-set:digit))
 (define hex-digit-set (char-set-intersection char-set:ascii char-set:hex-digit))
@@ -81,7 +83,7 @@
 
 (define $qtext-smtp ($char-set-contains? qtext-set))
 (define $quoted-pair-smtp
-  ($seq ($eqv? #\/) ($char-set-contains? ascii/printing)))
+  ($seq ($eqv? #\\) ($char-set-contains? ascii/printing)))
 (define $q-content-smtp ($or $qtext-smtp $quoted-pair-smtp))
 (define $quoted-string ($seq ($eqv? #\") ($many $q-content-smtp) ($eqv? #\")))
 
@@ -129,7 +131,8 @@
 	$ipv4-address-literal))
 (define $ipv6-full ($seq $ipv6-hex ($repeat $ipv6-seg 7)))
 (define $ipv6-addr ($or $ipv6-full $ipv6v4-full ipv6v4-comp $ipv6-comp))
-(define $ipv6-address-literal ($seq ($token "IPv6:") $ipv6-addr))
+(define $ipv6-address-literal
+  ($seq ($or ($token "IPv6:") ($token "ipv6:")) $ipv6-addr))
 
 (define $dcontent ($char-set-contains? dcontent-set))
 (define $standardized-tag $ldh-str)

@@ -2,7 +2,7 @@
 ;;;
 ;;; text/json/parse.scm - JSON parsing
 ;;;  
-;;;   Copyright (c) 2010-2017  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2026  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -28,6 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+#!nounbound
 (library (text json parse)
     (export json-write
 	    json-write/normalized

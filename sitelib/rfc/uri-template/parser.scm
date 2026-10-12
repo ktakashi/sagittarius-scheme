@@ -112,7 +112,7 @@
 ;;                  ;  DQUOTE, "'", "%" (aside from pct-encoded),
 ;;                  ;  "<", ">", "\", "^", "`", "{", "|", "}"
 (define *literal-char* (char-set-union
-			(string->char-set "!#$&=]_~")
+			(string->char-set "!#$&'=]_~")
 			(ucs-range->char-set #x28 (+ #x3b 1))
 			(ucs-range->char-set #x3f (+ #x5b 1))
 			(ucs-range->char-set #x61 (+ #x7a 1))
