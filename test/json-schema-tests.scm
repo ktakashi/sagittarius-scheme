@@ -15,7 +15,7 @@
 
 ;; This test requires external git repository, so runs only on CI
 ;; environment using separated CMake command.
-(define remote-directory "JSON-Schema-Test-Suite/remotes")
+(define remote-directory "test/JSON-Schema-Test-Suite/remotes")
 (define (http-handler server socket)
   (define in/out (transcoded-port (socket-port socket) (native-transcoder)))
   (define (get-content path)
@@ -40,9 +40,9 @@
 (define server (make-simple-server "1234" http-handler))
 
 (define data-directories
-  '("JSON-Schema-Test-Suite/tests/draft7/"
-    "JSON-Schema-Test-Suite/tests/draft2019-09/"
-    "JSON-Schema-Test-Suite/tests/draft2020-12/"
+  '("test/JSON-Schema-Test-Suite/tests/draft7/"
+    "test/JSON-Schema-Test-Suite/tests/draft2019-09/"
+    "test/JSON-Schema-Test-Suite/tests/draft2020-12/"
     ))
 (define core-files
   (append-map (lambda (dir) (find-files dir :recursive #f :pattern "\\.json$"))
@@ -61,13 +61,13 @@
 (define *ignoring-files*
   '(
     ;; We don't support custom meta schema, too much hastle
-    "JSON-Schema-Test-Suite/tests/draft2019-09/vocabulary.json"
-    "JSON-Schema-Test-Suite/tests/draft2020-12/vocabulary.json"
+    "test/JSON-Schema-Test-Suite/tests/draft2019-09/vocabulary.json"
+    "test/JSON-Schema-Test-Suite/tests/draft2020-12/vocabulary.json"
 
     ;; We will support idn-hostname later, maybe...
-    "JSON-Schema-Test-Suite/tests/draft7/optional/format/idn-hostname.json"
-    "JSON-Schema-Test-Suite/tests/draft2019-09/optional/format/idn-hostname.json"
-    "JSON-Schema-Test-Suite/tests/draft2020-12/optional/format/idn-hostname.json"
+    "test/JSON-Schema-Test-Suite/tests/draft7/optional/format/idn-hostname.json"
+    "test/JSON-Schema-Test-Suite/tests/draft2019-09/optional/format/idn-hostname.json"
+    "test/JSON-Schema-Test-Suite/tests/draft2020-12/optional/format/idn-hostname.json"
     ))
 
 ;; FIXME copy&paste...

@@ -748,6 +748,7 @@ ENDFOREACH()
 ADD_CUSTOM_TARGET(clone-json-tests
   COMMAND stat JSON-Schema-Test-Suite > /dev/null && cd JSON-Schema-Test-Suite && git pull || git clone https://github.com/json-schema-org/JSON-Schema-Test-Suite.git
   COMMAND stat jmespath.test > /dev/null && cd jmespath.test && git pull || git clone https://github.com/jmespath/jmespath.test.git
+  COMMAND stat JSONTestSuite > /dev/null && cd JSONTestSuite && git pull || git clone https://github.com/nst/JSONTestSuite.git
   WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/test)
 ADD_TEST(NAME jsonschema
   COMMAND ${TEST_COMMAND} ${PROJECT_SOURCE_DIR}/test/json-schema-tests.scm
@@ -764,6 +765,15 @@ SET_PROPERTY(TEST jmespath PROPERTY DEPENDS clone-json-tests)
 SET_PROPERTY(TEST jmespath
   PROPERTY ENVIRONMENT CTEST_OUTPUT_ON_FAILURE=ON CTEST_PROGRESS_OUTPUT=ON)
 SET_PROPERTY(TEST jmespath PROPERTY LABELS json)
+
+ADD_TEST(NAME jsonparser
+  COMMAND ${TEST_COMMAND} ${PROJECT_SOURCE_DIR}/test/json-parser-tests.scm
+  WORKING_DIRECTORY WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
+SET_PROPERTY(TEST jsonparser PROPERTY DEPENDS clone-json-tests)
+SET_PROPERTY(TEST jsonparser
+  PROPERTY ENVIRONMENT CTEST_OUTPUT_ON_FAILURE=ON CTEST_PROGRESS_OUTPUT=ON)
+SET_PROPERTY(TEST jsonparser PROPERTY LABELS json)
+
 # For NMake... wtf?
 ADD_CUSTOM_TARGET(check COMMAND ${CMAKE_CTEST_COMMAND})
 
