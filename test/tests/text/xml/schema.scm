@@ -74,4 +74,61 @@
 (test-assert (xs:g-day? (xs:make-g-day "---01Z")))
 (test-error "error (5)" time-error? (xs:make-g-day "2020-12"))
 
+;; extra duration test
+
+(define (check v result)
+  (guard (e (else
+	     (test-assert (string-append "parse error: " v) (eqv? result #f))))
+    (let ((r (xs:duration? (xs:make-duration v))))
+      (test-assert (string-append "should not be parsed: " v) (eqv? result r)))))
+
+;; from JSON Schema suite, but result modified
+(check "P4DT12H30M5S" #t)
+(check "PT1D" #f)
+(check "4DT12H30M5S" #f)
+(check "P" #f)
+(check "P1YT" #f)
+(check "PT" #f)
+(check "P2D1Y" #f)
+(check "P1D2H" #f)
+(check "P2S" #f)
+(check "P4Y" #t)
+(check "PT0S" #t)
+(check "P0D" #t)
+(check "P1M" #t)
+(check "PT1M" #t)
+(check "PT36H" #t)
+(check "P1DT12H" #t)
+(check "P2W" #t)
+(check "P1Y2W" #f)
+(check "P২Y" #f)
+(check "P1" #f)
+(check "P1Y2M3DT4H5M6S" #t)
+(check "P1Y2M3D" #t)
+(check "PT1H2M3S" #t)
+(check "P1M2D" #t)
+(check "PT1H30M" #t)
+(check "P10Y10M10DT10H10M10S" #t)
+(check "PT0.5S" #t) ;; xml schema allows this
+(check " P1D" #f)
+(check "P1D " #f)
+(check "" #f)
+(check "P1Y2M" #t)
+(check "P1Y2D" #t) ;; xml schema allows this
+(check "P1M2D" #t)
+(check "PT1H2M" #t)
+(check "PT1H2S" #t) ;; xml schema allows this
+(check "PT1M2S" #t)
+(check "-P1D" #t) ;; xml schema allows this
+(check "P1D2T3H" #f)
+(check "P1e2D" #f)
+(check "P1D\n" #f)
+(check "P1WT1H" #f)
+(check "P0Y1W" #f)
+(check "P01D" #t)
+(check "P999999999999999999999999999999999999999999999999999999999999999999999999999999D" #t)
+(check "PT05S" #t) ;; xml schema allows this
+(check "P-1D" #f)
+
+
 (test-end)

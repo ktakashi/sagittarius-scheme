@@ -166,6 +166,7 @@
 	    (srfi :39 parameters)
 	    (srfi :115 regexp)
 	    (srfi :144 flonums)
+	    (text xml schema parsers)
 	    (util bytevector))
 
 (define (timezone:find-etc/gmt off)
@@ -208,89 +209,6 @@
       (bytevector? o) ;; hexBinary
       ))
 
-
-(define +duration-regex+
-  (regexp
-   '(: bol
-       (? #\-) "P"
-       (or (: (or (: ($ (+ (/ "09"))) "Y"      ;; 1
-		     (? ($ (+ (/ "09"))) "M")  ;; 2
-		     (? ($ (+ (/ "09"))) "D")) ;; 3
-		  (: ($ (+ (/ "09"))) "M"      ;; 4
-		     (? ($ (+ (/ "09"))) "D")) ;; 5
-		  (: ($ (+ (/ "09"))) "D"))    ;; 6
-	      (? "T"
-		 (or (: ($ (+ (/ "09"))) "H"		  ;; 7
-			(? ($ (+ (/ "09"))) "M")	  ;; 8
-			(? ($ (+ (/ "09")))		  ;; 9
-			   (? "." ($ (+ (/ "09")))) "S")) ;; 10
-		     (: ($ (+ (/ "09"))) "M"		  ;; 11
-			(? ($ (+ (/ "09")))		  ;; 12
-			   (? "." ($ (+ (/ "09")))) "S")) ;; 13
-		     (: ($ (+ (/ "09")))		  ;; 14
-			(? "." ($ (+ (/ "09")))) "S"))))  ;; 15
-
-	   (: "T" (or (: ($ (+ (/ "09"))) "H"		     ;; 16
-			 (? ($ (+ (/ "09"))) "M")	     ;; 17
-			 (? ($ (+ (/ "09")))		     ;; 18
-			    (? "." ($ (+ (/ "09")))) "S"))   ;; 19
-		      (: ($ (+ (/ "09"))) "M"		     ;; 20
-			 (? ($ (+ (/ "09")))		     ;; 21
-			    (? "." ($ (+ (/ "09")))) "S"))   ;; 22
-		      (: ($ (+ (/ "09")))		     ;; 23
-			 (? "." ($ (+ (/ "09")))) "S")))     ;; 24
-	   ;; Extra, not XML schema, but ISO 8601
-	   (: ($ (/ "09")) "W"))
-       eol)))
-(define +duration-ymdw-matches+
-  '((1  2  3  #f)
-    (#f 4  5  #f)
-    (#f #f 6  #f)
-    (#f #f #f 25)))
-(define +duration-hms-matches+
-  '(( 7  8  9 10)
-    (#f 11 12 13)
-    (#f #f 14 15)
-    (16 17 18 19)
-    (#f 20 21 22)
-    (#f #f 23 24)))
-
-(define (parse-duration duration rx ymd hms)
-  (define (submatch m p)
-    ;; it's a bit of waste
-    (let loop ((r '()) (p p) (matched? #f))
-      (cond ((null? p) (and matched? (reverse r)))
-	    ((not (car p)) (loop (cons #f r) (cdr p) matched?))
-	    ((regexp-match-submatch m (car p)) =>
-	     (lambda (v)
-	       (loop (cons v r) (cdr p) #t)))
-	    (else (loop (cons #f r) (cdr p) matched?)))))
-
-  (define (parse m matchers)
-    (define sample (car matchers))
-    (cond ((exists (lambda (p) (submatch m p)) matchers) =>
-	   (lambda (result) (apply values result)))
-	  (else (apply values (map (lambda (_) #f) sample)))))
-
-  (cond ((regexp-matches +duration-regex+ duration) =>
-	 (lambda (m)
-	   (let-values (((y mo d w) (parse m ymd))
-			((h mi s f) (parse m hms)))
-	     (define neg? (char=? (string-ref duration 0) #\-))
-	     (define (neg n) (if neg? (- n) n))
-	     (values (neg (+ (or (and y (* 12 (string->number y))) 0)
-			     (or (and mo (string->number mo)) 0)))
-		     (neg (+ (or (and d (* 24 60 60 (string->number d))) 0)
-			     (or (and w (* 24 60 60 7 (string->number w))) 0)
-			     (or (and h (* 60 60 (string->number h))) 0)
-			     (or (and mi (* 60 (string->number mi))) 0)
-			     (or (and s (string->number s)) 0)
-			     ;; fraction?
-			     (or (and f (string->number (string-append "0." f)))
-				 0.0)))))))
-	(else (assertion-violation 'parse-duration "Invalid duration"
-				   duration))))
-
 (define-record-type xs:duration
   (parent xs:any-atomic-type)
   (fields months seconds)
@@ -303,9 +221,7 @@
 		((p) m s))
 	      (case-lambda
 	       ((s)
-		(let-values (((m s) (parse-duration s +duration-regex+
-						    +duration-ymdw-matches+
-						    +duration-hms-matches+)))
+		(let-values (((m s) (xs:parse-duration s)))
 		  (ctr m s)))
 	       ((m s) (ctr m s))))))
 
@@ -315,9 +231,7 @@
 	      (case-lambda
 	       ((d)
 		(let-values (((m s) (if (string? d)
-					(parse-duration d +duration-regex+
-							+duration-ymdw-matches+
-							+duration-hms-matches+)
+					(xs:parse-duration d)
 					(values 0 (inexact d)))))
 		  (unless (zero? m)
 		    (assertion-violation 'xs:make-day-time-duration
@@ -330,9 +244,7 @@
 	      (case-lambda
 	       ((d)
 		(let-values (((m s) (if (string? d)
-					(parse-duration d +duration-regex+
-							+duration-ymdw-matches+
-							+duration-hms-matches+)
+					(xs:parse-duration d)
 					(values d 0.0))))
 		  (unless (zero? s)
 		    (assertion-violation 'xs:make-year-month-duration

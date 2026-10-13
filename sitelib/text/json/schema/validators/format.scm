@@ -53,10 +53,9 @@
 	    (text json pointer)
 	    (only (text json schema validators primitives)
 		  json-schema:pattern)
-	    (text xml schema))
+	    (text xml schema parsers))
 
 (define *json-schema:validate-format?* (make-parameter #t))
-(define +json-schema-defined-formats+ '())
 
 (define (json-schema:format v)
   (cond ((assoc v +json-schema-defined-formats+) =>
@@ -452,43 +451,11 @@
 			       (else (values #f seen))))))))))))
 
 (define (json-schema:format-duration v)
-  (and (positive? (string-length v))
-       (char=? (string-ref v 0) #\P)
-       (not (string-contains v "."))
-       (not (string-prefix? "+" v))
-       (not (string-prefix? "-" v))
-       (let* ((body (substring v 1 (string-length v)))
-	      (t-pos (string-index body #\T))
-	      (date-part (if t-pos (substring body 0 t-pos) body))
-	      (time-part (if t-pos
-			     (substring body (+ t-pos 1) (string-length body))
-			     "")))
-	 (if (and (not t-pos)
-		  (string-suffix? "W" date-part)
-		  (> (string-length date-part) 1))
-	     (string-every ascii-digit?
-			   (substring date-part 0 (- (string-length date-part) 1)))
-	     (let-values (((date-ok date-seen)
-			   (if (string-null? date-part)
-			       (values #t '())
-			       (parse-duration-components date-part
-							  '(#\Y #\M #\D))))
-			  ((time-ok time-seen)
-			   (if (string-null? time-part)
-			       (values #t '())
-			       (parse-duration-components time-part
-							  '(#\H #\M #\S)))))
-	       (and (or (not t-pos) (not (string-null? time-part)))
-		    date-ok time-ok
-		    (or (pair? date-seen) (pair? time-seen))
-		    (not (and (assv #\Y date-seen)
-			      (assv #\D date-seen)
-			      (not (assv #\M date-seen))))
-		    (not (and (assv #\H time-seen)
-			      (assv #\S time-seen)
-			      (not (assv #\M time-seen))))))))))
+  (guard (e (else #f))
+    (let-values (((m s) (xs:parse-duration v *rfc:duration-parser*)))
+      #t)))
 
-(set! +json-schema-defined-formats+
+(define +json-schema-defined-formats+
   `(
     ("date" . ,json-schema:format-date)
     ("time" . ,json-schema:format-time)
