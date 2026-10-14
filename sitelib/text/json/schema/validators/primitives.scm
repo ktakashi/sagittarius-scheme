@@ -116,8 +116,6 @@
 (define (json-schema:enum vals)
   (unless (list? vals)
     (assertion-violation 'json-schema:enum "Enum must be an array" vals))
-  (when (zero? (length vals))
-    (assertion-violation 'json-schema:enum "Enum should not be empty"))
   (unless (unique? vals)
     (assertion-violation 'json-schema:enum
 			 "Enum should contain unique value" vals))
