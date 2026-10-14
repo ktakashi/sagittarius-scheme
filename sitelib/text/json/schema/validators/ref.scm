@@ -169,40 +169,65 @@
 	(else ($ref-handler value context schema-path #t))))
 
 (define (json-schema:$dynamic-ref value context schema-path)
-  (define (anchor->validator anchor context schema-path)
-    (schema-context:dynamic-validator context anchor schema-path))
-  (define (dynamic-anchor-fragment? context value)
-    (and (string-prefix? "#" value)
-	 (let ((anchor (substring value 1 (string-length value))))
-	   (and (schema-context:has-dynamic-anchor? context anchor)
-		(anchor->validator anchor context 
-		 (build-schema-path schema-path value))))))
-  ;; id#frag case
-  ;; in anycase, $dynamicRef must resolve either $dynamicAncor or $anchor
-  ;; so, this must find something
-  (define (dynamic-anchor-id? context value)
-    (define (has-dynamic-anchor? raw-id context anchor)
-      (let-values (((id schema) (find-by-id raw-id context #t)))
-	(and schema
-	     (schema-context:has-dynamic-anchor? schema anchor)
-	     (anchor->validator anchor context
-	      (build-schema-path id (string-append "#" anchor))))))
-    (cond ((and (not (string-prefix? "#" value)) (string-index value #\#)) =>
+  (define (anchor->validator anchor context schema-path fallback-validator)
+    (schema-context:dynamic-validator
+     context anchor schema-path fallback-validator))
+  (define (dynamic-anchor-ref value)
+    (define len (string-length value))
+    (cond ((and (string-prefix? "#" value)
+		(< 1 len)
+		(not (mere-json-pointer? (substring value 1 len))))
+	   (substring value 1 len))
+	  ((and (not (string-prefix? "#" value)) (string-index value #\#)) =>
 	   (lambda (index)
-	     (let ((raw-id (substring value 0 index))
-		   (anchor (substring value (+ index 1) (string-length value))))
-	       (or (has-dynamic-anchor? raw-id context anchor)
-		   (schema-context:delayed-validator context
-		    (lambda ()
-		      (or (has-dynamic-anchor? raw-id context anchor)
-			  ($ref-handler value context schema-path #t)))
-		    schema-path)))))
+	     (let ((anchor (substring value (+ index 1) len)))
+	       (and (not (string-null? anchor))
+		    (not (mere-json-pointer? anchor))
+		    anchor))))
 	  (else #f)))
-	 
+  (define (schema-has-dynamic-anchor? schema anchor)
+    (define (vector-any pred vec)
+      (let loop ((i 0) (len (vector-length vec)))
+	(cond ((= i len) #f)
+	      ((pred (vector-ref vec i)) #t)
+	      (else (loop (+ i 1) len)))))
+    (cond ((vector? schema)
+	   (or (vector-any (lambda (e)
+			     (and (pair? e)
+				  (string=? (car e) "$dynamicAnchor")
+				  (string? (cdr e))
+				  (string=? (cdr e) anchor)))
+			   schema)
+	       (vector-any (lambda (e)
+			     (and (pair? e)
+				  (schema-has-dynamic-anchor? (cdr e) anchor)))
+			   schema)))
+	  ((pair? schema)
+	   (or (schema-has-dynamic-anchor? (car schema) anchor)
+	       (schema-has-dynamic-anchor? (cdr schema) anchor)))
+	  (else #f)))
+  (define (dynamic-reference-target? context value anchor)
+    (let-values (((_ schema) (find-by-id value context #t)))
+      (and schema
+	   (schema-has-dynamic-anchor? (schema-context-schema schema) anchor))))
+  (define (resolve-dynamic-ref context value anchor)
+    (let ((fallback ($ref-handler value context schema-path #t)))
+      (if (dynamic-reference-target? context value anchor)
+	  (anchor->validator anchor context
+			     (build-schema-path schema-path value)
+			     fallback)
+	  fallback)))
+  
   (unless (string? value)
     (assertion-violation 'json-schema:$dynamic-ref "Must be string" value))
-  (cond ((dynamic-anchor-fragment? context value))
-	((dynamic-anchor-id? context value))
+  (cond ((dynamic-anchor-ref value) =>
+	 (lambda (anchor)
+	   (if (dynamic-reference-target? context value anchor)
+	       (resolve-dynamic-ref context value anchor)
+	       (schema-context:delayed-validator context
+		(lambda ()
+		  (resolve-dynamic-ref context value anchor))
+		schema-path))))
 	(else ($ref-handler value context schema-path #t))))
 
 )
