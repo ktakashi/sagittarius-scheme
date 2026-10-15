@@ -130,26 +130,7 @@
 
 ;; IP address
 (define (json-schema:format-ipv4 e) (ipv4-address? e))
-(define (compat-ipv6v4? e)
-  (if (string-prefix? "::" e)
-      (let* ((rest (substring e 2 (string-length e)))
-	     (parts (string-split rest #/:/)))
-	(and (> (length parts) 1)
-	     (let* ((last (car (reverse parts)))
-		    (head (reverse (cdr (reverse parts)))))
-	       (and (<= 5 (length head) 6)
-		    (for-all (lambda (h)
-			       (and (not (string-null? h))
-				    (<= (string-length h) 4)
-				    (string-every
-				     (lambda (c)
-				       (char-set-contains? char-set:hex-digit c))
-				     h)))
-			     head)
-		    (ipv4-address? last)))))
-      #f))
-(define (json-schema:format-ipv6 e)
-  (or (ipv6-address? e) (compat-ipv6v4? e)))
+(define (json-schema:format-ipv6 e) (ipv6-address? e))
 
 ;; we don't check if the scheme requires authority or not
 (define (valid-percent-encoding? s)
