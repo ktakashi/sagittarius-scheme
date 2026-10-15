@@ -156,9 +156,10 @@
 	(get-char in)
 	(let loop ()
 	  (let ((c (get-char in)))
+	    (when (eof-object? c) (json-read "Unexpected EOF"))
 	    (case c
 	      ((#\*) (let ((nc (get-char in)))
-		       (case c
+		       (case nc
 			 ((#\/) (skip-white in))
 			 (else (loop)))))
 	      (else (loop))))))
