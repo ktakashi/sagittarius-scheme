@@ -50,6 +50,7 @@
 * @[[utils/rfc/jwt.md](utils/rfc/jwt.md)]
 * @[[utils/rfc/pem.md](utils/rfc/pem.md)]
 * @[[utils/rfc/otp.md](utils/rfc/otp.md)]
+* @[[utils/rfc/punycode.md](utils/rfc/punycode.md)]
 * @[[utils/rfc/quoted-printable.md](utils/rfc/quoted-printable.md)]
 * @[[utils/rfc/sftp.md](utils/rfc/sftp.md)]
 * @[[utils/rfc/smtp.md](utils/rfc/smtp.md)]
