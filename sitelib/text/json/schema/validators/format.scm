@@ -31,6 +31,7 @@
 ;; reference:
 ;; Draft-7, 2019-09 and 2020-12: https://json-schema.org/
 #!nounbound
+#!read-macro=sagittarius/regex
 (library (text json schema validators format)
     (export json-schema:format
 	    *json-schema:validate-format?*)
@@ -107,18 +108,12 @@
 	     (not (and (char=? (string-ref s 2) #\-)
 		       (char=? (string-ref s 3) #\-)))))))
 
-(define (split-on-char s sep)
-  (let ((n (string-length s)))
-    (let loop ((i 0) (start 0) (r '()))
-      (cond ((= i n) (reverse (cons (substring s start i) r)))
-	    ((char=? (string-ref s i) sep)
-	     (loop (+ i 1) (+ i 1) (cons (substring s start i) r)))
-	    (else (loop (+ i 1) start r))))))
-(define (split-labels s) (split-on-char s #\.))
+(define (split-labels s) (string-split s #/\./))
 
 (define (json-schema:format-hostname e)
   (and (<= (string-length e) 255)
        (not (string-null? e))
+       (not (string-prefix? "." e))
        (not (string-suffix? "." e))
        (ascii-string? e)
        (string-every (lambda (c) (not (char-whitespace? c))) e)
@@ -138,7 +133,7 @@
 (define (compat-ipv6v4? e)
   (if (string-prefix? "::" e)
       (let* ((rest (substring e 2 (string-length e)))
-	     (parts (split-on-char rest #\:)))
+	     (parts (string-split rest #/:/)))
 	(and (> (length parts) 1)
 	     (let* ((last (car (reverse parts)))
 		    (head (reverse (cdr (reverse parts)))))
