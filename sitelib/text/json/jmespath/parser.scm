@@ -247,7 +247,8 @@
        (v ($parameterize ((*json:escape-required* jmespath:backquote))
 	    ($guard (e ((json-parse-error? e)
 			($error "Failed to parse JSON" (condition-message e))))
-	      json:parser)))
+	      ($parameterize ((*json:raise-error?* #t))
+		($do (v json:value) ($return v))))))
        ((op "`"))
        ($return `(quote ,v))))
 

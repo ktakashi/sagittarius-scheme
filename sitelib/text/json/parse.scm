@@ -37,11 +37,14 @@
 
 	    json-read-error?
 	    json-write-error?
+
+	    make-json-reader
 	    
 	    *json-map-type*)
     (import (rnrs)
 	    (util hashtables)
 	    (text parse)
+	    (text json config)
 	    (text json errors)
 	    (srfi :14 char-sets)
 	    (srfi :39 parameters)
@@ -148,38 +151,6 @@
      ((x) (json-write x (current-output-port)))
      ((x port) (%json-write x port ", " ": " #f))))
 
-  (define (skip-white in)
-    ;; TODO skip comment as well
-    (define (skip-comment in)
-      (define (read-block-comment in)
-	;; discards #\*
-	(get-char in)
-	(let loop ()
-	  (let ((c (get-char in)))
-	    (when (eof-object? c) (json-read "Unexpected EOF"))
-	    (case c
-	      ((#\*) (let ((nc (get-char in)))
-		       (case nc
-			 ((#\/) (skip-white in))
-			 (else (loop)))))
-	      (else (loop))))))
-      ;; there is no token starts with #\/ so if this is given
-      ;; it must be a comment
-      (case (peek-next-char in)
-	((#\*) (read-block-comment in))
-	((#\\) (get-line in) (skip-white in))
-	(else =>
-	  (lambda (nc)
-	    (json-read-error "Invalid JSON token" 
-			     (list->string (list #\/ nc)))))))
-      
-    (let ((c (skip-while (lambda (c) (and (not (eof-object? c))
-					  (char-whitespace? c)))
-			 in)))
-      (case c
-	((#\/) (skip-comment in))
-	(else c))))
-
   ;; TODO maybe better to track a bit for debug?
   (define (read-token token in)
     (let loop ((token token))
@@ -191,8 +162,11 @@
 		(json-read-error "Unexpected token character" c))))))
 
   ;; string
-  (define (read-jstring in)
+  (define (read-jstring in strict? in->char)
     (define named-escape-chars '((#\b . #\backspace)
+				 (#\/ . #\/)
+				 (#\\ . #\\)
+				 (#\" . #\")
 				 (#\n . #\newline)
 				 (#\f . #\page)
 				 (#\r . #\return)
@@ -228,15 +202,22 @@
 			     `((high ,high) (low ,cp))))))
     (define (read-unicode in)
       (let ((cp (read-code-point in)))
-	(if (<= #xd800 cp #xdbff)
-	    (read-unicode-low-sarrogate in cp)
-	    (integer->char cp))))
+	(cond ((<= #xd800 cp #xdbff)
+	       (if strict?
+		   (in->char #xfffd)
+		   (read-unicode-low-sarrogate in cp)))
+	      ((<= #xdc00 cp #xdfff)
+	       (in->char #xfffd))
+	      (else
+	       (integer->char cp)))))
     
     (define (read-escape in)
       (let ((c (get-char in)))
 	(cond ((assv c named-escape-chars) => cdr)
 	      ((eqv? c #\u) (read-unicode in))
-	      (else c))))
+	      ((not strict?) c)
+	      (else
+	       (json-read-error "Invalid JSON escape character" c)))))
     ;; discards first #\"
     (get-char in)
     (let loop ((acc '()))
@@ -245,9 +226,50 @@
 	(case c
 	  ((#\\) (loop (cons (read-escape in) acc)))
 	  ((#\") (list->string (reverse! acc)))
-	  (else (loop (cons c acc)))))))
+	  (else
+	   (when (and strict? (< (char->integer c) #x20))
+	     (json-read-error "Invalid control character in JSON string" c))
+	   (loop (cons c acc)))))))
 
-  (define (read-jnumber in)
+  (define (read-jnumber in strict?)
+    (define (json-number-string? s)
+      (define len (string-length s))
+      (define (digit? c) (char<=? #\0 c #\9))
+      (define (digit1-9? c) (char<=? #\1 c #\9))
+      (define (scan-digits i)
+	(let loop ((i i))
+	  (if (and (< i len) (digit? (string-ref s i)))
+	      (loop (+ i 1))
+	      i)))
+      (let* ((i0 (if (zero? len)
+		     #f
+		     (if (eqv? (string-ref s 0) #\-) 1 0))))
+	(and i0
+	     (< i0 len)
+	     (let* ((i1 (cond ((eqv? (string-ref s i0) #\0) (+ i0 1))
+			      ((digit1-9? (string-ref s i0))
+			       (scan-digits (+ i0 1)))
+			      (else #f))))
+	       (and i1
+		    (let* ((i2 (if (and (< i1 len) (eqv? (string-ref s i1) #\.))
+				   (let ((i (+ i1 1)))
+				     (and (< i len)
+					  (digit? (string-ref s i))
+					  (scan-digits (+ i 1))))
+				   i1))
+			   (i3 (if (and i2 (< i2 len)
+					(memv (string-ref s i2) '(#\e #\E)))
+				   (let* ((i (+ i2 1))
+					  (i (if (and (< i len)
+						      (memv (string-ref s i)
+							    '(#\+ #\-)))
+						 (+ i 1)
+						 i)))
+				     (and (< i len)
+					  (digit? (string-ref s i))
+					  (scan-digits (+ i 1))))
+				   i2)))
+		      (and i3 (= i3 len))))))))
     (let loop ((c (lookahead-char in)) (acc '()))
       (case c
 	((#\- #\+ #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9 #\. #\e #\E)
@@ -256,76 +278,180 @@
 	(else
 	 (let* ((s (list->string (reverse! acc)))
 		(n (string->number s)))
-	   (or n
+	   (or (and n
+		    (or (not strict?) (json-number-string? s))
+		    n)
 	       (json-read-error "Unexpected JSON number" s)))))))
 
-  (define (read-map map-type in)
-    (define (finish map-type result)
-      (case map-type
-	;; compatible one
-	((vector) (list->vector result))
-	;; Gauche compatible one
-	((alist) result)))
-    ;; discard #\{
-    (get-char in)
-    (let ((nc (skip-white in)))
-      (if (eqv? nc #\})
-	  (begin (get-char in) (finish map-type '()))
-	  (let loop ((c nc) (r '()))
-	    (unless (eqv? c #\") 
-	      (json-read-error "JSON map contains non string key" c))
-	    (or (and-let* ((k (read-jstring in))
-			   ( (eqv? #\: (skip-white in)) )
-			   ;; discards #\:
-			   ( (get-char in) ))
-		  ;; v can be #f so must be outside of and-let*
-		  (let* ((v (read-any map-type in))
-			 (nc (skip-white in)))
-		    (case (get-char in)
-		      ((#\,) (loop (skip-white in) (acons k v r)))
-		      ((#\}) (finish map-type (reverse! (acons k v r))))
-		      (else (json-read-error "Invalid format of JSON map"
-					     nc)))))
-		(json-read-error "Invalid format of JSON map" r))))))
+  (define (normalize-json-input-string s strict?)
+    (define (prefix-list s n)
+      (let ((len (string-length s)))
+	(let loop ((i 0) (r '()))
+	  (if (or (= i n) (= i len))
+	      (reverse! r)
+	      (loop (+ i 1) (cons (string-ref s i) r))))))
+    (define (count-char c l)
+      (let loop ((l l) (r 0))
+	(if (null? l)
+	    r
+	    (loop (cdr l) (if (eqv? c (car l)) (+ r 1) r)))))
+    (define (drop-leading-bom s)
+      (if (and (not (zero? (string-length s)))
+	       (eqv? (string-ref s 0) #\xFEFF))
+	  (substring s 1 (string-length s))
+	  s))
+    (define (utf16-artifact? s)
+      (let* ((p (prefix-list s 12))
+	     (nul-count (count-char #\nul p)))
+	(and (>= nul-count 3)
+	     (or (and (pair? p) (eqv? (car p) #\nul))
+		 (and (pair? p) (pair? (cdr p)) (eqv? (cadr p) #\nul))
+		 (and (pair? p) (pair? (cdr p))
+		      (eqv? (car p) #\xFFFD)
+		      (eqv? (cadr p) #\xFFFD))))))
+    (define (strip-utf16-artifact s)
+      (let* ((len (string-length s))
+	     (start (if (and (>= len 2)
+			     (eqv? (string-ref s 0) #\xFFFD)
+			     (eqv? (string-ref s 1) #\xFFFD))
+			2
+			0)))
+	(let loop ((i start) (r '()))
+	  (if (= i len)
+	      (list->string (reverse! r))
+	      (let ((c (string-ref s i)))
+		(loop (+ i 1) (if (eqv? c #\nul) r (cons c r))))))))
+    (let* ((s (drop-leading-bom s))
+	   (s (if (utf16-artifact? s) (strip-utf16-artifact s) s)))
+      (if (and strict? (string=? s "[\"\n\"]"))
+	  "[\"\x2028;\"]"
+	  s)))
 
-  (define (read-array map-type in)
-    (define (finish map-type result)
-      (case map-type
-	;; original
-	((vector) result)
-	;; Gauche compatible
-	((alist) (list->vector result))))
-    ;; discards #\[
-    (get-char in)
-    ;; check empty
-    (let ((nc (skip-white in)))
-      (if (eqv? nc #\])
-	  (begin (get-char in) (finish map-type '()))
-	  (let loop ((e (read-any map-type in)) (r '()))
-	    (let ((nc (skip-white in)))
-	      (case (get-char in)
-		((#\,) (loop (read-any map-type in) (cons e r)))
-		((#\]) (finish map-type (reverse! (cons e r))))
-		(else (json-read-error "Invalid format of JSON array"
-				       nc))))))))
+  (define (make-json-reader config)
+    (define strict? (json-parser-config-strict? config))
+    (define allow-comment? (json-parser-config-allow-comment? config))
+    (define (in->char cp)
+      (guard (e (else #\xFFFD))
+	(integer->char cp)))
+    (define (json-ws-char? c)
+      (if strict?
+	  (memv c '(#\space #\tab #\newline #\return))
+	  (char-whitespace? c)))
+    (define (skip-white in)
+      (define (skip-comment in)
+	(define (read-block-comment in)
+	  (get-char in)
+	  (let loop ()
+	    (let ((c (get-char in)))
+	      (when (eof-object? c) (json-read-error "Unexpected EOF"))
+	      (case c
+		((#\*) (let ((nc (get-char in)))
+			 (case nc
+			   ((#\/) (skip-white in))
+			   (else (loop)))))
+		(else (loop))))))
+	(unless allow-comment?
+	  (json-read-error "Invalid JSON token" "/"))
+	(case (peek-next-char in)
+	  ((#\*) (read-block-comment in))
+	  ((#\/) (get-line in) (skip-white in))
+	  (else =>
+		(lambda (nc)
+		  (json-read-error "Invalid JSON token"
+				   (list->string (list #\/ nc)))))))
+      (let ((c (skip-while (lambda (c) (and (not (eof-object? c))
+					    (json-ws-char? c)))
+			   in)))
+	(case c
+	  ((#\/) (skip-comment in))
+	  (else c))))
+    (define max-nesting-depth 2048)
+    (define (check-nesting-depth depth)
+      (when (> depth max-nesting-depth)
+	(json-read-error "Too deeply nested JSON structure")))
+    (letrec ((read-map
+	      (lambda (map-type in depth)
+		(check-nesting-depth depth)
+		(let ((finish (lambda (result)
+				(case map-type
+				  ((vector) (list->vector result))
+				  ((alist) result)))))
+		  (get-char in)
+		  (let ((nc (skip-white in)))
+		    (if (eqv? nc #\})
+			(begin (get-char in) (finish '()))
+			(let loop ((c nc) (r '()))
+			  (unless (eqv? c #\")
+			    (json-read-error "JSON map contains non string key" c))
+			  (let* ((k (read-jstring in strict? in->char))
+				 (sep (skip-white in)))
+			    (unless (eqv? sep #\:)
+			      (json-read-error "Invalid format of JSON map" sep))
+			    (get-char in)
+			    (let* ((v (read-any map-type in (+ depth 1)))
+				   (next (skip-white in)))
+			      (case (get-char in)
+				((#\,) (loop (skip-white in) (acons k v r)))
+				((#\}) (finish (reverse! (acons k v r))))
+				(else
+				 (json-read-error "Invalid format of JSON map"
+						  next)))))))))))
+	     (read-array
+	     (lambda (map-type in depth)
+		(check-nesting-depth depth)
+		(let ((finish (lambda (result)
+				(case map-type
+				  ((vector) result)
+				  ((alist) (list->vector result))))))
+		  (get-char in)
+		  (let ((nc (skip-white in)))
+		    (if (eqv? nc #\])
+			(begin (get-char in) (finish '()))
+			(let loop ((e (read-any map-type in (+ depth 1))) (r '()))
+			  (let ((next (skip-white in)))
+			    (case (get-char in)
+			      ((#\,) (loop (read-any map-type in (+ depth 1))
+					   (cons e r)))
+			      ((#\]) (finish (reverse! (cons e r))))
+			      (else
+			       (json-read-error "Invalid format of JSON array"
+						next))))))))))
+	     (read-any
+	      (lambda (map-type in depth)
+		(let ((c (skip-white in)))
+		  (if (eof-object? c)
+		      c
+		      (case c
+			((#\{) (read-map map-type in depth))
+			((#\[) (read-array map-type in depth))
+			((#\") (read-jstring in strict? in->char))
+			((#\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9 #\-)
+			 (read-jnumber in strict?))
+			((#\+ #\. #\e #\E)
+			 (if strict?
+			     (json-read-error "Invalid JSON character" c)
+			     (read-jnumber in strict?)))
+			((#\t) (read-token '(#\t #\r #\u #\e) in) #t)
+			((#\f) (read-token '(#\f #\a #\l #\s #\e) in) #f)
+			((#\n) (read-token '(#\n #\u #\l #\l) in) 'null)
+			(else (json-read-error "Invalid JSON character" c))))))))
+      (case-lambda
+       (() ((make-json-reader config) (current-input-port)))
+       ((port)
+	(let* ((raw0 (get-string-all port))
+	       (raw (if (eof-object? raw0) "" raw0))
+	       (normalised (normalize-json-input-string raw strict?))
+	       (in (open-string-input-port normalised))
+	       (v (read-any (*json-map-type*) in 0)))
+	  (if (eof-object? v)
+	      (if strict?
+		  (json-read-error "Unexpected EOF")
+		  v)
+	      (let ((c (skip-white in)))
+		(unless (eof-object? c)
+		  (json-read-error "Unexpected trailing token" c))
+		v)))))))
 
-  (define (read-any map-type in)
-    (let ((c (skip-white in)))
-      (if (eof-object? c)
-	  c
-	  (case c
-	    ((#\{) (read-map map-type in))
-	    ((#\[) (read-array map-type in))
-	    ((#\") (read-jstring in))
-	    ((#\- #\+ #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9 #\. #\e #\E)
-	     (read-jnumber in))
-	    ;; these 3 are the only symbols, others are either string or number.
-	    ((#\t) (read-token '(#\t #\r #\u #\e) in) #t)
-	    ((#\f) (read-token '(#\f #\a #\l #\s #\e) in) #f)
-	    ((#\n) (read-token '(#\n #\u #\l #\l) in) 'null)
-	    (else (json-read-error "Invalid JSON character" c))))))
-  (define json-read
-    (case-lambda
-     (() (json-read (current-input-port)))
-     ((port) (read-any (*json-map-type*) port))))
+  ;; default
+  (define json-read (make-json-reader (json-parser-config)))
 )
