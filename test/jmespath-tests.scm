@@ -14,7 +14,7 @@
 (test-begin "JMESPath")
 
 (define files
-  (find-files "./jmespath.test/tests" :pattern "\\.json$"))
+  (find-files "./test/jmespath.test/tests" :pattern "\\.json$"))
 
 (define given-pointer (json-pointer "/given"))
 (define cases-pointer (json-pointer "/cases"))

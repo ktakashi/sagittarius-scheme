@@ -568,48 +568,61 @@
       (validator-context:dynamic-context ctx *recursive-anchor*))))
   (handle-dynamic-validator context schema-path validator))
 
-(define (schema-context:dynamic-validator context dynamic-anchor schema-path)
-  (define root (schema-context-root context))
-  (define dynamic-anchors (root-context-dynamic-anchors root))
-  ;; Now, we are doing a bit sloppy way of resolving dynamic scope here.
-  ;; First we get the farthest scope, by reversing pushed scopes.
-  ;; Then checks if there's a possible dynamic anchor per scope
-  ;; i.e., we set dynamic anchor with `id#anchor` format during complation
-  ;;       so just referring the key
-  (define (search-dynamic-scope anchors ctx)
-    (define scopes
-      (reverse!
-       (filter values
-	       (list-queue-list (validator-context-evaluating-scopes ctx)))))
-    (define ->schema schema-context-schema)
+(define schema-context:dynamic-validator
+  (case-lambda
+   ((context dynamic-anchor schema-path)
+    (define (fallback-validator e ctx)
+      (assertion-violation 'schema-context:dynamic-validator
+			   "No dynamic anchor found" dynamic-anchor
+			   schema-path))
+    (schema-context:dynamic-validator
+     context dynamic-anchor schema-path fallback-validator))
+   ((context dynamic-anchor schema-path fallback-validator)
+    (define root (schema-context-root context))
+    (define dynamic-anchors (root-context-dynamic-anchors root))
+    (define current-id (or (schema-context-schema-id context)
+			   (schema-context-in-id context)))
+    ;; Now, we are doing a bit sloppy way of resolving dynamic scope here.
+    ;; We resolve against outward dynamic scopes first, and only then fallback
+    ;; to the current resource scope.
+    ;; i.e., we set dynamic anchor with `id#anchor` format during compilation
+    ;;       so just referring the key
+    (define (find-dynamic-anchor-in-scopes scope-ids)
+      (let loop ((s* scope-ids))
+	(cond ((null? s*) #f)
+	      (else
+	       (let ((schema (schema-context:find-by-id context (car s*))))
+		 (cond ((not schema) (loop (cdr s*)))
+		       ((schema-context:find-by-dynamic-anchor schema dynamic-anchor))
+		       (else (loop (cdr s*)))))))))
+    (define (search-dynamic-scope anchors ctx)
+      (define scopes
+	(filter values
+		(list-queue-list (validator-context-evaluating-scopes ctx))))
+      (define outward-scopes
+	(if (and current-id (pair? scopes) (equal? current-id (car scopes)))
+	    (cdr scopes)
+	    scopes))
+      (or (find-dynamic-anchor-in-scopes outward-scopes)
+	  (and current-id
+	       (find-dynamic-anchor-in-scopes (list current-id)))))
     
-    (let loop ((s* scopes))
-      (if (null? s*)
-	  ;; no scope? should never happen
-	  (assertion-violation 'schema-context:dynamic-validator
-			       "No dynamic anchor found" dynamic-anchor
-			       schema-path)
-	  (let ((schema (schema-context:find-by-id context (car s*))))
-	    (cond ((not schema) (loop (cdr s*)))
-		  ((schema-context:find-by-dynamic-anchor schema dynamic-anchor))
-		  (else (loop (cdr s*))))))))
-	    
-  (define (schema-context ctx dynamic-anchor)
-    ;; The first case is that root schema contains $dynamicAnchor
-    ;; which means, it is the farthest dynamic scope, easy.
-    (cond ((validator-context:dynamic-context ctx dynamic-anchor))
-	  ;; Now, $dynamicAnchor is one of the schema, most likely
-	  ;; $defs, so we need to search the farthest dynamic scope
-	  ((hashtable-ref dynamic-anchors dynamic-anchor #f) =>
-	   (lambda (anchors) (search-dynamic-scope anchors ctx)))
-	  (else (assertion-violation 'schema-context:dynamic-validator
-				     "[BUG] No dynamic anchor found"
-				     dynamic-anchor))))
-  (define (validator ctx)
-    (schema-validator->core-validator
-     (schema-context-validator
-      (schema-context ctx dynamic-anchor))))
-  (handle-dynamic-validator context schema-path validator))
+    (define (schema-context ctx dynamic-anchor)
+      ;; The first case is that root schema contains $dynamicAnchor
+      ;; which means, it is the farthest dynamic scope, easy.
+      (cond ((validator-context:dynamic-context ctx dynamic-anchor))
+	    ;; Now, $dynamicAnchor is one of the schema, most likely
+	    ;; $defs, so we need to search the farthest dynamic scope
+	    ((hashtable-ref dynamic-anchors dynamic-anchor #f) =>
+	     (lambda (anchors) (search-dynamic-scope anchors ctx)))
+	    (else #f)))
+    (define (validator ctx)
+      (cond ((schema-context ctx dynamic-anchor) =>
+	     (lambda (schema-context)
+	       (schema-validator->core-validator
+		(schema-context-validator schema-context))))
+	    (else fallback-validator)))
+    (handle-dynamic-validator context schema-path validator))))
 
 (define (handle-dynamic-validator context schema-path validator-provier)
   (define (dynamic-validator e ctx) ((validator-provier ctx) e ctx))

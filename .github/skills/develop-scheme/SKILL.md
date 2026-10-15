@@ -1,10 +1,9 @@
 ---
-description: "Develop a new scheme or modify existing libraries"
-name: "Develop Scheme"
+name: develop-scheme
+description: Develop a new scheme or modify existing libraries
+disable-model-invocation: true
 argument-hint: "Describe the feature or enhancement..."
-agent: scheme-develop-agent
 ---
-
 ## User Input
 ```text
 $ARGUMENTS

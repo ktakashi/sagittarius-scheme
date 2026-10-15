@@ -31,6 +31,7 @@
 ;; references
 ;;   - https://tools.ietf.org/html/rfc5321
 ;;   - https://tools.ietf.org/html/rfc5322
+;;   - https://errata.rfc-editor.org/eid4315/ (errata for IPv6 format)
 (library (rfc smtp format)
     (export smtp-valid-address?
 	    ipv4-address?
@@ -39,6 +40,7 @@
 	    (peg)
 	    (peg chars)
 	    (sagittarius generators)
+	    (srfi :1 lists)
 	    (srfi :14 char-sets)
 	    (srfi :127 lseqs)
 	    (rfc :5322))
@@ -47,7 +49,7 @@
 ;; Check against Mailbox rule
 (define (smtp-valid-address? s) (parse-ok? s $mailbox))
 (define (ipv4-address? s)(parse-ok? s $ipv4-address-literal))
-(define (ipv6-address? s) (parse-ok? s $ipv6-addr))
+(define (ipv6-address? s) (parse-ok? s ($or $ipv6-address-literal $ipv6-addr)))
 
 (define (parse-ok? s parser)
   (define in (if (input-port? s)
@@ -63,8 +65,10 @@
 (define ascii/graphic (char-set-intersection char-set:ascii char-set:graphic))
 (define unicode-non-ascii (char-set-difference char-set:full char-set:ascii))
 
-(define qtext-set (char-set-difference ascii/printing (char-set #\\ #\")
-				       unicode-non-ascii))
+(define qtext-set
+  (char-set-union
+   (char-set-difference ascii/printing (char-set #\\ #\"))
+   unicode-non-ascii))
 (define alpha-set (char-set-intersection char-set:ascii char-set:letter))
 (define digit-set (char-set-intersection char-set:ascii char-set:digit))
 (define hex-digit-set (char-set-intersection char-set:ascii char-set:hex-digit))
@@ -81,7 +85,7 @@
 
 (define $qtext-smtp ($char-set-contains? qtext-set))
 (define $quoted-pair-smtp
-  ($seq ($eqv? #\/) ($char-set-contains? ascii/printing)))
+  ($seq ($eqv? #\\) ($char-set-contains? ascii/printing)))
 (define $q-content-smtp ($or $qtext-smtp $quoted-pair-smtp))
 (define $quoted-string ($seq ($eqv? #\") ($many $q-content-smtp) ($eqv? #\")))
 
@@ -111,25 +115,66 @@
 
 (define $ipv6-hex ($many $hexdig 1 4))
 (define $ipv6-seg ($seq ($eqv? #\:) $ipv6-hex))
+(define $:: ($token "::"))
+(define $: ($eqv? #\:))
+(define $? $optional)
+(define ($* p n) ($many p 0 n))
+;; IPv6-comp      =                          "::" [IPv6-hex *6(":" IPv6-hex)]
+;;                | IPv6-hex                 "::" [IPv6-hex *5(":" IPv6-hex)]
+;;                | IPv6-hex 1(":" IPv6-hex) "::" [IPv6-hex *4(":" IPv6-hex)]
+;;                | IPv6-hex 2(":" IPv6-hex) "::" [IPv6-hex *3(":" IPv6-hex)]
+;;                | IPv6-hex 3(":" IPv6-hex) "::" [IPv6-hex *2(":" IPv6-hex)]
+;;                | IPv6-hex 4(":" IPv6-hex) "::" [IPv6-hex *1(":" IPv6-hex)]
+;;                | IPv6-hex 5(":" IPv6-hex) "::" [IPv6-hex]
+;;                | IPv6-hex 6(":" IPv6-hex) "::"
+;;                ; The "::" represents at least one 16-bit groups of
+;;                ; zeros.  No more than 7 groups in addition to the
+;;                ; "::" may be present.
+(define ($ipv6-trail n) ($seq $ipv6-hex ($* $ipv6-seg n)))
 (define $ipv6-comp
-  ;; TODO implement comment part
-  ($seq ($optional ($seq $ipv6-hex ($many $ipv6-seg 0 5)))
-	($token "::")
-	($optional ($seq $ipv6-hex ($many $ipv6-seg 0 5)))))
+  ($or ($seq                                 $:: ($? ($ipv6-trail 6)))
+       ($seq $ipv6-hex                       $:: ($? ($ipv6-trail 5)))
+       ($seq $ipv6-hex ($repeat $ipv6-seg 1) $:: ($? ($ipv6-trail 4)))
+       ($seq $ipv6-hex ($repeat $ipv6-seg 2) $:: ($? ($ipv6-trail 3)))
+       ($seq $ipv6-hex ($repeat $ipv6-seg 3) $:: ($? ($ipv6-trail 2)))
+       ($seq $ipv6-hex ($repeat $ipv6-seg 4) $:: ($? ($ipv6-trail 1)))
+       ($seq $ipv6-hex ($repeat $ipv6-seg 5) $:: ($? $ipv6-hex))
+       ($seq $ipv6-hex ($repeat $ipv6-seg 6) $::)))
+;; IPv6v4-full    = IPv6-hex 5(":" IPv6-hex) ":" IPv4-address-literal
 (define $ipv6v4-full
   ($seq $ipv6-hex ($repeat $ipv6-seg 5) ($eqv? #\:) $ipv4-address-literal))
-(define $ipv6v4-seg ($seq ($eqv? #\:) $snum ($eqv? #\.)))
+
+;; IPv6-full      = IPv6-hex 7(":" IPv6-hex)
+;;
+;;
+;;
+;; IPv6v4-comp    = (                        "::" [IPv6-hex *4(":" IPv6-hex) ":"]
+;;                | IPv6-hex                 "::" [IPv6-hex *3(":" IPv6-hex) ":"]
+;;                | IPv6-hex 1(":" IPv6-hex) "::" [IPv6-hex *2(":" IPv6-hex) ":"]
+;;                | IPv6-hex 2(":" IPv6-hex) "::" [IPv6-hex *1(":" IPv6-hex) ":"]
+;;                | IPv6-hex 3(":" IPv6-hex) "::" [IPv6-hex ":"]
+;;                | IPv6-hex 4(":" IPv6-hex) "::")
+;;                IPv4-address-literal
+;;                ; The "::" represents at least one 16-bit groups of
+;;                ; zeros.  No more than 5 groups in addition to the
+;;                ; "::" and IPv4-address-literal may be present.
+;; manually composing exact match, using $many ends up wrong matching
+(define ($ipv6-seg* n)
+  (define (make-seg n)
+    (apply $seq `(,$ipv6-hex ,@(map (lambda (#:_) $ipv6-seg) (iota n)) ,$:)))
+  (apply $or (map (lambda (n) (make-seg n)) (iota (+ n 1) n -1))))
 (define ipv6v4-comp
-  ($seq ($optional ($seq $ipv6-hex ($many $ipv6-seg 0 3)))
-	($token "::")
-	($optional ($seq $ipv6-hex
-			 ;; peek `:n{1,3}.` not to consume IPv4 segment
-			 ($many ($seq ($peek ($not $ipv6v4-seg)) $ipv6-seg) 0 3)
-			 ($eqv? #\:)))
+  ($seq ($or ($seq                                 $:: ($? ($ipv6-seg* 4)))
+	     ($seq $ipv6-hex                       $:: ($? ($ipv6-seg* 3)))
+	     ($seq $ipv6-hex ($repeat $ipv6-seg 1) $:: ($? ($ipv6-seg* 2)))
+	     ($seq $ipv6-hex ($repeat $ipv6-seg 2) $:: ($? ($ipv6-seg* 1)))
+	     ($seq $ipv6-hex ($repeat $ipv6-seg 3) $:: ($? ($ipv6-seg* 0)))
+	     ($seq $ipv6-hex ($repeat $ipv6-seg 4) $::))
 	$ipv4-address-literal))
 (define $ipv6-full ($seq $ipv6-hex ($repeat $ipv6-seg 7)))
 (define $ipv6-addr ($or $ipv6-full $ipv6v4-full ipv6v4-comp $ipv6-comp))
-(define $ipv6-address-literal ($seq ($token "IPv6:") $ipv6-addr))
+(define $ipv6-address-literal
+  ($seq ($or ($token "IPv6:") ($token "ipv6:")) $ipv6-addr))
 
 (define $dcontent ($char-set-contains? dcontent-set))
 (define $standardized-tag $ldh-str)

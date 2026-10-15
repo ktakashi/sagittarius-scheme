@@ -1,10 +1,9 @@
 ---
-description: "Create a user story with requirements, tasks, and dependencies. Use when starting a new feature or enhancement."
-name: "Create User Story"
+name: create-user-story
+description: Create a user story with requirements, tasks, and dependencies. Use when starting a new feature or enhancement.
+disable-model-invocation: true
 argument-hint: "Describe the feature or enhancement..."
-agent: "agent"
 ---
-
 # Create User Story
 
 Create a concise user story based on the provided description.

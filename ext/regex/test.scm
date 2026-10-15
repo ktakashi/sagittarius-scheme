@@ -1930,4 +1930,54 @@
 
 (test-error (compile-regex "\\c@"))
 
+;; character property
+(define (test-property name :optional (error? #f))
+  (define (check name)
+    (if error?
+	(test-error (string-append "invalid character property: " name)
+		    (compile-regex (string-append "\\p{" name "}")))
+	(test-assert (string-append "character property: " name)
+		     (compile-regex (string-append "\\p{" name "}")))))
+  (check name)
+  (check (string-upcase name))
+  (check (string-downcase name)))
+  
+;; properties are charset names
+(test-property "Lower-Case")
+(test-property "Upper-Case")
+(test-property "Title-Case")
+(test-property "Letter")
+(test-property "Digit")
+(test-property "Letter+Digit")
+(test-property "Graphic")
+(test-property "Printing")
+(test-property "Whitespace")
+(test-property "ISO-control")
+(test-property "Punctuation")
+(test-property "Symbol")
+(test-property "Hex-Digit")
+(test-property "Blank")
+(test-property "Ascii")
+(test-property "Empty")
+(test-property "Full")
+
+;; POSIXY property
+(define (test-posix-property name)
+  (test-assert (string-append "POSIX property: " name)
+	       (compile-regex (string-append "[[" name "]]"))))
+(test-posix-property ":ascii:") 
+(test-posix-property ":alnum:") 
+(test-posix-property ":alpha:") 
+(test-posix-property ":blank:") 
+(test-posix-property ":cntrl:") 
+(test-posix-property ":digit:") 
+(test-posix-property ":graph:") 
+(test-posix-property ":lower:") 
+(test-posix-property ":print:") 
+(test-posix-property ":punct:") 
+(test-posix-property ":space:") 
+(test-posix-property ":upper:") 
+(test-posix-property ":xdigit:")
+
+
 (test-end)

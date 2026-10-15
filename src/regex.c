@@ -1,6 +1,6 @@
-/* regex2.c                                               -*- coding: utf-8; -*-
+/* regex.c                                                -*- coding: utf-8; -*-
  *
- *   Copyright (c) 2010-2021  Takashi Kato <ktakashi@ymail.com>
+ *   Copyright (c) 2010-2026  Takashi Kato <ktakashi@ymail.com>
  *
  *   Redistribution and use in source and binary forms, with or without
  *   modification, are permitted provided that the following conditions
@@ -413,18 +413,17 @@ static SgObject read_char_property(lexer_ctx_t *ctx, SgChar first)
     /* a bit tricky. char property must start with 'In' or 'Is'. I have no idea
        what the difference is. So for now we treat both the same.
      */
-    SgObject es;
-    SgGloc *gloc;
-    long pos;
+    if (ctx->len - ctx->pos <= 2) {
+      raise_syntax_error(ctx, ctx->pos, UC("Invalid character property"));
+    }
+    long offset = 0;
     /* first check the property has 'Is' or 'In. */
-    if (ctx->len-ctx->pos <= 2 ||
-	!(ctx->str[ctx->pos] == 'I' &&
-	  (ctx->str[ctx->pos + 1] == 's' || ctx->str[ctx->pos + 1] == 'n'))) {
-      raise_syntax_error(ctx, ctx->pos,
-			 UC("Invalid character property name."));
+    if (ctx->str[ctx->pos] == 'I' &&
+	(ctx->str[ctx->pos + 1] == 's' || ctx->str[ctx->pos + 1] == 'n')) {
+      offset = 2;
     }
 
-    pos = ustrchr(ctx->str+ctx->pos+2, '}', ctx->len-ctx->pos-2);
+    long pos = ustrchr(ctx->str+ctx->pos, '}', ctx->len-ctx->pos);
     if (pos == -1) {
       /* no closing '}' */
       raise_syntax_error(ctx, ctx->pos,
@@ -434,10 +433,11 @@ static SgObject read_char_property(lexer_ctx_t *ctx, SgChar first)
        from builtin charset.
      */
     /* does not seem smart solution ... */
-    es = SG_MAKE_STRING("char-set:");
-    es = Sg_StringAppendC(SG_STRING(es), ctx->str+ctx->pos+2, pos);
+    SgObject lib = Sg_VM()->currentLibrary;
+    SgObject es = SG_MAKE_STRING("char-set:");
+    es = Sg_StringAppendC(SG_STRING(es), ctx->str+ctx->pos+offset, pos);
     es = Sg_StringDownCase(SG_STRING(es));
-    gloc = Sg_FindBinding(Sg_VM()->currentLibrary, Sg_Intern(es), SG_FALSE);
+    SgGloc *gloc = Sg_FindBinding(lib, Sg_Intern(es), SG_FALSE);
     if (SG_FALSEP(gloc) || !SG_CHAR_SET_P(SG_GLOC_GET(gloc))) {
       raise_syntax_error(ctx, ctx->pos,
 			 UC("Given character property is not supported"));
