@@ -2,7 +2,7 @@
 ;;;
 ;;; text/json/parser.scm - JSON parser
 ;;;  
-;;;   Copyright (c) 2018  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2018-2026  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -267,8 +267,9 @@
 		  (or ((*json:number-handler*) v)
 		      (json-parse-error "Invalid JSON number" s))))))
 
-(define (json:number in)
-  ((if (*json:strict?*) json:number-strict json:number-loose) in))
+(define json:number
+  ($cond ((*json:strict?*) json:number-strict)
+	 (else json:number-loose)))
 
 (define json:unescaped
   ($cs (char-set-union
@@ -284,7 +285,7 @@
     (if (<= #xd800 cp #xdfff)
 	#\xFFFD
 	(integer->char cp))))
-(define json:escaped-strict
+(define json:escaped
   ($seq ($eqv? #\\)
 	($or ($do (($eqv? #\")) ($return #\"))
 	     ($do (($eqv? #\\)) ($return #\\))
@@ -297,24 +298,8 @@
 	     ($do (($eqv? #\u))
 		  (cp json:code-point)
 		  ($return (code-point->char cp)))
-	     ($error "Invalid JSON escape character"))))
-(define json:escaped-loose
-  ($seq ($eqv? #\\)
-	($or ($do (($eqv? #\")) ($return #\"))
-	     ($do (($eqv? #\\)) ($return #\\))
-	     ($do (($eqv? #\/)) ($return #\/))
-	     ($do (($eqv? #\b)) ($return #\backspace))
-	     ($do (($eqv? #\f)) ($return #\page))
-	     ($do (($eqv? #\n)) ($return #\linefeed))
-	     ($do (($eqv? #\r)) ($return #\return))
-	     ($do (($eqv? #\t)) ($return #\tab))
-	     ($do (($eqv? #\u))
-		  (cp json:code-point)
-		  ($return (code-point->char cp)))
-	     $getc)))
-
-(define (json:escaped in)
-  ((if (*json:strict?*) json:escaped-strict json:escaped-loose) in))
+	     ($cond ((*json:strict?*) ($error "Invalid JSON escape character"))
+		    (else $getc)))))
 
 (define (not-in-escape in) (($not (*json:escape-required*)) in))
 (define json:char
