@@ -33,12 +33,14 @@
     (export json-parser-config? make-json-parser-config
 	    json-parser-config-strict?
 	    json-parser-config-allow-comment?
+	    json-parser-config-max-nesting-depth
 	    (rename (json-parser-config-builder json-parser-config)))
     (import (rnrs)
 	    (record builder))
 (define-record-type json-parser-config
   (fields strict?
-	  allow-comment?))
+	  allow-comment?
+	  max-nesting-depth))
 
 ;; default non-strict, allow comment
 (define-syntax json-parser-config-builder
