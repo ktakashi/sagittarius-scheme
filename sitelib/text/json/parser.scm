@@ -38,6 +38,7 @@
 	    json-parse-error?
 	    *json:escape-required*
 	    *json:raise-error?*
+	    *json:strict?*
 
 	    ;; for convenience ;)
 	    *json:array-handler*
@@ -46,6 +47,7 @@
 	    *json:boolean-handler*
 	    *json:number-handler*
 	    *json:string-handler*
+
 	    
 	    json:null
 	    json:number
@@ -56,7 +58,11 @@
 	    json:array
 	    json:value
 
-	    make-json-parser)
+	    make-json-parser
+
+	    json-parser-config? make-json-parser-config
+	    json-parser-config
+	    )
     (import (rnrs)
 	    (rnrs mutable-strings)
 	    (peg)
@@ -365,21 +371,36 @@
 
 (define (make-json-parser config)
   (define strict? (json-parser-config-strict? config))
+  (define raise-error? (json-parser-config-raise-error? config))
   (define allow-comment? (json-parser-config-allow-comment? config))
   (define max-nesting-depth (json-parser-config-max-nesting-depth config))
+  (define array-handler (json-parser-config-array-handler config))
+  (define object-handler (json-parser-config-object-handler config))
+  (define numbert-handler (json-parser-config-number-handler config))
+  (define string-handler (json-parser-config-string-handler config))
+  (define null-handler (json-parser-config-null-handler config))
+  (define boolean-handler (json-parser-config-boolean-handler config))
   (define (normalize-lseq in)
     (let* ((pin (lseq->char-input-port in))
 	   (nin (make-json-normalizing-input-port pin)))
       (generator->lseq (->generator nin))))
   (let ((parser
-	 ($parameterize ((*json:raise-error?* #t)
+	 ($parameterize ((*json:raise-error?* raise-error?)
 			 (*json:strict?* strict?)
-			 (*json:allow-comment?* allow-comment?))
-	  ($do ws (v json:value) ws ($eof) ($return v)))))
+			 (*json:allow-comment?* allow-comment?)
+			 (*json:array-handler* array-handler)
+			 (*json:object-handler* object-handler)
+			 (*json:number-handler* numbert-handler)
+			 (*json:string-handler* string-handler)
+			 (*json:boolean-handler* boolean-handler)
+			 (*json:null-handler* null-handler))
+	   ($do ws (v json:value) ws ($eof) ($return v)))))
     (lambda (in)
       (let* ((ni (if strict? (normalize-lseq in) in)))
 	(when max-nesting-depth (ensure-json-depth ni max-nesting-depth))
 	(parser ni)))))
 (define json:parser
-  (make-json-parser (json-parser-config (strict? #t) (allow-comment? #f))))
+  (make-json-parser (json-parser-config (strict? #t)
+					(raise-error? #f)
+					(allow-comment? #f))))
 )

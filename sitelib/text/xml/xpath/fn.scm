@@ -2263,21 +2263,25 @@
 		(escape? (put-string out (escape-char c)))
 		(else (put-string out (fallback (escape-char c))))))))))
 
+(define (xml-json-parser-config option)
+  (json-parser-config (strict? #t)
+		      (allow-comment? #f)
+		      (array-handler xml-array-handler)
+		      (object-handler (xml-object-handler option))
+		      (null-handler xml-null-handler)
+		      (number-handler xml-number-handler)
+		      (string-handler (xml-string-handler option))))
 (define xpath-fn:parse-json
   (case-lambda
    ((text) (xpath-fn:parse-json text default-json-operation))
    ((text options)
     ;; TODO setup handlers here
-    (let ((lseq (generator->lseq (string->generator text))))
-      (parameterize ((*json:array-handler* xml-array-handler)
-		     (*json:object-handler* (xml-object-handler options))
-		     (*json:null-handler* xml-null-handler)
-		     (*json:number-handler* xml-number-handler)
-		     (*json:string-handler* (xml-string-handler options)))
-      (let-values (((s v nl) (json:parser lseq)))
+    (let ((lseq (generator->lseq (string->generator text)))
+	  (parser (make-json-parser (xml-json-parser-config options))))
+      (let-values (((s v nl) (parser lseq)))
 	(if (parse-success? s)
 	    v
-	    (xqt-error 'FOJS0001 'xpath-fn:parse-json "Invalid JSON" text))))))))
+	    (xqt-error 'FOJS0001 'xpath-fn:parse-json "Invalid JSON" text)))))))
 ;;;; 17.5.2 fn:json-doc
 (define xpath-fn:json-doc
   (case-lambda

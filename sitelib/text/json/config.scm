@@ -33,17 +33,40 @@
     (export json-parser-config? make-json-parser-config
 	    json-parser-config-strict?
 	    json-parser-config-allow-comment?
+	    json-parser-config-raise-error?
 	    json-parser-config-max-nesting-depth
+	    json-parser-config-array-handler
+	    json-parser-config-object-handler
+	    json-parser-config-null-handler
+	    json-parser-config-boolean-handler
+	    json-parser-config-number-handler
+	    json-parser-config-string-handler
 	    (rename (json-parser-config-builder json-parser-config)))
     (import (rnrs)
 	    (record builder))
 (define-record-type json-parser-config
   (fields strict?
 	  allow-comment?
-	  max-nesting-depth))
+	  raise-error?
+	  max-nesting-depth
+	  array-handler
+	  object-handler
+	  null-handler
+	  boolean-handler
+	  number-handler
+	  string-handler
+	  ))
 
 ;; default non-strict, allow comment
 (define-syntax json-parser-config-builder
-  (make-record-builder json-parser-config ((allow-comment? #t))))
+  (make-record-builder json-parser-config
+    ((allow-comment? #t)
+     (raise-error? #t)
+     (array-handler values)
+     (object-handler list->vector)
+     (null-handler (lambda () 'null))
+     (boolean-handler values)
+     (number-handler values)
+     (string-handler values))))
 
 )

@@ -29,6 +29,7 @@
 ;;;
 
 ;; For flexibile object construction
+#!nounbound
 (library (text json parser-parameters)
     (export *json:array-handler*
 	    *json:object-handler*
