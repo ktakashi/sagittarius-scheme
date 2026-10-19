@@ -283,3 +283,4 @@ sagittarius-package
 # Git repository during test execution
 /test/JSON-Schema-Test-Suite
 /test/jmespath.test
+/test/JSONTestSuite
