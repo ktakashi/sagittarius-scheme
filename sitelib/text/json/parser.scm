@@ -39,6 +39,7 @@
 	    *json:escape-required*
 	    *json:raise-error?*
 	    *json:strict?*
+	    *json:allow-comment?*
 
 	    ;; for convenience ;)
 	    *json:array-handler*
@@ -84,7 +85,6 @@
 (define *json:raise-error?* (make-parameter #f))
 (define *json:strict?* (make-parameter #t))
 (define *json:allow-comment?* (make-parameter #f))
-(define *json:ws-parser* (make-parameter #f))
 
 (define (json-parse-error message . irr)
   (define c (condition (make-json-parse-error)
@@ -384,21 +384,24 @@
     (let* ((pin (lseq->char-input-port in))
 	   (nin (make-json-normalizing-input-port pin)))
       (generator->lseq (->generator nin))))
-  (let ((parser
-	 ($parameterize ((*json:raise-error?* raise-error?)
-			 (*json:strict?* strict?)
-			 (*json:allow-comment?* allow-comment?)
-			 (*json:array-handler* array-handler)
-			 (*json:object-handler* object-handler)
-			 (*json:number-handler* numbert-handler)
-			 (*json:string-handler* string-handler)
-			 (*json:boolean-handler* boolean-handler)
-			 (*json:null-handler* null-handler))
-	   ($do ws (v json:value) ws ($eof) ($return v)))))
-    (lambda (in)
-      (let* ((ni (if strict? (normalize-lseq in) in)))
-	(when max-nesting-depth (ensure-json-depth ni max-nesting-depth))
-	(parser ni)))))
+  (define (d v p) (or v (p)))
+  
+  (lambda (in)
+    (let ((ni (if strict? (normalize-lseq in) in))
+	  (parser
+	   ($parameterize
+	    ((*json:raise-error?* raise-error?)
+	     (*json:strict?* strict?)
+	     (*json:allow-comment?* allow-comment?)
+	     (*json:array-handler* (d array-handler *json:array-handler*))
+	     (*json:object-handler* (d object-handler *json:object-handler*))
+	     (*json:number-handler* (d numbert-handler *json:number-handler*))
+	     (*json:string-handler* (d string-handler *json:string-handler*))
+	     (*json:boolean-handler* (d boolean-handler *json:boolean-handler*))
+	     (*json:null-handler* (d null-handler *json:null-handler*)))
+	    ($do ws (v json:value) ws ($eof) ($return v)))))
+      (when max-nesting-depth (ensure-json-depth ni max-nesting-depth))
+      (parser ni))))
 (define json:parser
   (make-json-parser (json-parser-config (strict? #t)
 					(raise-error? #f)

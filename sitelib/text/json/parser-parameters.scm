@@ -41,7 +41,7 @@
 	    (srfi :39 parameters))
 
 (define *json:array-handler* (make-parameter (lambda (v) v)))
-(define *json:object-handler* (make-parameter (lambda (v) (list->vector v))))
+(define *json:object-handler* (make-parameter list->vector))
 (define *json:null-handler* (make-parameter (lambda () 'null)))
 (define *json:boolean-handler* (make-parameter (lambda (v) v)))
 (define *json:number-handler* (make-parameter (lambda (v) v)))
