@@ -3,6 +3,7 @@
 
 (import (rnrs)
 	(text json)
+	(text json parser-parameters)
 	(srfi :26)
 	(srfi :39)
 	(srfi :64 testing))
@@ -141,5 +142,17 @@
 	    (parse-json-string "{\"x\" /* comment */ :  1}"))
 (test-equal "comment (3)" #(("x" . 1))
 	    (parse-json-string "{/* comment */\"x\":  1}"))
+
+(test-equal "dynamic handlers (json-read)"
+	    '(object ("K" . #(2 "A" true-value null-value)))
+	    (parameterize ((*json:array-handler* list->vector)
+			   (*json:object-handler* (lambda (entries)
+						    (cons 'object entries)))
+			   (*json:null-handler* (lambda () 'null-value))
+			   (*json:boolean-handler*
+			    (lambda (v) (if v 'true-value 'false-value)))
+			   (*json:number-handler* (lambda (n) (+ n 1)))
+			   (*json:string-handler* string-upcase))
+	      (parse-json-string "{\"k\": [1, \"a\", true, null]}")))
 
 (test-end)

@@ -61,12 +61,6 @@
 (define-syntax json-parser-config-builder
   (make-record-builder json-parser-config
     ((allow-comment? #t)
-     (raise-error? #t)
-     (array-handler values)
-     (object-handler list->vector)
-     (null-handler (lambda () 'null))
-     (boolean-handler values)
-     (number-handler values)
-     (string-handler values))))
+     (raise-error? #t))))
 
 )

@@ -39,8 +39,8 @@
 
 (define (json=? a b)
   (case (*json-map-type*)
-    ((vector) (vector-json=? a b))
-    ((alist)  (alist-json=? a b))))
+    ((alist)  (alist-json=? a b))
+    (else     (vector-json=? a b))))
 
 (define (vector-json=? a b)
   (define (entry=? a b)
