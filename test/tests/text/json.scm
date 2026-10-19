@@ -132,4 +132,26 @@
     (let-values (((out e) (open-string-output-port)))
       (json-write/pretty json out)
       (test-equal "JSON pretty print" formatted (e)))))
+
+(test-equal "comment (1)" #(("x" . 1))
+	    (parse-json-string "{\"x\": 1 /* comment */}"))
+(test-equal "comment (2)" #(("x" . 1))
+	    (parse-json-string "{\"x\": /* comment */ 1}"))
+(test-equal "comment (3)" #(("x" . 1))
+	    (parse-json-string "{\"x\" /* comment */ :  1}"))
+(test-equal "comment (3)" #(("x" . 1))
+	    (parse-json-string "{/* comment */\"x\":  1}"))
+
+(test-equal "dynamic handlers (json-read)"
+	    '(object ("K" . #(2 "A" true-value null-value)))
+	    (parameterize ((*json:array-handler* list->vector)
+			   (*json:object-handler* (lambda (entries)
+						    (cons 'object entries)))
+			   (*json:null-handler* (lambda () 'null-value))
+			   (*json:boolean-handler*
+			    (lambda (v) (if v 'true-value 'false-value)))
+			   (*json:number-handler* (lambda (n) (+ n 1)))
+			   (*json:string-handler* string-upcase))
+	      (parse-json-string "{\"k\": [1, \"a\", true, null]}")))
+
 (test-end)

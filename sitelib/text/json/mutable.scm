@@ -63,8 +63,8 @@
 ;; it uses hashtable for json object, and flexible array for array
 (define (json->mutable-json json)
   (case (*json-map-type*)
-    ((vector) (->mutable-json json))
-    ((alist) (->mutable-json (alist-json->vector-json json)))))
+    ((alist) (->mutable-json (alist-json->vector-json json)))
+    (else (->mutable-json json))))
 ;; internal
 (define (->mutable-json json)
   (cond ((vector? json) (make-mutable-json-object json))
@@ -84,8 +84,8 @@
 	  (else mjson)))
   (let ((json (convert mutable-json)))
     (case (*json-map-type*)
-      ((vector) (convert json))
-      ((alist) (convert (vector-json->alist-json json))))))
+      ((alist) (convert (vector-json->alist-json json)))
+      (else (convert json)))))
 
 ;; we are exporting mutable json so, make a proper type...
 (define-record-type mutable-json)

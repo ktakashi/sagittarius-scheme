@@ -2,7 +2,7 @@
 ;;;
 ;;; text/json/parser.scm - JSON parser
 ;;;  
-;;;   Copyright (c) 2018  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2018-2026  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -38,6 +38,8 @@
 	    json-parse-error?
 	    *json:escape-required*
 	    *json:raise-error?*
+	    *json:strict?*
+	    *json:allow-comment?*
 
 	    ;; for convenience ;)
 	    *json:array-handler*
@@ -46,6 +48,7 @@
 	    *json:boolean-handler*
 	    *json:number-handler*
 	    *json:string-handler*
+
 	    
 	    json:null
 	    json:number
@@ -54,51 +57,34 @@
 	    json:false
 	    json:object
 	    json:array
-	    json:value)
+	    json:value
+
+	    make-json-parser
+
+	    json-parser-config? make-json-parser-config
+	    json-parser-config
+	    )
     (import (rnrs)
+	    (rnrs mutable-strings)
 	    (peg)
 	    (peg chars)
 	    (sagittarius generators)
 	    (srfi :14 char-sets)
 	    (srfi :39 parameters)
 	    (srfi :127 lseqs)
+	    (text json config)
 	    (text json errors)
+	    (text json normalize)
 	    (text json parser-parameters))
-#|
-;; Ironically this is slower than PEG...
-;; convert lazy sequence to input port.
-(define (lseq->char-input-port lseq)
-  (define current lseq)
-  (define (read! s start count)
-    (let loop ((i 0) (seq current))
-      (cond ((= i count) (set! current seq) i)
-	    ((null? seq) (set! current '()) i)
-	    (else
-	     (string-set! s (+ i start) (lseq-car seq))
-	     (loop (+ i 1) (lseq-cdr seq))))))
-  ;; we do sloppy way
-  (define (get-position)
-    (let loop ((i 0) (seq lseq))
-      (cond ((eq? seq current) i)
-	    ((null? seq) i)
-	    (else (loop (+ i 1) (lseq-cdr seq))))))
-  (define (set-position! n)
-    (do ((i 0 (+ i 1)) (seq lseq (lseq-cdr seq)))
-	((or (= i n) (null? seq)) (set! current seq))))
-  (values (make-custom-textual-input-port "lseq-input-port" read!
-					  get-position set-position! #f)
-	  (lambda () current)))
-(define (json:parser l)
-  (let-values (((in nl) (lseq->char-input-port l)))
-    (let ((r (json-read in)))
-      (return-result r (nl)))))
-|#
+
 (define-condition-type &json-parse &json
   make-json-parse-error json-parse-error?)
 ;; If the JSON is embedded to somewhere (i.e. JMESPath) it may require
 ;; extra escape rule.
 (define *json:escape-required* (make-parameter #f))
 (define *json:raise-error?* (make-parameter #f))
+(define *json:strict?* (make-parameter #t))
+(define *json:allow-comment?* (make-parameter #f))
 
 (define (json-parse-error message . irr)
   (define c (condition (make-json-parse-error)
@@ -121,7 +107,88 @@
 (define $getc $any)
 (define $peekc ($peek $getc))
 
-(define ws ($many ($cs (char-set #\space #\tab #\newline #\return))))
+(define (skip-ws in allow-comment?)
+  (define (json-ws-char? c)
+    (memv c '(#\space #\tab #\newline #\return)))
+  (define (skip-line-comment in)
+    (let loop ((in in))
+      (if (null? in)
+	  in
+	  (let ((c (lseq-car in)))
+	    (if (eqv? c #\newline)
+		(lseq-cdr in)
+		(loop (lseq-cdr in)))))))
+  (define (skip-block-comment in)
+    (let loop ((in in))
+      (when (null? in) (json-parse-error "Unexpected EOF"))
+      (let ((c (lseq-car in))
+	    (r (lseq-cdr in)))
+	(if (eqv? c #\*)
+	    (begin
+	      (when (null? r) (json-parse-error "Unexpected EOF"))
+	      (if (eqv? (lseq-car r) #\/)
+		  (lseq-cdr r)
+		  (loop r)))
+	    (loop r)))))
+  (let loop ((in in))
+    (if (null? in)
+	in
+	(let ((c (lseq-car in)))
+	  (cond ((json-ws-char? c)
+		 (loop (lseq-cdr in)))
+		((and allow-comment?
+		      (eqv? c #\/)
+		      (pair? (lseq-cdr in)))
+		 (let ((nc (lseq-car (lseq-cdr in))))
+		   (cond ((eqv? nc #\/)
+			  (loop (skip-line-comment (lseq-cdr (lseq-cdr in)))))
+			 ((eqv? nc #\*)
+			  (loop (skip-block-comment (lseq-cdr (lseq-cdr in)))))
+			 (else in))))
+		(else in))))))
+
+(define (json:ws in)
+  (return-result '() (skip-ws in (*json:allow-comment?*))))
+(define ws json:ws)
+
+(define (ensure-json-depth in max-depth)
+  (let loop ((in in) (depth 0) (in-string? #f) (escape? #f))
+    (unless (null? in)
+      (let ((c (lseq-car in)))
+	(cond (in-string?
+	       (cond (escape? (loop (lseq-cdr in) depth #t #f))
+		     ((eqv? c #\\) (loop (lseq-cdr in) depth #t #t))
+		     ((eqv? c #\") (loop (lseq-cdr in) depth #f #f))
+		     (else (loop (lseq-cdr in) depth #t #f))))
+	      ((eqv? c #\") (loop (lseq-cdr in) depth #t #f))
+	      ((or (eqv? c #\[) (eqv? c #\{))
+	       (let ((n (+ depth 1)))
+		 (when (> n max-depth)
+		   (json-parse-error "Too deeply nested JSON structure"))
+		 (loop (lseq-cdr in) n #f #f)))
+	      ((or (eqv? c #\]) (eqv? c #\}))
+	       (loop (lseq-cdr in) (max 0 (- depth 1)) #f #f))
+	      (else
+	       (loop (lseq-cdr in) depth #f #f)))))))
+
+(define (lseq->char-input-port lseq)
+  (define current lseq)
+  (define position 0)
+  (define (read! s start count)
+    (let loop ((i 0))
+      (cond ((= i count) i)
+	    ((null? current) i)
+	    (else
+	     (string-set! s (+ i start) (lseq-car current))
+	     (set! current (lseq-cdr current))
+	     (set! position (+ position 1))
+	     (loop (+ i 1))))))
+  (define (get-position) position)
+  (define (set-position! n)
+    (assertion-violation 'lseq->char-input-port
+			 "Setting position is not supported" n))
+  (make-custom-textual-input-port "json-lseq-input-port"
+				  read! get-position set-position! #f))
 
 (define begin-array ($seq ws ($eqv? #\[) ws))
 (define begin-object ($seq ws ($eqv? #\{) ws))
@@ -145,7 +212,7 @@
   ($satisfy
    (lambda (c)
      (memv c '(#\- #\+ #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9 #\. #\e #\E)))))
-(define json:number
+(define json:number-loose
   ($do (c* ($many num-set 1))
        ($return (let* ((s (list->string c*))
 		       (v (string->number s)))
@@ -179,6 +246,36 @@
 ;; 		       (v (string->number s)))
 ;; 		  (or v
 ;; 		      (json-parse-error "Invalid JSON number" s))))))
+(define digit ($cs (string->char-set "0123456789")))
+(define json:int
+  ($or ($do (($eqv? #\0)) ($return "0"))
+       ($do (c ($cs (string->char-set "123456789")))
+	    (c* ($many digit))
+	    ($return (apply string c c*)))))
+(define json:frac
+  ($do (($eqv? #\.))
+       (c* ($many digit 1))
+       ($return (list->string c*))))
+(define json:exp
+  ($do (e ($or ($eqv? #\e) ($eqv? #\E)))
+       (s ($optional ($or ($eqv? #\-) ($eqv? #\+)) #f))
+       (c* ($many digit 1))
+       ($return (if s
+		    (apply string e s c*)
+		    (apply string e c*)))))
+(define json:number-strict
+  ($do (sig ($optional ($do (($eqv? #\-)) ($return "-")) ""))
+       (int json:int)
+       (frac ($optional json:frac ""))
+       (exp  ($optional json:exp ""))
+       ($return (let* ((s (string-append sig int frac exp))
+		       (v (string->number s)))
+		  (or ((*json:number-handler*) v)
+		      (json-parse-error "Invalid JSON number" s))))))
+
+(define json:number
+  ($cond ((*json:strict?*) json:number-strict)
+	 (else json:number-loose)))
 
 (define json:unescaped
   ($cs (char-set-union
@@ -189,12 +286,16 @@
 (define json:code-point
   ($do (c* ($repeat ($cs char-set:hex-digit) 4))
        ($return (string->number (list->string c*) 16))))
+(define (code-point->char cp)
+  (guard (e (else #\xFFFD))
+    (if (<= #xd800 cp #xdfff)
+	#\xFFFD
+	(integer->char cp))))
 (define json:escaped
   ($seq ($eqv? #\\)
-	;; The same as (text json parse)
-	($or ;;($do (($eqv? #\")) ($return #\"))
-	     ;;($do (($eqv? #\\)) ($return #\\))
-	     ;;($do (($eqv? #\/)) ($return #\/))
+	($or ($do (($eqv? #\")) ($return #\"))
+	     ($do (($eqv? #\\)) ($return #\\))
+	     ($do (($eqv? #\/)) ($return #\/))
 	     ($do (($eqv? #\b)) ($return #\backspace))
 	     ($do (($eqv? #\f)) ($return #\page))
 	     ($do (($eqv? #\n)) ($return #\linefeed))
@@ -202,17 +303,9 @@
 	     ($do (($eqv? #\t)) ($return #\tab))
 	     ($do (($eqv? #\u))
 		  (cp json:code-point)
-		  ($if (<= #xd800 cp #xdbff)
-		       ($do (($eqv? #\\)) (($eqv? #\u))
-			    (cp2 json:code-point)
-			    ($if (<= #xdc00 cp2 #xdfff)
-				 ($return (integer->char
-					   (+ #x10000
-					      (* (- cp #xd800) #x400)
-					      (- cp2 #xdc00))))
-				 ($error "Invalid unicode code point")))
-		       ($lazy ($return (integer->char cp)))))
-	     $getc)))
+		  ($return (code-point->char cp)))
+	     ($cond ((*json:strict?*) ($error "Invalid JSON escape character"))
+		    (else $getc)))))
 
 (define (not-in-escape in) (($not (*json:escape-required*)) in))
 (define json:char
@@ -245,7 +338,10 @@
        ($return ((*json:array-handler*) v*))))
 
 (define json:member
-  ($do (k json:string) name-separactor (v json:value) ($return (cons k v))))
+  ($do (k json:string)
+       (($or name-separactor ($error "Invalid JSON object, missing :")))
+       (v json:value)
+       ($return (cons k v))))
 (define object-values
   ($optional ($do (($not ($eqv? #\})))
 		  (v1 json:member)
@@ -265,14 +361,49 @@
 	($cond ((eqv? #\{ c) json:object)
 	       ((eqv? #\[ c) json:array)
 	       ((eqv? #\" c) json:string)
-	       ((memv c '(#\- #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9))
+	       ((memv c '(#\- #\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9
+			  #\+ #\. #\e #\E))
 		json:number)
 	       ((eqv? #\t c) json:true)
 	       ((eqv? #\f c) json:false)
 	       ((eqv? #\n c) json:null)
 	       (else ($error "Invalid JSON character"))))))
 
+(define (make-json-parser config)
+  (define strict? (json-parser-config-strict? config))
+  (define raise-error? (json-parser-config-raise-error? config))
+  (define allow-comment? (json-parser-config-allow-comment? config))
+  (define max-nesting-depth (json-parser-config-max-nesting-depth config))
+  (define array-handler (json-parser-config-array-handler config))
+  (define object-handler (json-parser-config-object-handler config))
+  (define numbert-handler (json-parser-config-number-handler config))
+  (define string-handler (json-parser-config-string-handler config))
+  (define null-handler (json-parser-config-null-handler config))
+  (define boolean-handler (json-parser-config-boolean-handler config))
+  (define (normalize-lseq in)
+    (let* ((pin (lseq->char-input-port in))
+	   (nin (make-json-normalizing-input-port pin)))
+      (generator->lseq (->generator nin))))
+  (define (d v p) (or v (p)))
+  
+  (lambda (in)
+    (let ((ni (if strict? (normalize-lseq in) in))
+	  (parser
+	   ($parameterize
+	    ((*json:raise-error?* raise-error?)
+	     (*json:strict?* strict?)
+	     (*json:allow-comment?* allow-comment?)
+	     (*json:array-handler* (d array-handler *json:array-handler*))
+	     (*json:object-handler* (d object-handler *json:object-handler*))
+	     (*json:number-handler* (d numbert-handler *json:number-handler*))
+	     (*json:string-handler* (d string-handler *json:string-handler*))
+	     (*json:boolean-handler* (d boolean-handler *json:boolean-handler*))
+	     (*json:null-handler* (d null-handler *json:null-handler*)))
+	    ($do ws (v json:value) ws ($eof) ($return v)))))
+      (when max-nesting-depth (ensure-json-depth ni max-nesting-depth))
+      (parser ni))))
 (define json:parser
-  ($parameterize ((*json:raise-error?* #t))
-   ($do ws (v json:value) ws ($return v))))
+  (make-json-parser (json-parser-config (strict? #t)
+					(raise-error? #f)
+					(allow-comment? #f))))
 )

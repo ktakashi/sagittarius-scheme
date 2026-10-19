@@ -745,34 +745,48 @@ ENDFOREACH()
 # Adding ext tests
 # Maybe we should put them in CMakeLists.txt of ext modules
 
-ADD_CUSTOM_TARGET(clone-json-tests
-  COMMAND stat JSON-Schema-Test-Suite > /dev/null && cd JSON-Schema-Test-Suite && git pull || git clone https://github.com/json-schema-org/JSON-Schema-Test-Suite.git
-  COMMAND stat jmespath.test > /dev/null && cd jmespath.test && git pull || git clone https://github.com/jmespath/jmespath.test.git
-  COMMAND stat JSONTestSuite > /dev/null && cd JSONTestSuite && git pull || git clone https://github.com/nst/JSONTestSuite.git
-  WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/test)
-ADD_TEST(NAME jsonschema
-  COMMAND ${TEST_COMMAND} ${PROJECT_SOURCE_DIR}/test/json-schema-tests.scm
-  WORKING_DIRECTORY WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
-SET_PROPERTY(TEST jsonschema PROPERTY LABELS json)
-SET_PROPERTY(TEST jsonschema
-  PROPERTY ENVIRONMENT CTEST_OUTPUT_ON_FAILURE=ON CTEST_PROGRESS_OUTPUT=ON)
-SET_PROPERTY(TEST jsonschema PROPERTY DEPENDS clone-json-tests)
+# first check if the environment has `git` command
+FIND_PROGRAM(HAS_GIT NAMES git)
 
-ADD_TEST(NAME jmespath
-  COMMAND ${TEST_COMMAND} ${PROJECT_SOURCE_DIR}/test/jmespath-tests.scm
-  WORKING_DIRECTORY WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
-SET_PROPERTY(TEST jmespath PROPERTY DEPENDS clone-json-tests)
-SET_PROPERTY(TEST jmespath
-  PROPERTY ENVIRONMENT CTEST_OUTPUT_ON_FAILURE=ON CTEST_PROGRESS_OUTPUT=ON)
-SET_PROPERTY(TEST jmespath PROPERTY LABELS json)
+IF (HAS_GIT)
+  MESSAGE(STATUS "Enabling extra JSON tests")
+  
+  ADD_CUSTOM_TARGET(clone-json-tests
+    COMMAND ${CMAKE_COMMAND} -E env bash prepare-json-tests.sh
+    WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/test)
 
-# ADD_TEST(NAME jsonparser
-#   COMMAND ${TEST_COMMAND} ${PROJECT_SOURCE_DIR}/test/json-parser-tests.scm
-#   WORKING_DIRECTORY WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
-# SET_PROPERTY(TEST jsonparser PROPERTY DEPENDS clone-json-tests)
-# SET_PROPERTY(TEST jsonparser
-#   PROPERTY ENVIRONMENT CTEST_OUTPUT_ON_FAILURE=ON CTEST_PROGRESS_OUTPUT=ON)
-# SET_PROPERTY(TEST jsonparser PROPERTY LABELS json)
+  ADD_TEST(NAME prepare-json-tests
+    COMMAND ${CMAKE_COMMAND} -E env bash prepare-json-tests.sh
+    WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/test)
+  SET_PROPERTY(TEST prepare-json-tests PROPERTY LABELS json)
+  SET_PROPERTY(TEST prepare-json-tests PROPERTY FIXTURES_SETUP json-tests)
+
+  ADD_TEST(NAME jsonschema
+    COMMAND ${TEST_COMMAND} ${PROJECT_SOURCE_DIR}/test/json-schema-tests.scm
+    WORKING_DIRECTORY WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
+  SET_PROPERTY(TEST jsonschema PROPERTY LABELS json)
+  SET_PROPERTY(TEST jsonschema
+    PROPERTY ENVIRONMENT CTEST_OUTPUT_ON_FAILURE=ON CTEST_PROGRESS_OUTPUT=ON)
+  SET_PROPERTY(TEST jsonschema PROPERTY FIXTURES_REQUIRED json-tests)
+
+  ADD_TEST(NAME jmespath
+    COMMAND ${TEST_COMMAND} ${PROJECT_SOURCE_DIR}/test/jmespath-tests.scm
+    WORKING_DIRECTORY WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
+  SET_PROPERTY(TEST jmespath PROPERTY FIXTURES_REQUIRED json-tests)
+  SET_PROPERTY(TEST jmespath
+    PROPERTY ENVIRONMENT CTEST_OUTPUT_ON_FAILURE=ON CTEST_PROGRESS_OUTPUT=ON)
+  SET_PROPERTY(TEST jmespath PROPERTY LABELS json)
+
+  ADD_TEST(NAME jsonparser
+    COMMAND ${TEST_COMMAND} ${PROJECT_SOURCE_DIR}/test/json-parser-tests.scm
+    WORKING_DIRECTORY WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
+  SET_PROPERTY(TEST jsonparser PROPERTY FIXTURES_REQUIRED json-tests)
+  SET_PROPERTY(TEST jsonparser
+    PROPERTY ENVIRONMENT CTEST_OUTPUT_ON_FAILURE=ON CTEST_PROGRESS_OUTPUT=ON)
+  SET_PROPERTY(TEST jsonparser PROPERTY LABELS json)
+ELSE()
+    MESSAGE(STATUS "Disabling extra JSON tests")
+ENDIF()
 
 # For NMake... wtf?
 ADD_CUSTOM_TARGET(check COMMAND ${CMAKE_CTEST_COMMAND})

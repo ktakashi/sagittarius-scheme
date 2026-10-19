@@ -68,6 +68,7 @@
 * @[[utils/text/dsv/parser.md](utils/text/dsv/parser.md)]
 * @[[utils/text/html-lite.md](utils/text/html-lite.md)]
 * @[[utils/text/json.md](utils/text/json.md)]
+* @[[utils/text/json/object-builder.md](utils/text/json/object-builder.md)]
 * @[[utils/text/json/jmespath.md](utils/text/json/jmespath.md)]
 * @[[utils/text/json/mutable.md](utils/text/json/mutable.md)]
 * @[[utils/text/json/pointer.md](utils/text/json/pointer.md)]

@@ -90,8 +90,8 @@
   (define parent (if (null? maybe-parent) values (car maybe-parent)))
   (define tokens (parse-json-pointer p))
   (case (*json-map-type*)
-    ((vector) (make-vector-json-pointer tokens parent))
-    ((alist)  (make-alist-json-pointer tokens parent))))
+    ((alist)  (make-alist-json-pointer tokens parent))
+    (else (make-vector-json-pointer tokens parent))))
 
 (define (->array-index p)
   (let ((n (string->number p)))
