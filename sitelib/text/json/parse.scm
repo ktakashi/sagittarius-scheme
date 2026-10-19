@@ -39,7 +39,15 @@
 	    json-write-error?
 
 	    make-json-reader
-	    
+
+	    ;; for convenience
+	    *json:array-handler*
+	    *json:object-handler*
+	    *json:null-handler*
+	    *json:boolean-handler*
+	    *json:number-handler*
+	    *json:string-handler*
+
 	    *json-map-type*)
     (import (rnrs)
 	    (util hashtables)

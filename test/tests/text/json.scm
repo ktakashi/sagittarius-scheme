@@ -3,7 +3,6 @@
 
 (import (rnrs)
 	(text json)
-	(text json parser-parameters)
 	(srfi :26)
 	(srfi :39)
 	(srfi :64 testing))
