@@ -6,17 +6,21 @@
 This library provides JSON parser and writer. 
 
 
-###### [!Parameter] `*json-map-type*` 
+###### [!Parameter] `*json-map-type*`
 
-Controls mapping of JSON map and array. The value must be either
+Controls mapping of JSON map and array. The value must be one of `#f`,
 `'vector` or `'alist`. The first one is compatible with Chicken
-Scheme's json module, the latter one is compatible with Gauche's 
+Scheme's json module, the latter one is compatible with Gauche's
 `rfc.json` module. By default, it's set to `vector` for backward
 compatibility.
 
+Conversion rules for `#f`:
+
+The conversions are done by `*json:*-handler*`.
+
 Conversion rules for `vector`:
 
-```scheme
+```
 JSON array   <-> list
 JSON map     <-> vector
 JSON boolean <-> boolean
@@ -25,7 +29,7 @@ JSON null    <-> symbol `null`
 
 Conversion rules for `alist`:
 
-```scheme
+```
 JSON array   <-> vector
 JSON map     <-> alist
 JSON boolean <-> boolean
@@ -33,6 +37,17 @@ JSON null    <-> symbol `null`
 ```
 
 This parameter affects the read and write procedures.
+
+###### [!Parameter] `*json:array-handler*`
+###### [!Parameter] `*json:object-handler*`
+###### [!Parameter] `*json:null-handler*`
+###### [!Parameter] `*json:boolean-handler*`
+###### [!Parameter] `*json:number-handler*`
+###### [!Parameter] `*json:string-handler*`
+
+JSON object construction handlers.  
+Using these handlers make users possible to dynamically control
+the JSON object construction.
 
 
 ###### [!Function] `json-read`  :optional (_port_ `(current-input-port)`)
@@ -97,6 +112,18 @@ The `json-parser-config` record type has the fields below
 `max-nesting-depth`
 : The max nested depth of JSON object and array. `#f` means indefinite.
   default `#f`.
+
+`raise-error?`
+: For JSON parser only. Specifies to raise error during parsing or not,
+  default `#t`.
+
+`array-handler`
+`object-handler`
+`null-handler`
+`boolean-handler`
+`number-handler`
+`string-handler`
+: JSON construct handler. Defaults are the corresponding parameter values.
 
 ###### [!Function] `json-parser-config?` _obj_
 
