@@ -1,6 +1,8 @@
 #!read-macro=sagittarius/bv-string
 (import (rnrs)
 	(net http-client)
+	(net http-client connection)
+	(net http-client connection-manager)
 	(net server)
 	(net http-server)
 	(util concurrent)
@@ -18,6 +20,12 @@
   (map future-result
        (map (lambda (i) (http:client-send-async client request))
 	    (iota n))))
+
+(define (lease-connection manager request option)
+  (let-values (((f success failure) (make-piped-future)))
+    (http-connection-manager-lease-connection
+     manager request option success failure)
+    (future-get f 5 #f)))
 
 (define (all-responses? results)
   (for-all http:response? results))
@@ -145,5 +153,43 @@
     (http:client-shutdown! client))
   (server-stop! server)
   )
+
+(print "resource capacity lease model")
+(let ()
+  (define server (start-echo-server "0"))
+  (define route (format "http://localhost:~a" (server-port server)))
+  (define request (http:request-builder (method 'GET) (timeout 1000) (uri route)))
+  (define manager
+    (make-http-pooling-connection-manager
+     (http-pooling-connection-config-builder
+      (connection-request-timeout 500)
+      (max-connection-per-route 8)
+      (time-to-live 5))))
+  (define option
+    (http-connection-lease-option-builder
+     (alpn '())
+     (executor (*http-connection-manager:default-executor*))))
+
+  ;; Seed one pooled connection and make it multi-capacity to verify
+  ;; manager selection honours logical capacity before creating new socket.
+  (define seeded (lease-connection manager request option))
+  (http-connection-capacity-limit-set! seeded 3)
+  (http-connection-manager-release-connection manager seeded #t)
+
+  (let ((c1 (lease-connection manager request option))
+	(c2 (lease-connection manager request option))
+	(c3 (lease-connection manager request option))
+	(c4 (lease-connection manager request option)))
+    (test-assert "first 3 logical leases share one physical connection"
+		 (and (eq? c1 c2) (eq? c2 c3)))
+    (test-assert "lease exceeding logical capacity creates second connection"
+		 (not (eq? c1 c4)))
+
+    (http-connection-manager-release-connection manager c1 #t)
+    (http-connection-manager-release-connection manager c2 #t)
+    (http-connection-manager-release-connection manager c3 #t)
+    (http-connection-manager-release-connection manager c4 #t))
+  (http-connection-manager-shutdown! manager)
+  (server-stop! server))
 
 (test-end)

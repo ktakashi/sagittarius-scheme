@@ -48,6 +48,12 @@
 	    
 	    http-connection-open?
 	    http-connection-open! http-connection-close!
+	    http-connection-capacity-available?
+	    http-connection-acquire-resource!
+	    http-connection-release-resource!
+	    http-connection-capacity-limit
+	    http-connection-capacity-limit-set!
+	    http-connection-active-resource-count
 	    http-connection-reusable?
 	    http-connection-data-ready?
 	    http-connection-resolve-response-takeover
@@ -67,6 +73,7 @@
 	    (net socket)
 	    (net http-client logging)
 	    (sagittarius) ;; for sagittarius-version
+	    (srfi :18 multithreading)
 	    (srfi :39 parameters))
 
 (define-record-type http-connection-converter
@@ -98,6 +105,11 @@
 	  (mutable input)
 	  (mutable output)
 	  context-data
+	  (mutable capacity-limit)
+	  (mutable active-resource-count)
+	  resource-lock
+	  reusable-check
+	  data-ready-check
 	  takeover-resolver
 	  stream-aborter)
   (protocol (lambda (p)
@@ -107,6 +119,9 @@
 		       header-receiver data-receiver
 		       data
 		       :key (buffer-mode 'block)
+		            (capacity-limit 1)
+			    (reusable-check #f)
+			    (data-ready-check #f)
 		            (takeover-resolver default-response-takeover-resolver)
 		            (stream-aborter default-response-stream-aborter)
 		       :allow-other-keys)
@@ -130,6 +145,11 @@
 		   (and socket (buffered-port (socket-output-port socket)
 					      buffer-mode :managed? #f))
 		   data
+		   capacity-limit
+		   0
+		   (make-mutex "http-connection-resource-lock")
+		   reusable-check
+		   data-ready-check
 		   takeover-resolver
 		   stream-aborter)))))
 
@@ -147,8 +167,13 @@
 		    (http-connection-data-sender conn)
 		    (http-connection-header-receiver conn)
 		    (http-connection-data-receiver conn)
-		    (http-connection-context-data conn))
+		    (http-connection-context-data conn)
+		    :capacity-limit (http-connection-capacity-limit conn)
+		    :reusable-check (http-connection-reusable-check conn)
+		    :data-ready-check (http-connection-data-ready-check conn))
 		 logger)))
+	 (http-connection-active-resource-count-set! c
+	  (http-connection-active-resource-count conn))
 	 (let ((in (http-connection-input c))
 	       (out (http-connection-output c)))
 	   (http-connection-input-set! c (->logging-input-port in logger))
@@ -220,8 +245,49 @@
   conn)
 
 (define (http-connection-data-ready? connection)
-  (define in (http-connection-input connection))
-  (and in (port-ready? in)))
+  (cond ((http-connection-data-ready-check connection) =>
+	 (lambda (check) (check connection)))
+	(else
+	 (let ((in (http-connection-input connection)))
+	   (and in (port-ready? in))))))
+
+(define (http-connection-capacity-available? connection)
+  (define (available?)
+    (< (http-connection-active-resource-count connection)
+       (http-connection-capacity-limit connection)))
+  (guard (e (else #f))
+    (and (http-connection-open? connection)
+	 (if (http-connection-reusable-check connection)
+	     ((http-connection-reusable-check connection) connection)
+	     #t)
+	 (available?))))
+
+(define (http-connection-acquire-resource! connection)
+  (define lock (http-connection-resource-lock connection))
+  (dynamic-wind
+      (lambda () (mutex-lock! lock))
+      (lambda ()
+	(if (http-connection-capacity-available? connection)
+	    (begin
+	      (http-connection-active-resource-count-set! connection
+	       (+ (http-connection-active-resource-count connection) 1))
+	      #t)
+	    #f))
+      (lambda () (mutex-unlock! lock))))
+
+(define (http-connection-release-resource! connection)
+  (define lock (http-connection-resource-lock connection))
+  (dynamic-wind
+      (lambda () (mutex-lock! lock))
+      (lambda ()
+	(define active (http-connection-active-resource-count connection))
+	(when (> active 0)
+	  (http-connection-active-resource-count-set! connection (- active 1)))
+	(when (and (<= (http-connection-active-resource-count connection) 0)
+		   (not (http-connection-open? connection)))
+	  (http-connection-active-resource-count-set! connection 0))
+	#t)
+      (lambda () (mutex-unlock! lock))))
 
 (define (http-connection-resolve-response-takeover connection requested-kind)
 	((http-connection-takeover-resolver connection)
@@ -233,8 +299,10 @@
 (define (http-connection-reusable? connection)
   (guard (e (else #f))
     (and (http-connection-open? connection)
-	 (let ((in (http-connection-input connection)))
-	   (and in (not (port-ready? in)))))))
+	 (if (http-connection-reusable-check connection)
+	     ((http-connection-reusable-check connection) connection)
+	     (let ((in (http-connection-input connection)))
+	       (and in (not (port-ready? in))))))))
 
 (define (http-connection-send-header! conn request)
   ((http-connection-header-sender conn) conn request))
