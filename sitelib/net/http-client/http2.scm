@@ -254,56 +254,55 @@
 
 (define (http2-response connection request to-receive handler)
   (define target-stream (find-stream connection request))
+  (define (finalize-stream! stream)
+    (http2-remove-stream! connection (http2-stream-id stream))
+    #t)
   (cond ((and (not target-stream) (eq? to-receive 'data)) #t)
 	((not target-stream)
 	 (assertion-violation 'http2-response "No stream associated" request))
 	(else
-	 (let ((finalize-stream!
-		(lambda (stream)
-		  (http2-remove-stream! connection (http2-stream-id stream))
-		  #t)))
-	   (let loop ()
-	     (let ((frame (next-stream-frame! connection target-stream)))
-	       (cond ((and (eq? to-receive 'header) (http2-frame-headers? frame))
-		      (let ((es? (http2-frame-end-stream? frame)))
-			(handler frame es?)
-			(when es?
-			  (http2-stream-remote-state-set! target-stream
-			   (http2:stream-state closed))
-			  (finalize-stream! target-stream))
-			es?))
-		     ((and (eq? to-receive 'data) (http2-frame-data? frame))
-		      (let ((data (http2-frame-data-data frame))
-			    (es? (http2-frame-end-stream? frame)))
-			(http-connection-write-log connection
-						   "HTTP2 data length ~a, ~a"
-						   (bytevector-length data) es?)
-			(handler frame es?)
-			(update-window-size! target-stream (bytevector-length data))
-			(when es?
-			  (http2-stream-remote-state-set! target-stream
-			   (http2:stream-state closed))
-			  (finalize-stream! target-stream))
-			es?))
-		     ((and (http2-frame-rst-stream? frame)
-			   (= (http2-frame-stream-identifier frame)
-			      (http2-stream-id target-stream)))
-		      (http2-stream-remote-state-set! target-stream
-		       (http2:stream-state closed))
-		      (finalize-stream! target-stream)
-		      (raise (condition
-			      (make-message-condition "HTTP/2 stream reset by peer")
-			      (make-irritants-condition
-			       (list (http2-frame-rst-stream-error-code frame))))))
-		     (else (loop)))))))))
+	 (let loop ()
+	   (let ((frame (next-stream-frame! connection target-stream)))
+	     (cond ((and (eq? to-receive 'header) (http2-frame-headers? frame))
+		    (let ((es? (http2-frame-end-stream? frame)))
+		      (handler frame es?)
+		      (when es?
+			(http2-stream-remote-state-set! target-stream
+			  (http2:stream-state closed))
+			(finalize-stream! target-stream))
+		      es?))
+		   ((and (eq? to-receive 'data) (http2-frame-data? frame))
+		    (let ((data (http2-frame-data-data frame))
+			  (es? (http2-frame-end-stream? frame)))
+		      (http-connection-write-log connection
+						 "HTTP2 data length ~a, ~a"
+						 (bytevector-length data) es?)
+		      (handler frame es?)
+		      (update-window-size! target-stream
+					   (bytevector-length data))
+		      (when es?
+			(http2-stream-remote-state-set! target-stream
+			  (http2:stream-state closed))
+			(finalize-stream! target-stream))
+		      es?))
+		   ((and (http2-frame-rst-stream? frame)
+			 (= (http2-frame-stream-identifier frame)
+			    (http2-stream-id target-stream)))
+		    (http2-stream-remote-state-set! target-stream
+						    (http2:stream-state closed))
+		    (finalize-stream! target-stream)
+		    (raise (condition
+			    (make-message-condition
+			     "HTTP/2 stream reset by peer")
+			    (make-irritants-condition
+			     (list (http2-frame-rst-stream-error-code frame))))))
+		   (else (loop))))))))
 
 ;;; helpers
 (define (search-stream connection request)
   (define context (http-connection-context-data connection))
   (or (hashtable-ref (http2-connection-context-requests context) request #f)
-      (assertion-violation 'http2-search-stream
-			   "No stream associated"
-			   request)))
+      (assertion-violation 'http2-search-stream "No stream associated" request)))
 
 (define (find-stream connection request)
   (hashtable-ref (http2-connection-context-requests
@@ -373,14 +372,15 @@
 (define (next-stream-frame! connection stream)
   (define ctx (http-connection-context-data connection))
   (define manager (http2-connection-context-stream-manager ctx))
+  (define (rejected? stream manager)
+    (and (http2-stream-manager-draining? manager)
+	 (cond ((http2-stream-manager-goaway-last-stream-id manager) =>
+		(lambda (last-id) (> (http2-stream-id stream) last-id)))
+	       (else #f))))
   (let loop ()
     (cond ((stream-pop-frame! stream))
 	  (else
-	   (when (and (http2-stream-manager-draining? manager)
-		      (let ((last-id
-			     (http2-stream-manager-goaway-last-stream-id manager)))
-			(and last-id
-			     (> (http2-stream-id stream) last-id))))
+	   (when (rejected? stream manager)
 	     (raise (condition
 		     (make-message-condition "HTTP/2 stream rejected by GOAWAY")
 		     (make-irritants-condition
@@ -487,7 +487,7 @@
 	       (es? (http2-frame-end-stream? frame)))
 	  (unless (or (zero? sid) stream (http2-frame-goaway? frame))
 	    (assertion-violation 'http2-dispatch-one-frame!
-				 "Stream is not registered or already removed" sid))
+	      "Stream is not registered or already removed" sid))
 	  (when es?
 	    (when stream
 	      (http2-stream-remote-state-set! stream
