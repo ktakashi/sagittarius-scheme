@@ -22,6 +22,7 @@
 	    (rfc http2 conditions)
 	    (rfc http2 hpack)
 	    (rfc http2 priority)
+	    (rfc http2 stream-manager)
 	    (util bytevector)
 	    (net http-server http2 const)
 	    (net http-server http2 state)
@@ -85,7 +86,11 @@
                                  value))
          (http2-server-connection-state-remote-max-frame-size-set! conn value)
          (update-frame-buffer! (http2-server-connection-state-write-buffer conn)
-                               value)))))
+                               value))
+	((= id +http2-settings-max-concurrent-streams+)
+	 (http2-stream-manager-max-concurrent-streams-set!
+	  (http2-server-connection-state-stream-manager conn)
+	  value)))))
    settings))
 
 ;; dispatch frame
@@ -138,6 +143,9 @@
       #t))
 
    ((http2-frame-goaway? frame)
+    (http2-stream-manager-mark-goaway!
+     (http2-server-connection-state-stream-manager state)
+     (http2-frame-goaway-last-stream-id frame))
     (http2-server-connection-state-stage-set! state 'closing)
     #f)
 
@@ -196,52 +204,58 @@
   (define sid (http2-frame-stream-identifier frame))
 
   (ensure-stream-id-valid state sid)
-  (when (find-stream state sid)
-    (http2-protocol-error 'dispatch-frame!
-                          "HEADERS received for existing stream"
-                          sid))
-  (let-values (((method target path query header-map err)
-                (parse-http2-request-headers
-                 (http2-frame-headers-headers frame))))
-    (if err
-        (begin
-          (send-rst-stream! state sid +http2-error-code-protocol-error+)
-          #t)
-        (let-values (((dependency exclusive?)
-                      (decode-priority-dependency
-                       (http2-frame-headers-stream-dependency frame))))
-          (let* ((wire-weight
-                  (or (http2-frame-headers-weight frame)
-                      +default-priority-wire-weight+))
-                 (stream
-                  (make-http2-server-stream
-                   sid
-                   method
-                   target
-                   path
-                   query
-                   header-map
-                   '()
-                   0
-                   (http2-server-connection-state-remote-initial-window-size state)
-                   +default-initial-window-size+
-                   0
-                   #vu8()
-                   #f
-                   #f
-                   dependency
-                   wire-weight)))
-            (http2-priority-tree-add!
-             (http2-server-connection-state-priority-tree state)
-             sid
-             dependency
-             wire-weight
-             exclusive?
-             #f)
-            (register-stream! state stream)
-            (if (http2-frame-end-stream? frame)
-                (dispatch-application! state stream)
-                #t))))))
+  (if (not (http2-stream-manager-can-accept-new-stream?
+	    (http2-server-connection-state-stream-manager state)))
+      (begin
+	(send-rst-stream! state sid +http2-error-code-refused-stream+)
+	#t)
+      (begin
+	(when (find-stream state sid)
+	  (http2-protocol-error 'dispatch-frame!
+				"HEADERS received for existing stream"
+				sid))
+	(let-values (((method target path query header-map err)
+		      (parse-http2-request-headers
+		       (http2-frame-headers-headers frame))))
+	  (if err
+	      (begin
+		(send-rst-stream! state sid +http2-error-code-protocol-error+)
+		#t)
+	      (let-values (((dependency exclusive?)
+			    (decode-priority-dependency
+			     (http2-frame-headers-stream-dependency frame))))
+		(let* ((wire-weight
+			(or (http2-frame-headers-weight frame)
+			    +default-priority-wire-weight+))
+		       (stream
+			(make-http2-server-stream
+			 sid
+			 method
+			 target
+			 path
+			 query
+			 header-map
+			 '()
+			 0
+			 (http2-server-connection-state-remote-initial-window-size state)
+			 +default-initial-window-size+
+			 0
+			 #vu8()
+			 #f
+			 #f
+			 dependency
+			 wire-weight)))
+		  (http2-priority-tree-add!
+		   (http2-server-connection-state-priority-tree state)
+		   sid
+		   dependency
+		   wire-weight
+		   exclusive?
+		   #f)
+		  (register-stream! state stream)
+		  (if (http2-frame-end-stream? frame)
+		      (dispatch-application! state stream)
+		      #t))))))))
 
 (define (handle-data-frame! state frame)
   (define sid (http2-frame-stream-identifier frame))

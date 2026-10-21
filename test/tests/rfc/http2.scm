@@ -1,6 +1,7 @@
 #!read-macro=sagittarius/bv-string
 (import (rnrs)
 	(rfc http2 hpack)
+	(rfc http2 stream-manager)
 	(sagittarius control) ;; for with-library
 	(util bytevector)
 	(srfi :64)
@@ -783,5 +784,24 @@
 		     (buffer (make-frame-buffer)))
 		 (write-http2-frame out buffer frame #f #f)))))
 
+(let ()
+  (define manager (make-http2-stream-manager 2 1))
+  (test-assert "stream manager has initial capacity"
+	       (http2-stream-manager-can-accept-new-stream? manager))
+  (test-assert "register stream #1"
+	       (http2-stream-manager-register-stream! manager 1 's1))
+  (test-assert "register stream #3"
+	       (http2-stream-manager-register-stream! manager 3 's3))
+  (test-assert "capacity exhausted at max-concurrent-streams"
+	       (not (http2-stream-manager-register-stream! manager 5 's5)))
+  (test-equal "lookup registered stream"
+	      's1
+	      (http2-stream-manager-find-stream manager 1))
+  (http2-stream-manager-unregister-stream! manager 1)
+  (test-assert "capacity restored after unregister"
+	       (http2-stream-manager-register-stream! manager 5 's5))
+  (http2-stream-manager-mark-goaway! manager 5)
+  (test-assert "goaway marks manager draining"
+	       (not (http2-stream-manager-can-accept-new-stream? manager))))
 
 (test-end)

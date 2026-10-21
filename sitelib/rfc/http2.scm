@@ -30,4 +30,5 @@
 
 (library (rfc http2)
     (export :all)
-    (import (rfc http2 client)))
+    (import (rfc http2 client)
+	    (rfc http2 stream-manager)))

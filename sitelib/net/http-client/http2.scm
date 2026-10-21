@@ -44,6 +44,7 @@
 	    (rfc http2 frame)
 	    (rfc http2 conditions)
 	    (rfc http2 hpack)
+	    (rfc http2 stream-manager)
 	    (srfi :18 multithreading)
 	    (util hashtables))
 
@@ -51,6 +52,7 @@
 (define-record-type http2-connection-context
   (parent <http-connection-context>)
   (fields streams
+	  stream-manager
 	  requests
 	  request-hpack-context
 	  response-hpack-context
@@ -68,8 +70,10 @@
 	  (mutable goaway-last-stream-id))
   (protocol (lambda (n)
 	      (lambda ()
-		((n)
-		 (make-eqv-hashtable)
+		(let ((manager (make-http2-stream-manager 100 1)))
+		  ((n)
+		 (http2-stream-manager-streams manager)
+		 manager
 		 (make-eq-hashtable)
 		 (make-hpack-context 4096)
 		 (make-hpack-context 4096)
@@ -81,10 +85,10 @@
 		 1
 		 +window-size+
 		 +window-size+
-		 100
+		 (http2-stream-manager-max-concurrent-streams manager)
 		 0
 		 #f
-		 #f)))))
+		 #f))))))
 
 (define (http2-resolve-response-takeover connection requested-kind)
   (case requested-kind
@@ -309,55 +313,39 @@
 (define (http2-connection-reusable? connection)
   (define ctx (http-connection-context-data connection))
   (and (http-connection-open? connection)
-       (not (http2-connection-context-draining? ctx))))
+       (not (http2-stream-manager-draining?
+	     (http2-connection-context-stream-manager ctx)))))
 
 (define (http2-connection-has-capacity? connection)
   (define ctx (http-connection-context-data connection))
-  (define lock (http2-connection-context-state-lock ctx))
-  (dynamic-wind
-      (lambda () (mutex-lock! lock))
-      (lambda ()
-	(and (not (http2-connection-context-draining? ctx))
-	     (< (http2-connection-context-active-streams ctx)
-		(http2-connection-context-max-concurrent-streams ctx))))
-      (lambda () (mutex-unlock! lock))))
+  (http2-stream-manager-can-accept-new-stream?
+   (http2-connection-context-stream-manager ctx)))
 
 (define (make-http2-stream! connection request)
   (define ctx (http-connection-context-data connection))
-  (define lock (http2-connection-context-state-lock ctx))
-  (dynamic-wind
-      (lambda () (mutex-lock! lock))
-      (lambda ()
-	(unless (and (not (http2-connection-context-draining? ctx))
-		     (< (http2-connection-context-active-streams ctx)
-			(http2-connection-context-max-concurrent-streams ctx)))
-	  (assertion-violation 'make-http2-stream!
-			       "No available stream capacity" connection request))
-	(let* ((id (http2-next-stream-id connection))
-	       (stream (make-http2-stream id connection request)))
-	  (http2-connection-context-active-streams-set!
-	   ctx
-	   (+ (http2-connection-context-active-streams ctx) 1))
-	  (hashtable-set! (http2-connection-context-streams ctx) id stream)
-	  (hashtable-set! (http2-connection-context-requests ctx) request stream)
-	  stream))
-      (lambda () (mutex-unlock! lock))))
+  (define manager (http2-connection-context-stream-manager ctx))
+  (let* ((id (http2-next-stream-id connection))
+	 (stream (make-http2-stream id connection request)))
+    (unless (http2-stream-manager-register-stream! manager id stream)
+      (assertion-violation 'make-http2-stream!
+			   "No available stream capacity" connection request))
+    (http2-connection-context-active-streams-set!
+     ctx
+     (http2-stream-manager-active-stream-count manager))
+    (hashtable-set! (http2-connection-context-requests ctx) request stream)
+    stream))
 
 (define (http2-remove-stream! conn id)
   (define context (http-connection-context-data conn))
-  (define lock (http2-connection-context-state-lock context))
-  (dynamic-wind
-      (lambda () (mutex-lock! lock))
-      (lambda ()
-	(let ((stream (hashtable-ref (http2-connection-context-streams context) id #f)))
-	  (when stream
-	    (hashtable-delete! (http2-connection-context-streams context) id)
-	    (hashtable-delete! (http2-connection-context-requests context)
-			       (http2-stream-request stream))
-	    (http2-connection-context-active-streams-set!
-	     context
-	     (max 0 (- (http2-connection-context-active-streams context) 1))))))
-      (lambda () (mutex-unlock! lock))))
+  (define manager (http2-connection-context-stream-manager context))
+  (let ((stream (http2-stream-manager-find-stream manager id)))
+    (when stream
+      (hashtable-delete! (http2-connection-context-requests context)
+			 (http2-stream-request stream))))
+  (http2-stream-manager-unregister-stream! manager id)
+  (http2-connection-context-active-streams-set!
+   context
+   (http2-stream-manager-active-stream-count manager)))
 
 (define (stream-enqueue-frame! stream frame)
   (define lock (http2-stream-lock stream))
@@ -384,19 +372,20 @@
 
 (define (next-stream-frame! connection stream)
   (define ctx (http-connection-context-data connection))
+  (define manager (http2-connection-context-stream-manager ctx))
   (let loop ()
     (cond ((stream-pop-frame! stream))
 	  (else
-	   (when (and (http2-connection-context-draining? ctx)
+	   (when (and (http2-stream-manager-draining? manager)
 		      (let ((last-id
-			     (http2-connection-context-goaway-last-stream-id ctx)))
+			     (http2-stream-manager-goaway-last-stream-id manager)))
 			(and last-id
 			     (> (http2-stream-id stream) last-id))))
 	     (raise (condition
 		     (make-message-condition "HTTP/2 stream rejected by GOAWAY")
 		     (make-irritants-condition
 		      (list (http2-stream-id stream)
-			    (http2-connection-context-goaway-last-stream-id ctx))))))
+			    (http2-stream-manager-goaway-last-stream-id manager))))))
 	   (http2-dispatch-one-frame! connection)
 	   (loop)))))
 
@@ -421,9 +410,9 @@
 	    (http2-connection-context-request-hpack-context context))
 	   #t)
 	  ((http2-frame-goaway? frame)
-	   (http2-connection-context-draining?-set! context #t)
-	   (http2-connection-context-goaway-last-stream-id-set!
-	    context (http2-frame-goaway-last-stream-id frame))
+	   (http2-stream-manager-mark-goaway!
+	    (http2-connection-context-stream-manager context)
+	    (http2-frame-goaway-last-stream-id frame))
 	   (http-connection-capacity-limit-set! connection 0)
 	   #t)
 	  ((http2-frame-rst-stream? frame)
@@ -616,10 +605,10 @@
 
 (define (http2-next-stream-id conn)
   (define context (http-connection-context-data conn))
-  (mutex-lock! (http2-connection-context-stream-id-lock context))
-  (let ((next-id (http2-connection-context-next-id context)))
+  (let ((next-id
+	 (http2-stream-manager-next-client-stream-id!
+	  (http2-connection-context-stream-manager context))))
     (http2-connection-context-next-id-set! context (+ next-id 2))
-    (mutex-unlock! (http2-connection-context-stream-id-lock context))
     next-id))
 
 (define +http2-preface+ #*"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n")
@@ -654,6 +643,9 @@
 			(cdar settings)))
 		      ((= (caar settings) +http2-settings-max-concurrent-streams+)
 		       (let ((new-limit (cdar settings)))
+			 (http2-stream-manager-max-concurrent-streams-set!
+			  (http2-connection-context-stream-manager ctx)
+			  new-limit)
 			 (http2-connection-context-max-concurrent-streams-set!
 			  ctx new-limit)
 			 (http-connection-capacity-limit-set! conn new-limit))))
