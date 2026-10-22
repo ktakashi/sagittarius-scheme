@@ -44,6 +44,7 @@
 	    (rfc http2 frame)
 	    (rfc http2 conditions)
 	    (rfc http2 hpack)
+	    (rfc http2 stream-manager)
 	    (srfi :18 multithreading)
 	    (util hashtables))
 
@@ -51,24 +52,43 @@
 (define-record-type http2-connection-context
   (parent <http-connection-context>)
   (fields streams
+	  stream-manager
+	  requests
 	  request-hpack-context
 	  response-hpack-context
 	  buffer
-	  mutex
+	  stream-id-lock
+	  write-lock
+	  read-lock
+	  state-lock
 	  (mutable next-id)
 	  (mutable initial-window-size)
-	  (mutable window-size))
+	  (mutable window-size)
+	  (mutable max-concurrent-streams)
+	  (mutable active-streams)
+	  (mutable draining?)
+	  (mutable goaway-last-stream-id))
   (protocol (lambda (n)
 	      (lambda ()
-		((n)
-		 (make-eqv-hashtable)
+		(let ((manager (make-http2-stream-manager 100 1)))
+		  ((n)
+		 (http2-stream-manager-streams manager)
+		 manager
+		 (make-eq-hashtable)
 		 (make-hpack-context 4096)
 		 (make-hpack-context 4096)
 		 (make-frame-buffer)
-		 (make-mutex)
+		 (make-mutex "http2-stream-id-lock")
+		 (make-mutex "http2-write-lock")
+		 (make-mutex "http2-read-lock")
+		 (make-mutex "http2-state-lock")
 		 1
 		 +window-size+
-		 +window-size+)))))
+		 +window-size+
+		 (http2-stream-manager-max-concurrent-streams manager)
+		 0
+		 #f
+		 #f))))))
 
 (define (http2-resolve-response-takeover connection requested-kind)
   (case requested-kind
@@ -84,6 +104,9 @@
 	 http2-send-header http2-send-data
 	 http2-receive-header http2-receive-data
 	 (make-http2-connection-context)
+	 :capacity-limit 100
+	 :reusable-check http2-connection-reusable?
+	 :data-ready-check (lambda (connection) (http-connection-open? connection))
 	 :takeover-resolver http2-resolve-response-takeover
 	 :stream-aborter http2-abort-response-stream!
 	 opts))
@@ -102,21 +125,24 @@
 	  (mutable window-size)
 	  (mutable local-window-size)
 	  (mutable data-sent)
-	  (mutable data-received))
+	  (mutable data-received)
+	  lock
+	  condition
+	  (mutable pending-frames))
   (protocol (lambda (p)
-	      (lambda (connection request)
-		(define id (http2-next-stream-id connection))
+	      (lambda (id connection request)
 		(define ctx (http-connection-context-data connection))
-		(let ((r (p id connection
-			    request
-			    (http2:stream-state idle)
-			    (http2:stream-state idle)
-			    (http2-connection-context-initial-window-size ctx)
-			    +client-window-size+
-			    0
-			    0)))
-		  (hashtable-set! (http2-connection-context-streams ctx) id r)
-		  r)))))
+		(p id connection
+		   request
+		   (http2:stream-state idle)
+		   (http2:stream-state idle)
+		   (http2-connection-context-initial-window-size ctx)
+		   +client-window-size+
+		   0
+		   0
+		   (make-mutex "http2-stream-lock")
+		   (make-condition-variable "http2-stream-condition")
+		   '())))))
 
 ;;(define +client-window-size+ (- (expt 2 31) 1))
 (define +client-window-size+ +window-size+)
@@ -142,10 +168,14 @@
     (send-window-update conn 0 (- (- (expt 2 31) 1) +window-size+))
     ;; Wait until server ACK settings
     (let loop ()
-      (let-values (((frame stream) (handle-frame conn #f)))
-	(unless (and (http2-frame-settings? frame)
-		     (bitwise-bit-set? (http2-frame-flags frame) 0))
-	  (loop))))
+      (let ((frame (read-frame conn)))
+	(cond ((and (http2-frame-settings? frame)
+		    (bitwise-bit-set? (http2-frame-flags frame) 0))
+	       #t)
+	      ((http2-frame-settings? frame)
+	       (http2-apply-server-settings conn frame)
+	       (loop))
+	      (else (loop)))))
     conn))
 
 (define (http2? socket)
@@ -170,7 +200,7 @@
 ;;; API
 ;; this must be done asynchronousely by client (otherwise blocks)
 (define (http2-send-header connection request)
-  (define stream (make-http2-stream connection request))
+  (define stream (make-http2-stream! connection request))
   ;; send request here
   (define header-frame (stream:request->header-frame stream request))
 
@@ -201,23 +231,9 @@
 (define (http2-receive-data connection response-context)
   (define request (http:response-context-request response-context))
   (define data-handler (wrap-handler response-context))
-  ;; after data receival, the stream is no longer available, so remove it
-  (define (remove-stream connection request)
-    (define context (http-connection-context-data connection))
-    (define streams (http2-connection-context-streams context))
-    (define target-stream (search-stream connection request))
-    (http2-remove-stream! connection (http2-stream-id target-stream))
-    connection)
-  (define data-ready? http-connection-data-ready?)
-
-  (let loop ((es? (http2-response connection request 'data data-handler)))
-    (cond (es?
-	   (remove-stream connection request)
-	   (http:response-body-state done))
-	  (else
-	   (if (data-ready? connection)
-	       (loop (http2-response connection request 'data data-handler))
-	       (http:response-body-state continue))))))
+  (if (http2-response connection request 'data data-handler)
+      (http:response-body-state done)
+      (http:response-body-state continue)))
 
 (define (wrap-handler response-context)
   (define data-handler (http:response-context-data-handler response-context))
@@ -237,42 +253,149 @@
 	(data-handler response-context (http2-frame-data-data frame) es?))))
 
 (define (http2-response connection request to-receive handler)
-  (define target-stream (search-stream connection request))
-  (define rstate (http2-stream-remote-state target-stream))
-  ;; already received?
-  (cond ((and (eq? to-receive 'header) (memq rstate '(half-closed closed)))
-	 ;; Okay, the stream already received header, so return
-	 #t)
-	((and (eq? to-receive 'data) (eq? rstate (http2:stream-state closed)))
-	 ;; Okay, the stream already received data so return
-	 #t)
+  (define target-stream (find-stream connection request))
+  (define (finalize-stream! stream)
+    (http2-remove-stream! connection (http2-stream-id stream))
+    #t)
+  (cond ((and (not target-stream) (eq? to-receive 'data)) #t)
+	((not target-stream)
+	 (assertion-violation 'http2-response "No stream associated" request))
 	(else
 	 (let loop ()
-	   (let-values (((frame stream) (handle-frame connection handler)))
-	     (if (and (eq? stream target-stream)
-		      (or (and (eq? to-receive 'header)
-			       (http2-frame-headers? frame))
-			  (and (eq? to-receive 'data)
-			       (http2-frame-data? frame))))
-		 (http2-frame-end-stream? frame)
-		 (loop)))))))
+	   (let ((frame (next-stream-frame! connection target-stream)))
+	     (cond ((and (eq? to-receive 'header) (http2-frame-headers? frame))
+		    (let ((es? (http2-frame-end-stream? frame)))
+		      (handler frame es?)
+		      (when es?
+			(http2-stream-remote-state-set! target-stream
+			  (http2:stream-state closed))
+			(finalize-stream! target-stream))
+		      es?))
+		   ((and (eq? to-receive 'data) (http2-frame-data? frame))
+		    (let ((data (http2-frame-data-data frame))
+			  (es? (http2-frame-end-stream? frame)))
+		      (http-connection-write-log connection
+						 "HTTP2 data length ~a, ~a"
+						 (bytevector-length data) es?)
+		      (handler frame es?)
+		      (update-window-size! target-stream
+					   (bytevector-length data))
+		      (when es?
+			(http2-stream-remote-state-set! target-stream
+			  (http2:stream-state closed))
+			(finalize-stream! target-stream))
+		      es?))
+		   ((and (http2-frame-rst-stream? frame)
+			 (= (http2-frame-stream-identifier frame)
+			    (http2-stream-id target-stream)))
+		    (http2-stream-remote-state-set! target-stream
+						    (http2:stream-state closed))
+		    (finalize-stream! target-stream)
+		    (raise (condition
+			    (make-message-condition
+			     "HTTP/2 stream reset by peer")
+			    (make-irritants-condition
+			     (list (http2-frame-rst-stream-error-code frame))))))
+		   (else (loop))))))))
 
 ;;; helpers
 (define (search-stream connection request)
   (define context (http-connection-context-data connection))
-  (hashtable-seek (http2-connection-context-streams context)
-		  (lambda (k v) (eq? (http2-stream-request v) request))
-		  (lambda (t k v) v)
-		  (lambda () (assertion-violation 'http2-search-stream
-						  "No stream associated"
-						  request))))
+  (or (hashtable-ref (http2-connection-context-requests context) request #f)
+      (assertion-violation 'http2-search-stream "No stream associated" request)))
+
+(define (find-stream connection request)
+  (hashtable-ref (http2-connection-context-requests
+		  (http-connection-context-data connection))
+		 request #f))
+
+(define (http2-connection-reusable? connection)
+  (define ctx (http-connection-context-data connection))
+  (and (http-connection-open? connection)
+       (not (http2-stream-manager-draining?
+	     (http2-connection-context-stream-manager ctx)))))
+
+(define (http2-connection-has-capacity? connection)
+  (define ctx (http-connection-context-data connection))
+  (http2-stream-manager-can-accept-new-stream?
+   (http2-connection-context-stream-manager ctx)))
+
+(define (make-http2-stream! connection request)
+  (define ctx (http-connection-context-data connection))
+  (define manager (http2-connection-context-stream-manager ctx))
+  (let* ((id (http2-next-stream-id connection))
+	 (stream (make-http2-stream id connection request)))
+    (unless (http2-stream-manager-register-stream! manager id stream)
+      (assertion-violation 'make-http2-stream!
+			   "No available stream capacity" connection request))
+    (http2-connection-context-active-streams-set!
+     ctx
+     (http2-stream-manager-active-stream-count manager))
+    (hashtable-set! (http2-connection-context-requests ctx) request stream)
+    stream))
+
+(define (http2-remove-stream! conn id)
+  (define context (http-connection-context-data conn))
+  (define manager (http2-connection-context-stream-manager context))
+  (let ((stream (http2-stream-manager-find-stream manager id)))
+    (when stream
+      (hashtable-delete! (http2-connection-context-requests context)
+			 (http2-stream-request stream))))
+  (http2-stream-manager-unregister-stream! manager id)
+  (http2-connection-context-active-streams-set!
+   context
+   (http2-stream-manager-active-stream-count manager)))
+
+(define (stream-enqueue-frame! stream frame)
+  (define lock (http2-stream-lock stream))
+  (dynamic-wind
+      (lambda () (mutex-lock! lock))
+      (lambda ()
+	(http2-stream-pending-frames-set! stream
+	 (append (http2-stream-pending-frames stream) (list frame)))
+	(condition-variable-broadcast! (http2-stream-condition stream)))
+      (lambda () (mutex-unlock! lock))))
+
+(define (stream-pop-frame! stream)
+  (define lock (http2-stream-lock stream))
+  (dynamic-wind
+      (lambda () (mutex-lock! lock))
+      (lambda ()
+	(let ((pending (http2-stream-pending-frames stream)))
+	  (if (null? pending)
+	      #f
+	      (begin
+		(http2-stream-pending-frames-set! stream (cdr pending))
+		(car pending)))))
+      (lambda () (mutex-unlock! lock))))
+
+(define (next-stream-frame! connection stream)
+  (define ctx (http-connection-context-data connection))
+  (define manager (http2-connection-context-stream-manager ctx))
+  (define (rejected? stream manager)
+    (and (http2-stream-manager-draining? manager)
+	 (cond ((http2-stream-manager-goaway-last-stream-id manager) =>
+		(lambda (last-id) (> (http2-stream-id stream) last-id)))
+	       (else #f))))
+  (let loop ()
+    (cond ((stream-pop-frame! stream))
+	  (else
+	   (when (rejected? stream manager)
+	     (raise (condition
+		     (make-message-condition "HTTP/2 stream rejected by GOAWAY")
+		     (make-irritants-condition
+		      (list (http2-stream-id stream)
+			    (http2-stream-manager-goaway-last-stream-id manager))))))
+	   (http2-dispatch-one-frame! connection)
+	   (loop)))))
 
 (define (handle-misc-frames connection stream frame)
   (define context (http-connection-context-data connection))
   (define streams (http2-connection-context-streams context))
   (define (send-rst-stream connection code stream-id)
     (send-frame connection (make-http2-frame-rst-stream 0 stream-id code) #t)
-    (http2-stream-remote-state-set! stream (http2:stream-state closed)))
+    (when stream
+      (http2-stream-remote-state-set! stream (http2:stream-state closed))))
   (let* ((sid (http2-frame-stream-identifier frame))
 	 (stream (hashtable-ref streams sid #f)))
     (cond ((http2-frame-settings? frame)
@@ -287,17 +410,15 @@
 	    (http2-connection-context-request-hpack-context context))
 	   #t)
 	  ((http2-frame-goaway? frame)
-	   (http-connection-close! connection)
-	   (let ((msg? (http2-frame-goaway-data frame)))
-	     ;; TODO proper condition
-	     (error 'http2-request
-		    (if (zero? (bytevector-length msg?))
-			"Got GOAWAY frame"
-			(utf8->string msg?))
-		    (http2-frame-goaway-last-stream-id frame)
-		    (http2-frame-goaway-error-code frame))))
+	   (http2-stream-manager-mark-goaway!
+	    (http2-connection-context-stream-manager context)
+	    (http2-frame-goaway-last-stream-id frame))
+	   (http-connection-capacity-limit-set! connection 0)
+	   #t)
 	  ((http2-frame-rst-stream? frame)
-	   (http2-stream-remote-state-set! stream (http2:stream-state closed))
+	   (when stream
+	     (http2-stream-remote-state-set! stream (http2:stream-state closed))
+	     (stream-enqueue-frame! stream frame))
 	   #t)
 	  ((http2-frame-window-update? frame)
 	   (let ((size (http2-frame-window-update-window-size-increment frame)))
@@ -309,16 +430,21 @@
 		      (http2-connection-context-window-size-set! context
 		       (+ v size))))
 		   (else
-		    (let ((v (http2-stream-window-size stream)))
-		      (http2-stream-window-size-set! stream (+ v size)))))
+		    (when stream
+		      (let ((v (http2-stream-window-size stream)))
+			(http2-stream-window-size-set! stream (+ v size))))))
 	     #t))
 	  (else #f))))
 
 (define (send-frame connection frame end?)
   (define context (http-connection-context-data connection))
   (define out (http-connection-output connection))
-  (write-http2-frame out (http2-connection-context-buffer context)
-    frame end? (http2-connection-context-request-hpack-context context)))
+  (dynamic-wind
+      (lambda () (mutex-lock! (http2-connection-context-write-lock context)))
+      (lambda ()
+	(write-http2-frame out (http2-connection-context-buffer context)
+	  frame end? (http2-connection-context-request-hpack-context context)))
+      (lambda () (mutex-unlock! (http2-connection-context-write-lock context)))))
 
 (define (send-goaway connection e ec stream-id)
   (send-frame connection
@@ -349,6 +475,37 @@
     (read-http2-frame in (http2-connection-context-buffer context)
 		      res-hpack)))
 
+(define (http2-dispatch-one-frame! connection)
+  (define context (http-connection-context-data connection))
+  (define streams (http2-connection-context-streams context))
+  (dynamic-wind
+      (lambda () (mutex-lock! (http2-connection-context-read-lock context)))
+      (lambda ()
+	(let* ((frame (read-frame connection))
+	       (sid (http2-frame-stream-identifier frame))
+	       (stream (hashtable-ref streams sid #f))
+	       (es? (http2-frame-end-stream? frame)))
+	  (unless (or (zero? sid) stream (http2-frame-goaway? frame))
+	    (assertion-violation 'http2-dispatch-one-frame!
+	      "Stream is not registered or already removed" sid))
+	  (when es?
+	    (when stream
+	      (http2-stream-remote-state-set! stream
+		(case (http2-stream-state stream)
+		  ((half-closed) (http2:stream-state closed))
+		  ((open)        (http2:stream-state half-closed))
+		  (else          (http2:stream-state half-closed))))))
+	  (unless (handle-misc-frames connection stream frame)
+	    (cond ((http2-frame-headers? frame)
+		   (write-header-log connection "[Response header]" frame)
+		   (when stream (stream-enqueue-frame! stream frame)))
+		  ((http2-frame-data? frame)
+		   (when stream (stream-enqueue-frame! stream frame)))
+		  (else
+		   (assertion-violation 'http2-dispatch-one-frame!
+					"Unknown frame type" frame))))))
+      (lambda () (mutex-unlock! (http2-connection-context-read-lock context)))))
+
 (define (update-window-size! stream size)
   (define received (http2-stream-data-received stream))
   (define new-received (+ received size))
@@ -361,45 +518,6 @@
 			  (http2-stream-id stream) delta)
       (http2-stream-local-window-size-set! stream (+ local-window delta)))))
 
-
-(define (handle-frame connection handler)
-  (define context (http-connection-context-data connection))
-  (define streams (http2-connection-context-streams context))
-
-  (let* ((frame (read-frame connection))
-	 (sid (http2-frame-stream-identifier frame))
-	 (stream (hashtable-ref streams sid #f))
-	 (es? (http2-frame-end-stream? frame)))
-    ;; SID 0 == global 
-    (unless (or (zero? sid) stream)
-      (assertion-violation 'http2-response
-			   "Stream is not registered or already removed" sid))
-    (when es?
-      (http2-stream-remote-state-set! stream
-	(case (http2-stream-state stream)
-	  ;; local already sent ES, 
-	  ;; - header retrieval no body
-	  ;; - data retrieval
-	  ((half-closed) (http2:stream-state closed))
-	  ;; local is still open (header retrieval with body)
-	  ((open)        (http2:stream-state half-closed))
-	  ;; mustn't be but in case, we put half-closed)
-	  (else          (http2:stream-state half-closed)))))
-    (cond ((handle-misc-frames connection stream frame) (values frame #f))
-	  ((http2-frame-headers? frame)
-	   (write-header-log connection "[Response header]" frame)
-	   (handler frame es?)
-	   (values frame stream))
-	  ((http2-frame-data? frame)
-	   (let ((data (http2-frame-data-data frame)))
-	     (http-connection-write-log connection
-					"HTTP2 data length ~a, ~a"
-					(bytevector-length data) es?)
-	     (handler frame es?)
-	     (update-window-size! stream (bytevector-length data))
-	     (values frame stream)))
-	  (else
-	   (assertion-violation 'http2-response "Unknown frame type" frame)))))
 
 (define (request-has-body? request)
   (define method (http:request-method request))
@@ -414,7 +532,7 @@
     ;; this shouldn't be needed though...
     (define (pause! size)
       (let loop ()
-	(handle-frame (http2-stream-connection stream #f))
+	(http2-dispatch-one-frame! (http2-stream-connection stream))
 	(when (<= (http2-stream-window-size stream) size) (loop)))
       (set! window-size (http2-stream-window-size stream)))
 
@@ -483,26 +601,14 @@
     (make-http2-frame-headers 0 id #f #f headers)))
 
 (define (http2-write-stream stream frame end?)
-  (define conn (http2-stream-connection stream))
-  (define context (http-connection-context-data conn))
-  (define out (http-connection-output conn))
-  (write-http2-frame out (http2-connection-context-buffer context)
-		     frame end?
-		     (http2-connection-context-request-hpack-context context)))
-
-(define (http2-remove-stream! conn id)
-  (define context (http-connection-context-data conn))
-  (define streams (http2-connection-context-streams context))
-  (hashtable-delete! streams id))
+  (send-frame (http2-stream-connection stream) frame end?))
 
 (define (http2-next-stream-id conn)
   (define context (http-connection-context-data conn))
-  ;; I don't think with this http-client we share connection among threads
-  ;; so this may not needed, but not sure at this moment
-  (mutex-lock! (http2-connection-context-mutex context))
-  (let ((next-id (http2-connection-context-next-id context)))
+  (let ((next-id
+	 (http2-stream-manager-next-client-stream-id!
+	  (http2-connection-context-stream-manager context))))
     (http2-connection-context-next-id-set! context (+ next-id 2))
-    (mutex-unlock! (http2-connection-context-mutex context))
     next-id))
 
 (define +http2-preface+ #*"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n")
@@ -520,7 +626,6 @@
 
 (define (http2-apply-server-settings conn frame)
   (define ctx (http-connection-context-data conn))
-  (define out (http-connection-output conn))
   (define settings (http2-frame-settings-settings frame))
   ;; Ignore ACK SETTINGS
   (and (not (bitwise-bit-set? (http2-frame-flags frame) 0))
@@ -535,7 +640,15 @@
 			(cdar settings)))
 		      ((= (caar settings) +http2-settings-initial-window-size+)
 		       (http2-connection-context-initial-window-size-set! ctx
-			(cdar settings))))
+			(cdar settings)))
+		      ((= (caar settings) +http2-settings-max-concurrent-streams+)
+		       (let ((new-limit (cdar settings)))
+			 (http2-stream-manager-max-concurrent-streams-set!
+			  (http2-connection-context-stream-manager ctx)
+			  new-limit)
+			 (http2-connection-context-max-concurrent-streams-set!
+			  ctx new-limit)
+			 (http-connection-capacity-limit-set! conn new-limit))))
 		(loop (cdr settings)))))))
 
 (define (write-header-log connection key header-frame)

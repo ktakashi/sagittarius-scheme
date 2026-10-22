@@ -27,6 +27,7 @@
 	    (rfc http2 conditions)
 	    (rfc http2 hpack)
 	    (rfc http2 priority)
+	    (rfc http2 stream-manager)
 	    (util bytevector)
 	    (net http-server http2 state)
 	    (net http-server http2 const)
@@ -191,13 +192,15 @@
   (let* ((config (driver-config server))
 	 (max-concurrent-streams (http2-config-max-concurrent-streams config))
          (priority-node-cap (+ 5 (* 2 max-concurrent-streams)))
+	 (stream-manager (make-http2-stream-manager max-concurrent-streams))
          (decoder (make-hpack-context +default-header-table-size+))
          (encoder (make-hpack-context +default-header-table-size+))
          (state (make-http2-server-connection-state
                  socket
                  config
                  app-handler
-                 (make-eqv-hashtable)
+                 (http2-stream-manager-streams stream-manager)
+		 stream-manager
                  decoder
                  encoder
                  (make-frame-buffer)

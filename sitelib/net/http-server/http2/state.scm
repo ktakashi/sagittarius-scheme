@@ -44,6 +44,7 @@
 	    http2-server-connection-state-config
 	    http2-server-connection-state-app-handler
 	    http2-server-connection-state-streams
+	    http2-server-connection-state-stream-manager
 	    http2-server-connection-state-decoder-context
 	    http2-server-connection-state-encoder-context
 	    http2-server-connection-state-read-buffer
@@ -92,6 +93,7 @@
 	    (net http-server request)
 	    (net http-server response)
 	    (net http-server http2 const)
+	    (rfc http2 stream-manager)
 	    (rfc http2 priority))
 
 (define-class <http2-config> (<http-config>)
@@ -136,6 +138,7 @@
           config
           app-handler
           streams
+	  stream-manager
           decoder-context
           encoder-context
           read-buffer
@@ -170,7 +173,9 @@
 ;; stream
 
 (define (find-stream conn sid)
-  (hashtable-ref (http2-server-connection-state-streams conn) sid #f))
+  (http2-stream-manager-find-stream
+   (http2-server-connection-state-stream-manager conn)
+   sid))
 
 (define (drop-stream! conn sid)
   (let ((stream (find-stream conn sid)))
@@ -179,31 +184,30 @@
       (guard (e (else #f))
         (close-port (http2-server-stream-pending-input-port stream)))
       (http2-server-stream-pending-input-port-set! stream #f))
-    (hashtable-delete! (http2-server-connection-state-streams conn) sid)
+    (http2-stream-manager-unregister-stream!
+     (http2-server-connection-state-stream-manager conn)
+     sid)
     (http2-priority-tree-remove!
      (http2-server-connection-state-priority-tree conn)
      sid)))
 
 (define (for-each-stream conn proc)
-  (let-values (((keys values)
-                (hashtable-entries (http2-server-connection-state-streams conn))))
-    (let ((size (vector-length keys)))
-      (let loop ((i 0))
-        (unless (= i size)
-          (let ((stream (vector-ref values i)))
-            (when stream
-              (proc stream)))
-          (loop (+ i 1)))))))
+  (http2-stream-manager-for-each-stream
+   (http2-server-connection-state-stream-manager conn)
+   proc))
 
 (define (register-stream! conn stream)
-  (hashtable-set! (http2-server-connection-state-streams conn)
-                  (http2-server-stream-id stream)
-                  stream)
-  (when (odd? (http2-server-stream-id stream))
-    (http2-server-connection-state-last-stream-id-set!
-     conn
-     (http2-server-stream-id stream)))
-  stream)
+  (if (http2-stream-manager-register-stream!
+       (http2-server-connection-state-stream-manager conn)
+       (http2-server-stream-id stream)
+       stream)
+      (begin
+	(when (odd? (http2-server-stream-id stream))
+	  (http2-server-connection-state-last-stream-id-set!
+	   conn
+	   (http2-server-stream-id stream)))
+	stream)
+      #f))
 
 (define (invoke-app-handler state stream req)
   (let ((res (make-http-server:response))

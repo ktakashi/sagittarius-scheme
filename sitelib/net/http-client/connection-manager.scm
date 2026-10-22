@@ -495,8 +495,28 @@
 			   (notifier-send-notification! notifier)
 			   (raise e)))
 	     (let ((conn (lease)))
+	       (unless (http-connection-acquire-resource! conn)
+		 (http-connection-manager-release-connection delegate conn #f)
+		 (shared-queue-remove! leased box eq?)
+		 (assertion-violation 'pooling-lease-connection
+				      "Failed to acquire connection resource"
+				      conn))
 	       (vector-set! box 0 (mpe ttl conn))
 	       conn)))))
+
+  (define (find-shareable-leased-connection leased)
+    (with-pool-lock lock
+      (let loop ((entries (shared-queue->list leased)))
+	(cond ((null? entries) #f)
+	      (else
+	       (let* ((entry (vector-ref (car entries) 0))
+		      (conn (and entry (pooling-entry-connection entry))))
+		 (cond ((or (not conn)
+			    (pooling-entry-expired? entry)
+			    (not (http-connection-reusable? conn)))
+			(loop (cdr entries)))
+		       ((http-connection-acquire-resource! conn) conn)
+		       (else (loop (cdr entries))))))))))
 
   (define (get-connection leased avail max-conn timeout)
     (define (handle-leased-connection entry leased avail max-conn timeout)
@@ -509,6 +529,9 @@
 	     (http-connection-manager-release-connection delegate
 	       (pooling-entry-connection entry) #f)
 	     (get-connection leased avail max-conn timeout))
+	    ((not (http-connection-acquire-resource!
+		   (pooling-entry-connection entry)))
+	     (get-connection leased avail max-conn timeout))
 	    (else
 	     (shared-queue-put! leased (vector entry))
 	     (pooling-entry-connection entry))))
@@ -519,7 +542,8 @@
 	       (or (not t) (time-difference t (current-time))))
 	      (else #f))))
 
-    (cond ((shared-queue-pop! avail 0) =>
+    (cond ((find-shareable-leased-connection leased))
+	  ((shared-queue-pop! avail 0) =>
 	   (lambda (entry)
 	     (handle-leased-connection entry leased avail max-conn timeout)))
 	  ((try-new-connection leased avail max-conn))
@@ -561,8 +585,11 @@
     (with-pool-lock lock
       (let* ((route (->route connection))
 	     (leased (hashtable-ref leasing route #f)))
+	(http-connection-release-resource! connection)
 	;; must not be #f (if so it's a bug...)
-	(cond ((and leased (remove-entry leased connection)) =>
+	(cond ((and leased (> (http-connection-active-resource-count connection) 0))
+	       #f)
+	      ((and leased (remove-entry leased connection)) =>
 	       (lambda (entry)
 		 (cond ((and reuse?
 			     (not (pooling-entry-expired? entry))
