@@ -1,7 +1,7 @@
 ;;; -*- scheme -*-
 ;;; testing.scm - srfi 64, a Scheme API for test suites
 ;;;  
-;;;   Copyright (c) 2010-2011  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2026  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -26,7 +26,7 @@
 ;;;   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
-#!core
+#!nounbound
 
 ;; Ported for Sagittarius
 ;; Copyright (c) 2005, 2006 Per Bothner
@@ -125,7 +125,7 @@
 		  (define unspec (if #f #t))
 		  (ctor unspec unspec unspec unspec unspec unspec unspec 
 			unspec unspec unspec unspec unspec unspec unspec 
-			unspec unspec unspec unspec unspec unspec unspec 
+			unspec unspec unspec unspec unspec unspec '() 
 			unspec))))
     (fields
      (mutable pass-count test-runner-pass-count test-runner-pass-count!)
@@ -335,14 +335,16 @@
       (error msg)))
   
 
-  (define (%test-final-report1 value label port)
-    (if (> value 0)
+  (define (%test-final-report1 value label port :optional (anyway? #f))
+    (if (or anyway? (> value 0))
 	(begin
 	  (display label port)
 	  (display value port)
 	  (newline port))))
 
   (define (%test-final-report-simple runner port)
+    (%test-final-report1 (%test-runner-total-count runner)
+			 "# of tests                " port #t)
     (%test-final-report1 (test-runner-pass-count runner)
 			 "# of expected passes      " port)
     (%test-final-report1 (test-runner-xfail-count runner)
