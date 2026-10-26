@@ -74,6 +74,7 @@ struct read_ctx_rec
   SG_HEADER;
   SgHashTable *sharedObjects;
   SgHashTable *seen;
+  SgHashTable *dependencyStamps;
   unsigned int isLinkNeeded:1;
   unsigned int insnP:1;	      /* for temporary flag */
   unsigned int deprecatedP:1; /* the content of cache is deprecated */

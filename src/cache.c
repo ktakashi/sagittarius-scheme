@@ -108,6 +108,7 @@ static SgObject CACHE_EXT = SG_UNDEF;
 static SgObject TMP_EXT   = SG_UNDEF;
 static SgObject TIMESTAMP_EXT = SG_UNDEF;
 static SgString* id_to_filename(SgString *id);
+typedef struct read_ctx_rec read_ctx;
 
 typedef struct cache_stamp_rec
 {
@@ -222,6 +223,21 @@ static SgObject resolve_library_cache_stamp(SgObject library_name)
     }
   }
   return SG_FALSE;
+}
+
+static SgObject resolve_library_cache_stamp_cached(SgObject library_name,
+						   read_ctx *ctx)
+{
+  SgObject stamp;
+  if (ctx && ctx->dependencyStamps) {
+    stamp = Sg_HashTableRef(ctx->dependencyStamps, library_name, SG_UNBOUND);
+    if (!SG_UNBOUNDP(stamp)) return stamp;
+  }
+  stamp = resolve_library_cache_stamp(library_name);
+  if (ctx && ctx->dependencyStamps) {
+    Sg_HashTableSet(ctx->dependencyStamps, library_name, stamp, 0);
+  }
+  return stamp;
 }
 
 static SgObject lookup_dependency_stamp(SgObject dependencies, SgObject name)
@@ -411,7 +427,6 @@ enum {
 
   we can read object until BOUNDARY_TAG.
  */
-typedef struct read_ctx_rec read_ctx;
 static SgObject read_library(SgPort *in, read_ctx *ctx);
 static SgObject read_macro_section(SgPort *in, read_ctx *ctx);
 static SgObject read_object(SgPort *in, read_ctx *ctx);
@@ -1214,7 +1229,7 @@ static SgObject read_library(SgPort *in, read_ctx *ctx)
       if (!cache_valid_stamp_object(expected)) {
 	ESCAPE(ctx, "invalid dependency cache stamp of %A [%A]\n", v, ctx->file);
       }
-      actual = resolve_library_cache_stamp(v);
+      actual = resolve_library_cache_stamp_cached(v, ctx);
       if (!cache_stamp_equal(expected, actual)) {
 	ESCAPE(ctx, "dependency cache mismatch of %A for %A\n", v, name);
       }
@@ -1262,7 +1277,7 @@ static SgObject read_library(SgPort *in, read_ctx *ctx)
     }
     if (!SG_UNBOUNDP(lookup_dependency_stamp(dependencies, from))) {
       SgObject expected = lookup_dependency_stamp(dependencies, from);
-      SgObject actual = resolve_library_cache_stamp(from);
+      SgObject actual = resolve_library_cache_stamp_cached(from, ctx);
       if (!cache_stamp_equal(expected, actual)) {
 	ESCAPE(ctx, "dependency cache changed while loading %A: %A\n",
 	       name, from);
@@ -1380,13 +1395,14 @@ static int check_timestamp(SgString* id, SgString *cache_path)
 static int read_cache_from_port(SgVM *vm, SgPort *in)
 {
   SgObject obj;
-  SgHashTable seen, shared;
+  SgHashTable seen, shared, dependency_stamps;
   SgLibrary * volatile save = vm->currentLibrary;
   read_ctx ctx;
   int b, ret;
 
   Sg_InitHashTableSimple(&seen, SG_HASH_EQ, 128);
   Sg_InitHashTableSimple(&shared, SG_HASH_EQ, 256);
+  Sg_InitHashTableSimple(&dependency_stamps, SG_HASH_EQ, 64);
 
   /* FIXME this is not right but we don't want to allocate extra memory.
      NB: read context might be passed to Scheme world.
@@ -1394,6 +1410,7 @@ static int read_cache_from_port(SgVM *vm, SgPort *in)
   SG_SET_CLASS(&ctx, SG_CLASS_READ_CACHE_CTX);
   ctx.seen = &seen;
   ctx.sharedObjects = &shared;
+  ctx.dependencyStamps = &dependency_stamps;
   ctx.insnP = FALSE;
   ctx.isLinkNeeded = FALSE;
   ctx.file = Sg_FileName(in);
