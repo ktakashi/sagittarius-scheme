@@ -31,5 +31,5 @@ runs:
       shell: cmd
 
     - name: Test
-      run: ctest --output-on-failure -LE json
+      run: ctest --output-on-failure -LE json -j4
       shell: cmd
