@@ -1006,7 +1006,7 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
 
   cacheSize = Sg_FileSize(tmp_cache_path);
   if (!cache_compute_fingerprint(tmp_cache_path, &fingerprint)) goto err;
-  if (!Sg_FileRename(tmp_cache_path, cache_path)) goto err;
+  if (Sg_FileRename(tmp_cache_path, cache_path) != 0) goto err;
 
   /* use file API directly here */
   /* put validate tag */
