@@ -957,6 +957,8 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
   int tmp_file_opened = FALSE;
   uint8_t portBuffer[SG_PORT_DEFAULT_BUFFER_SIZE];
   int64_t cacheSize;
+  int oor = FALSE;
+  uint64_t mtime;
   uint64_t fingerprint;
   unsigned long sec, usec;
 
@@ -1005,7 +1007,14 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
   tmp_file_opened = FALSE;
 
   cacheSize = Sg_FileSize(tmp_cache_path);
-  if (!cache_compute_fingerprint(tmp_cache_path, &fingerprint)) goto err;
+  mtime = Sg_GetIntegerU64Clamp(Sg_FileModifyTime(tmp_cache_path),
+				SG_CLAMP_NONE, &oor);
+  if (oor) {
+    uint64_t real = 0;
+    Sg_TimeUsage(&real, NULL, NULL);
+    mtime = real;
+  }
+  fingerprint = (mtime ^ ((uint64_t)cacheSize * UINT64_C(1099511628211)));
   if (Sg_FileRename(tmp_cache_path, cache_path) != 0) goto err;
 
   /* use file API directly here */
@@ -1015,6 +1024,10 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
   SG_FILE_VTABLE(&tagfile)->write(&tagfile, (uint8_t *)&cacheSize, sizeof(int64_t));
   /* put cache fingerprint */
   SG_FILE_VTABLE(&tagfile)->write(&tagfile, (uint8_t *)&fingerprint, sizeof(uint64_t));
+
+  cache_store_loaded_library_stamp(name,
+				   Sg_Cons(Sg_MakeIntegerFromU64(fingerprint),
+					   Sg_MakeIntegerFromS64(cacheSize)));
   
   Sg_CloseFile(&tagfile);
 

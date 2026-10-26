@@ -107,6 +107,7 @@ static SgObject SEPARATOR = SG_UNDEF;
 static SgObject CACHE_EXT = SG_UNDEF;
 static SgObject TMP_EXT   = SG_UNDEF;
 static SgObject TIMESTAMP_EXT = SG_UNDEF;
+static SgObject LOADED_LIBRARY_STAMPS = SG_FALSE;
 static SgString* id_to_filename(SgString *id);
 typedef struct read_ctx_rec read_ctx;
 
@@ -115,39 +116,6 @@ typedef struct cache_stamp_rec
   int64_t size;
   uint64_t fingerprint;
 } cache_stamp;
-
-static uint64_t cache_fingerprint_u8(uint64_t seed, const uint8_t *data, long size)
-{
-  uint64_t hash = seed;
-  long i;
-  for (i = 0; i < size; i++) {
-    hash ^= data[i];
-    hash *= UINT64_C(1099511628211);
-  }
-  return hash;
-}
-
-static int cache_compute_fingerprint(SgString *cache_path, uint64_t *fingerprint)
-{
-  SgFile file;
-  int ret;
-  uint8_t buffer[4096];
-  uint64_t hash = UINT64_C(1469598103934665603);
-
-  SG_OPEN_FILE(ret, &file, cache_path, SG_READ);
-  if (!ret) return FALSE;
-
-  Sg_LockFile(&file, SG_SHARED);
-  for (;;) {
-    long size = SG_FILE_VTABLE(&file)->read(&file, buffer, sizeof(buffer));
-    if (size <= 0) break;
-    hash = cache_fingerprint_u8(hash, buffer, size);
-  }
-  Sg_UnlockFile(&file);
-  Sg_CloseFile(&file);
-  *fingerprint = hash;
-  return TRUE;
-}
 
 static int cache_read_stamp_file(SgString *timestamp, cache_stamp *stamp)
 {
@@ -195,6 +163,15 @@ static SgObject cache_stamp_to_object(const cache_stamp *stamp)
 		 Sg_MakeIntegerFromS64(stamp->size));
 }
 
+static void cache_store_loaded_library_stamp(SgObject library_name,
+					     SgObject stamp)
+{
+  if (!SG_FALSEP(LOADED_LIBRARY_STAMPS)) {
+    Sg_HashTableSet(SG_HASHTABLE(LOADED_LIBRARY_STAMPS),
+		    library_name, stamp, 0);
+  }
+}
+
 static int cache_valid_stamp_object(SgObject stamp)
 {
   return SG_FALSEP(stamp) ||
@@ -211,29 +188,61 @@ static int cache_stamp_equal(SgObject expected, SgObject actual)
     Sg_NumCmp(SG_CDR(expected), SG_CDR(actual)) == 0;
 }
 
-static SgObject resolve_library_cache_stamp(SgObject library_name)
+static SgObject resolve_library_cache_stamp_internal(SgObject library_name,
+						     SgObject expected)
 {
+  SgObject first = SG_UNBOUND;
+
+  if (!SG_FALSEP(LOADED_LIBRARY_STAMPS)) {
+    SgObject stamp = Sg_HashTableRef(SG_HASHTABLE(LOADED_LIBRARY_STAMPS),
+				     library_name, SG_UNBOUND);
+    if (!SG_UNBOUNDP(stamp)) return stamp;
+  }
   SgObject depfiles = Sg_SearchLibraryPath(library_name);
   SG_FOR_EACH(depfiles, depfiles) {
     SgObject cache_file = id_to_filename(SG_CAR(depfiles));
     cache_stamp stamp;
+    SgObject actual;
     if (!cache_file) continue;
     if (cache_read_stamp(SG_STRING(cache_file), &stamp)) {
-      return cache_stamp_to_object(&stamp);
+      actual = cache_stamp_to_object(&stamp);
+      if (!SG_UNBOUNDP(expected) && cache_stamp_equal(expected, actual)) {
+	return actual;
+      }
+      if (SG_UNBOUNDP(first)) first = actual;
     }
   }
-  return SG_FALSE;
+  return SG_UNBOUNDP(first)? SG_FALSE : first;
+}
+
+static SgObject resolve_library_cache_stamp(SgObject library_name)
+{
+  return resolve_library_cache_stamp_internal(library_name, SG_UNBOUND);
 }
 
 static SgObject resolve_library_cache_stamp_cached(SgObject library_name,
+						   SgObject expected,
 						   read_ctx *ctx)
 {
   SgObject stamp;
+
+  if (SG_FALSEP(expected)) return SG_FALSE;
+
   if (ctx && ctx->dependencyStamps) {
     stamp = Sg_HashTableRef(ctx->dependencyStamps, library_name, SG_UNBOUND);
     if (!SG_UNBOUNDP(stamp)) return stamp;
   }
-  stamp = resolve_library_cache_stamp(library_name);
+  if (!SG_FALSEP(LOADED_LIBRARY_STAMPS)) {
+    stamp = Sg_HashTableRef(SG_HASHTABLE(LOADED_LIBRARY_STAMPS),
+			    library_name, SG_UNBOUND);
+    if (!SG_UNBOUNDP(stamp)) {
+      if (ctx && ctx->dependencyStamps) {
+	Sg_HashTableSet(ctx->dependencyStamps, library_name, stamp, 0);
+      }
+      return stamp;
+    }
+  }
+  stamp = resolve_library_cache_stamp_internal(library_name, expected);
   if (ctx && ctx->dependencyStamps) {
     Sg_HashTableSet(ctx->dependencyStamps, library_name, stamp, 0);
   }
@@ -1229,7 +1238,7 @@ static SgObject read_library(SgPort *in, read_ctx *ctx)
       if (!cache_valid_stamp_object(expected)) {
 	ESCAPE(ctx, "invalid dependency cache stamp of %A [%A]\n", v, ctx->file);
       }
-      actual = resolve_library_cache_stamp_cached(v, ctx);
+      actual = resolve_library_cache_stamp_cached(v, expected, ctx);
       if (!cache_stamp_equal(expected, actual)) {
 	ESCAPE(ctx, "dependency cache mismatch of %A for %A\n", v, name);
       }
@@ -1275,9 +1284,9 @@ static SgObject read_library(SgPort *in, read_ctx *ctx)
     if (!Sg_IsValidLibraryName(from)) {
       ESCAPE(ctx, "Invalid importing library name (%A)\n", from);
     }
-    if (!SG_UNBOUNDP(lookup_dependency_stamp(dependencies, from))) {
-      SgObject expected = lookup_dependency_stamp(dependencies, from);
-      SgObject actual = resolve_library_cache_stamp_cached(from, ctx);
+    SgObject expected = lookup_dependency_stamp(dependencies, from);
+    if (!SG_UNBOUNDP(expected)) {
+      SgObject actual = resolve_library_cache_stamp_cached(from, expected, ctx);
       if (!cache_stamp_equal(expected, actual)) {
 	ESCAPE(ctx, "dependency cache changed while loading %A: %A\n",
 	       name, from);
@@ -1335,6 +1344,12 @@ static SgObject read_library(SgPort *in, read_ctx *ctx)
 #endif
     
     Sg_ImportLibraryFullSpec(lib, tmp, import);
+  }
+  if (SG_STRINGP(ctx->file)) {
+    cache_stamp stamp;
+    if (cache_read_stamp(SG_STRING(ctx->file), &stamp)) {
+      cache_store_loaded_library_stamp(name, cache_stamp_to_object(&stamp));
+    }
   }
   return lib;
 }
@@ -1623,6 +1638,7 @@ void Sg__InitCache()
   CACHE_EXT = SG_MAKE_STRING(".cache");
   TIMESTAMP_EXT = SG_MAKE_STRING(".timestamp");
   TMP_EXT = SG_MAKE_STRING(".tmp");
+  LOADED_LIBRARY_STAMPS = Sg_MakeHashTableSimple(SG_HASH_EQUAL, 256);
 #ifdef STORE_SOURCE_INFO
   SOURCE_INFO = SG_INTERN("source-info");
 #endif
