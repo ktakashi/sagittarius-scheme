@@ -185,7 +185,7 @@ static SgObject * flatten_imports(SgObject *h, SgObject *t, SgLibrary *lib,
 
 static int write_dependency(SgPort *out, SgLibrary *lib, cache_ctx *ctx)
 {
-  SgObject cp, h = SG_NIL, t = SG_NIL;
+  SgObject cp, h = SG_NIL, t = SG_NIL, dependencies = SG_NIL, dt = SG_NIL;
   long len;
   SgHashTable seen;
   if (!write_library(out, lib)) return FALSE;
@@ -205,7 +205,12 @@ static int write_dependency(SgPort *out, SgLibrary *lib, cache_ctx *ctx)
   h = SG_CDR(h); /* remove self */
   /* Sg_Printf(Sg_StandardErrorPort(), UC("%A: flatten: %S\n"), lib, h); */
 
-  write_object_cache(out, h, SG_NIL, ctx); /* write library names */
+  SG_FOR_EACH(cp, h) {
+    SgObject name = SG_CAR(cp);
+    SgObject stamp = resolve_library_cache_stamp(name);
+    SG_APPEND1(dependencies, dt, Sg_Cons(name, stamp));
+  }
+  write_object_cache(out, dependencies, SG_NIL, ctx);
   
   /* write import spec */
   len = Sg_Length(lib->imported);
@@ -926,7 +931,6 @@ static void write_macro_cache(SgPort *out, SgLibrary *lib, SgObject cbs,
 }
 
 static SgInternalMutex cache_mutex;
-static SgObject TIMESTAMP_EXT = SG_UNDEF;
 
 /*
   Here we do relatively conservative due to the past experience
@@ -943,15 +947,18 @@ static SgObject TIMESTAMP_EXT = SG_UNDEF;
 int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
 {
   SgVM *vm = Sg_VM();
-  SgString *cache_path = id_to_filename(id), *timestamp_path;
+  SgString *cache_path = id_to_filename(id), *timestamp_path, *tmp_cache_path;
   SgFile file, tagfile;
   SgPort *out;
   SgFilePort bp;
   SgBufferedPort bfp;
   SgObject cache;
   int index = 0, ret, flags = 0;
+  int tmp_file_opened = FALSE;
   uint8_t portBuffer[SG_PORT_DEFAULT_BUFFER_SIZE];
   int64_t cacheSize;
+  uint64_t fingerprint;
+  unsigned long sec, usec;
 
   if (!cache_path) return FALSE;
 
@@ -971,31 +978,15 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
   if (!ret) return FALSE;
   Sg_LockFile(&tagfile, SG_EXCLUSIVE);
 
-  
-  SG_OPEN_FILE(ret, &file, cache_path, SG_CREATE | SG_WRITE);
+  Sg_GetTimeOfDay(&sec, &usec);
+  tmp_cache_path = Sg_Sprintf(UC("%A%A.%lu.%lu"), cache_path, TMP_EXT, sec, usec);
+  SG_OPEN_FILE(ret, &file, tmp_cache_path, SG_CREATE | SG_WRITE | SG_TRUNCATE);
   /* In some cases, e.g. encrypted drive on Ubuntu, the path
      name would be too long and can't be opened. In that case,
      we just return here.
    */
   if (!ret) goto err;
-  
-  /* lock file */
-  if (!Sg_LockFile(&file, SG_EXCLUSIVE | SG_DONT_WAIT)) {
-    /* if locking file fails means there is a already process running to write
-       this cache file and there is no reason to re-do this since cache file
-       will be the same for the same cache. So just return. */
-    Sg_CloseFile(&file);
-    return TRUE;
-  }
-  /* lock first, then truncate */
-  Sg_FileTruncate(&file, 0);
-  /* Occasionally, I see bogus data appended on Windows.
-     So, let's check for my sanity */
-  if (Sg_FileSize(cache_path) != 0) {
-    SG_FILE_VTABLE(&file)->write(&file, (uint8_t *)INVALID_CACHE_TAG, 1);
-    Sg_CloseFile(&file);
-    goto err;
-  }
+  tmp_file_opened = TRUE;
 
   out = Sg_InitFileBinaryPort(&bp, &file, SG_OUTPUT_PORT, &bfp, 
 			      SG_BUFFER_MODE_BLOCK,
@@ -1010,25 +1001,39 @@ int Sg_WriteCache(SgObject name, SgString *id, SgObject caches)
     if (index < 0) goto close;
   }
   Sg_FlushPort(out);
+  Sg_ClosePort(out);
+  tmp_file_opened = FALSE;
 
-  cacheSize = Sg_FileSize(cache_path);
+  cacheSize = Sg_FileSize(tmp_cache_path);
+  if (!cache_compute_fingerprint(tmp_cache_path, &fingerprint)) goto err;
+  if (!Sg_FileRename(tmp_cache_path, cache_path)) goto err;
 
   /* use file API directly here */
   /* put validate tag */
   SG_FILE_VTABLE(&tagfile)->write(&tagfile, (uint8_t *)VALIDATE_TAG, TAG_LENGTH);
   /* put cache file size */
   SG_FILE_VTABLE(&tagfile)->write(&tagfile, (uint8_t *)&cacheSize, sizeof(int64_t));
+  /* put cache fingerprint */
+  SG_FILE_VTABLE(&tagfile)->write(&tagfile, (uint8_t *)&fingerprint, sizeof(uint64_t));
   
-  Sg_ClosePort(out);
   Sg_CloseFile(&tagfile);
 
   return TRUE;
 
  close:
-  Sg_SetPortPosition(out, 0, SG_BEGIN);
-  Sg_PutbUnsafe(out, (uint8_t)INVALID_CACHE_TAG);
-  Sg_ClosePort(out);
+  if (tmp_file_opened) {
+    Sg_SetPortPosition(out, 0, SG_BEGIN);
+    Sg_PutbUnsafe(out, (uint8_t)INVALID_CACHE_TAG);
+    Sg_ClosePort(out);
+    tmp_file_opened = FALSE;
+  }
+  Sg_DeleteFile(tmp_cache_path);
+  goto err;
  err:
+  if (tmp_file_opened) {
+    Sg_CloseFile(&file);
+  }
+  Sg_DeleteFile(tmp_cache_path);
   Sg_CloseFile(&tagfile);
   return FALSE;
 }
