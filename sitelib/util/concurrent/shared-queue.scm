@@ -112,7 +112,6 @@
 		      (mutex-lock! (%lock sq))
 		      (loop))
 		     (else
-		      ;; do we need to reduce this?
 		      (%w-set! sq (- (%w sq) 1))
 		      timeout-value)))
 	      (else
@@ -150,7 +149,6 @@
 		      (mutex-lock! (%lock sq))
 		      (loop))
 		     (else
-		      ;; do we need to reduce this?
 		      (%w-set! sq (- (%w sq) 1))
 		      timeout-value)))
 	      (else

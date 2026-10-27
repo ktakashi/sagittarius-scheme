@@ -105,7 +105,9 @@
 	       (cond ((mutex-unlock! (%sb-lock sb) (%sb-cv sb) timeout)
 		      (mutex-lock! (%sb-lock sb))
 		      (loop))
-		     (else (values timeout-value #t))))
+		     (else
+		      (%sb-waiter-set! sb (- (%sb-waiter sb) 1))
+		      (values timeout-value #t))))
 	      (else
 	       (%sb-waiter-set! sb (- (%sb-waiter sb) 1))
 	       (mutex-unlock! (%sb-lock sb))
