@@ -71,11 +71,17 @@ If the timer state is not `created` or `stopped`, then
 
 ###### [!Function] `timer-stop!`  _timer_
 
-Stops the given _time_.
+Stops the given _timer_.
+
+If a task callback is currently running, then `timer-stop!` waits until the
+callback finishes and the timer transitions to `stopped`.
+
+Calling `timer-stop!` concurrently from multiple threads is safe; each caller
+waits for the same stop operation to complete.
 
 ###### [!Function] `timer-cancel!`  _timer_
 
-Cancel the given _time_. If one of the tasks raised an error and
+Cancel the given _timer_. If one of the tasks raised an error and
 no error handler is specified, then this procedure will re-raise the error.
 
 Once the timer is cancelled, then this timer is completely destroyed.
@@ -110,4 +116,3 @@ Removes given _id_ task from the _timer_.
 
 Returns #t if given _id_ task exists in the _timer_, 
 otherwise #f.
-

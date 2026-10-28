@@ -110,5 +110,84 @@
   (test-assert "timer-stop!" (timer? (timer-stop! timer)))
   (test-assert "timer-cancel!" (timer-cancel! timer)))
 
+;; timer-stop! must wait until an active callback has finished.
+(let* ((timer (timer-start! (make-timer)))
+       (started (make-shared-queue))
+       (release (make-shared-queue))
+       (finished (make-shared-queue))
+       (id (timer-schedule!
+            timer
+            (lambda ()
+              (shared-queue-put! started #t)
+              (shared-queue-get! release)
+              (shared-queue-put! finished #t))
+            0)))
+  ;; Wait until the callback is definitely executing.
+  (shared-queue-get! started)
+
+  ;; Stop in a separate thread because it should wait for the callback.
+  (let ((stopper
+         (thread-start!
+          (make-thread (lambda () (timer-stop! timer))))))
+    ;; Release the callback so that stop can complete.
+    (shared-queue-put! release #t)
+    (print "released")
+    (test-assert "callback finished before stop returned"
+                 (shared-queue-get! finished))
+    (test-assert "timer stop completed"
+                 (timer? (thread-join! stopper))))
+
+  (print "time doesn't exist")
+  (test-assert "one-shot task removed after completion"
+               (not (timer-exists? timer id)))
+  (test-assert "timer cancel after stop"
+               (timer-cancel! timer)))
+
+(let* ((timer (timer-start! (make-timer)))
+       (ready (make-shared-queue))
+       (stopper
+        (lambda ()
+          (shared-queue-put! ready #t)
+          (timer-stop! timer)))
+       (t1 (thread-start! (make-thread stopper)))
+       (t2 (thread-start! (make-thread stopper))))
+  ;; Both callers have started their stop operation.
+  (shared-queue-get! ready)
+  (shared-queue-get! ready)
+
+  (print "thread join 1")
+  (test-assert "first concurrent stop completes"
+               (timer? (thread-join! t1)))
+  (print "thread join 2")
+  (test-assert "second concurrent stop completes"
+               (timer? (thread-join! t2)))
+  (print "cancel timer")
+  (test-assert "timer cancel after concurrent stops"
+               (timer-cancel! timer)))
+
+
+(let* ((timer (timer-start! (make-timer)))
+       (first (make-shared-queue))
+       (second (make-shared-queue)))
+  (print "timer restart")
+  (timer-schedule! timer
+                   (lambda () (shared-queue-put! first 'first))
+                   0)
+  (test-equal "task before stop"
+              'first
+              (shared-queue-get! first))
+
+  (timer-stop! timer)
+  (timer-start! timer)
+
+  (timer-schedule! timer
+                   (lambda () (shared-queue-put! second 'second))
+                   0)
+  (test-equal "task after restart"
+              'second
+              (shared-queue-get! second))
+
+  (test-assert "cancel restarted timer"
+               (timer-cancel! timer)))
 
 (test-end)
