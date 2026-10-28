@@ -2,7 +2,7 @@
 ;;;
 ;;; util/timer.scm - Timer
 ;;;  
-;;;   Copyright (c) 2010-2015  Takashi Kato  <ktakashi@ymail.com>
+;;;   Copyright (c) 2010-2026  Takashi Kato  <ktakashi@ymail.com>
 ;;;   
 ;;;   Redistribution and use in source and binary forms, with or without
 ;;;   modification, are permitted provided that the following conditions
@@ -28,6 +28,7 @@
 ;;;   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ;;;  
 
+#!nounbound
 (library (util timer)
     (export make-timer timer? timer-state
 	    timer-start! timer-stop! timer-cancel!
@@ -35,7 +36,7 @@
 	    timer-remove! timer-exists?)
     (import (rnrs)
 	    (sagittarius) ;; for compare
-	    (sagittarius control) ;; unwind-protect
+	    (sagittarius control)
 	    (srfi :18)
 	    (srfi :19)
 	    (util heap))
@@ -104,15 +105,12 @@
       (case (timer-state t)
 	((cancelling) (timer-state-set! t 'cancelled))
 	((cancelled)) ;; do nothing
+	((stopped)
+	 (wait-cv (timer-lock t) (timer-waiter t))
+	 (main-loop t))
 	((stopping)
-	 (condition-variable-broadcast! (timer-waiter t))
-	 ;; otherwise other operation can't do anything...
-	 (mutex-unlock! (timer-lock t))
 	 (timer-state-set! t 'stopped)
-	 ;; it's stopped as long as mutex is locked
-	 (mutex-unlock! (timer-stop-lock t) (timer-stop-waiter t) #f)
-	 ;; lock again
-	 (mutex-lock! (timer-lock t))
+	 (condition-variable-broadcast! (timer-waiter t))
 	 (main-loop t))
 	(else
 	 ;; we may want to <mt-heap> for this purpose...
@@ -163,8 +161,6 @@
   (mutex-lock! (timer-lock t))
   (case (timer-state t)
     ((stopped)
-     (condition-variable-broadcast! (timer-stop-waiter t))
-     (mutex-unlock! (timer-stop-lock t))
      (condition-variable-broadcast! (timer-waiter t)))
     ((created) (thread-start! (timer-worker t)))
     (else (assertion-violation 'timer-start! "already running" t)))
@@ -175,48 +171,43 @@
 
 (define (timer-stop! t)
   (mutex-lock! (timer-lock t))
-  (timer-state-set! t 'stopping)
-  (mutex-lock! (timer-stop-lock t))
-  ;; notify to queue 
-  (condition-variable-broadcast! (timer-waiter t))
-  ;; this should let the timer lock its lock
-  (mutex-unlock! (timer-lock t))
-  ;; make sure timer lock is unlocked so that other process can modify
-  ;; the timer.
-  (thread-yield!)
-  ;; can't we do better?
+  (case (timer-state t)
+    ((created)
+     (timer-state-set! t 'stopped))
+    ((running)
+     (timer-state-set! t 'stopping)
+     (condition-variable-broadcast! (timer-waiter t)))
+    ((stopping))
+    ((stopped))
+    ((cancelling cancelled))
+    (else (assertion-violation 'timer-stop! "unknown timer state" t)))
   (let loop ()
-    (unless (eq? (timer-state t) 'stopped)
-      (thread-yield!)
-      (thread-sleep! 0.1) ;; sleep a bit
+    (unless (or (eq? (timer-state t) 'stopped)
+		(eq? (timer-state t) 'cancelled))
+      (wait-cv (timer-lock t) (timer-waiter t))
       (loop)))
+  (mutex-unlock! (timer-lock t))
   t)
 
 (define (timer-cancel! t)
   (mutex-lock! (timer-lock t))
-  (let retry ((need-lock? #f))
-    (case (timer-state t)
-      ((stopped) 
-       (condition-variable-broadcast! (timer-stop-waiter t))
-       ;; lock first to prevent to be locked by the timer
-       (when need-lock? (mutex-lock! (timer-lock t)))
-       ;; ok unlock it
-       (mutex-unlock! (timer-stop-lock t)))
-      ;; basically this pass never happens. since timer-stop! makes sure
-      ;; the timer is stopped state.
-      ((stopping)
-       ;; make sure we don't do this twice, otherwise it'd wait
-       ;; forever until someone unlock the lock (and in this case
-       ;; nobody).
-       (unless need-lock?
-	 (condition-variable-broadcast! (timer-waiter t))
-	 (mutex-unlock! (timer-lock t)))
-       (thread-yield!) ;; wait a bit to give some chance
-       (retry #t))))
-  (timer-state-set! t 'cancelling)
-  (condition-variable-broadcast! (timer-waiter t))
-  (mutex-unlock! (timer-lock t))
-  (thread-join! (timer-worker t)))
+  (case (timer-state t)
+    ((created)
+     (timer-state-set! t 'cancelled)
+     (mutex-unlock! (timer-lock t))
+     #t)
+    ((cancelled)
+     (mutex-unlock! (timer-lock t))
+     #t)
+    ((cancelling)
+     (condition-variable-broadcast! (timer-waiter t))
+     (mutex-unlock! (timer-lock t))
+     (thread-join! (timer-worker t)))
+    (else
+     (timer-state-set! t 'cancelling)
+     (condition-variable-broadcast! (timer-waiter t))
+     (mutex-unlock! (timer-lock t))
+     (thread-join! (timer-worker t)))))
 
 (define (check-positive who v msg)
   (when (negative? v) (error who msg v)))
