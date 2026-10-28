@@ -455,6 +455,183 @@
   (test-equal '(3 2 1) (map future-get f*))
   (shutdown-executor! e))
 
+;; future transition regressions
+(let ()
+  (define worker-count 16)
+  (define execute-count 0)
+  (define f (make-executor-future
+	     (lambda ()
+	       (set! execute-count (+ execute-count 1))
+	       'executed)))
+  (define start (make-shared-queue 0))
+  (define workers
+    (map (lambda (i)
+	   (make-thread
+	    (lambda ()
+	      (shared-queue-get! start)
+	      (future-execute-task! f))))
+	 (iota worker-count)))
+  (future-prepare-execution! f)
+  (for-each thread-start! workers)
+  (for-each (lambda (i) (shared-queue-put! start i)) (iota worker-count))
+  (for-each thread-join! workers)
+  (test-equal "future executes once" 1 execute-count)
+  (test-equal "future execute-once result" 'executed (future-get f)))
+
+(let ()
+  (define (run-once)
+    (define executed 0)
+    (define cancel-result #f)
+    (define f (make-executor-future
+	       (lambda ()
+		 (set! executed (+ executed 1))
+		 'ok)))
+    (define start (make-shared-queue 0))
+    (define executor-thread
+      (make-thread
+       (lambda ()
+	 (shared-queue-get! start)
+	 (future-execute-task! f))))
+    (define cancel-thread
+      (make-thread
+       (lambda ()
+	 (shared-queue-get! start)
+	 (set! cancel-result (future-cancel f)))))
+    (future-prepare-execution! f)
+    (thread-start! executor-thread)
+    (thread-start! cancel-thread)
+    (shared-queue-put! start 'go)
+    (shared-queue-put! start 'go)
+    (thread-join! executor-thread)
+    (thread-join! cancel-thread)
+    (and (<= executed 1)
+	 (if cancel-result
+	     (and (future-cancelled? f)
+		  (guard (e ((future-terminated? e) #t)
+			    (else #f))
+		    (future-get f)
+		    #f))
+	     (and (= executed 1)
+		  (eq? (future-get f) 'ok)
+		  (not (future-cancelled? f))))))
+  (test-assert "cancel/startup race has a single winner"
+	       (let loop ((i 0))
+		 (or (= i 100)
+		     (and (run-once)
+			  (loop (+ i 1)))))))
+
+(let ()
+  (define started (make-shared-queue 0))
+  (define release (make-shared-queue 0))
+  (define f (make-executor-future
+	     (lambda ()
+	       (shared-queue-put! started #t)
+	       (shared-queue-get! release)
+	       'done)))
+  (define runner (make-thread (lambda () (future-execute-task! f))))
+  (future-prepare-execution! f)
+  (thread-start! runner)
+  (shared-queue-get! started)
+  (test-assert "cancel running task" (future-cancel f))
+  (shared-queue-put! release #t)
+  (thread-join! runner)
+  (test-assert "cancelled state is preserved" (future-cancelled? f))
+  (test-error "cancelled future doesn't return completion"
+	      future-terminated?
+	      (future-get f)))
+
+(let ()
+  (define waiter-count 8)
+  (define started (make-shared-queue 0))
+  (define release (make-shared-queue 0))
+  (define results (make-shared-queue))
+  (define f (make-executor-future
+	     (lambda ()
+	       (shared-queue-put! started #t)
+	       (shared-queue-get! release)
+	       'all-waiters)))
+  (define runner (make-thread (lambda () (future-execute-task! f))))
+  (define waiters
+    (map (lambda (i)
+	   (make-thread
+	    (lambda ()
+	      (shared-queue-put! results (future-get f)))))
+	 (iota waiter-count)))
+  (future-prepare-execution! f)
+  (thread-start! runner)
+  (shared-queue-get! started)
+  (for-each thread-start! waiters)
+  (shared-queue-put! release #t)
+  (for-each thread-join! waiters)
+  (thread-join! runner)
+  (let ((observed (map (lambda (i) (shared-queue-get! results))
+		       (iota waiter-count))))
+    (test-assert "all waiters get the same completion"
+		 (for-all (lambda (v) (eq? v 'all-waiters)) observed))))
+
+(let ()
+  (define waiter-count 8)
+  (define started (make-shared-queue 0))
+  (define release (make-shared-queue 0))
+  (define results (make-shared-queue))
+  (define f (make-executor-future
+	     (lambda ()
+	       (shared-queue-put! started #t)
+	       (shared-queue-get! release)
+	       (error 'future-race "boom"))))
+  (define runner (make-thread (lambda () (future-execute-task! f))))
+  (define waiters
+    (map (lambda (i)
+	   (make-thread
+	    (lambda ()
+	      (guard (e (else (shared-queue-put! results 'raised)))
+		(future-get f)
+		(shared-queue-put! results 'returned)))))
+	 (iota waiter-count)))
+  (future-prepare-execution! f)
+  (thread-start! runner)
+  (shared-queue-get! started)
+  (for-each thread-start! waiters)
+  (shared-queue-put! release #t)
+  (for-each thread-join! waiters)
+  (thread-join! runner)
+  (let ((observed (map (lambda (i) (shared-queue-get! results))
+		       (iota waiter-count))))
+    (test-assert "exception completion wakes all waiters"
+		 (for-all (lambda (v) (eq? v 'raised)) observed)))
+  (test-error "exception completion remains exceptional"
+	      error?
+	      (future-get f)))
+
+(let ()
+  (define executor (make-executor 2 push-future-handler))
+  (define release (make-shared-queue))
+  (define futures
+    (map (lambda (i)
+	   (future (class <executor-future>)
+		   (shared-queue-get! release)))
+	 (iota 6)))
+  (define shutdown-thread (make-thread (lambda () (shutdown-executor! executor))))
+  (define cancel-thread (make-thread (lambda () (for-each future-cancel futures))))
+  (for-each (lambda (f) (execute-future! executor f)) futures)
+  (thread-start! shutdown-thread)
+  (thread-start! cancel-thread)
+  (thread-join! shutdown-thread)
+  (thread-join! cancel-thread)
+  (for-each (lambda (i) (shared-queue-put! release #t)) (iota 6))
+  (test-assert "shutdown race leaves no intermediate states"
+	       (for-all (lambda (f)
+			  (not (memq (future-state f) '(created executing))))
+			futures))
+  (test-assert "shutdown race resolves all futures"
+	       (for-all
+		(lambda (f)
+		  (not (eq? (guard (e ((future-terminated? e) 'terminated)
+				      (else 'error))
+				  (future-get f 0 'timeout))
+			    'timeout)))
+		futures)))
+
 ;; actor
 (let ()
   (define (actor-test make-actor)
