@@ -31,7 +31,5 @@ runs:
       shell: cmd
 
     - name: Test
-      # Can't use multi process because of the SChannel issue.
-      # It causes some race condition.
-      run: ctest --output-on-failure -LE json
+      run: ctest --output-on-failure -LE json -j 4
       shell: cmd
