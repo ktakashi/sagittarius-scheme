@@ -129,6 +129,7 @@
     (protocol (lambda (p)
 		(lambda (thunk result)
 		  (p thunk result 'created #f (make-mutex))))))
+
   (define (call-with-future-lock future proc)
     (let ((lock (future-lock future)))
       (mutex-lock! lock)

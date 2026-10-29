@@ -231,10 +231,10 @@
   
   ;; shutdown
   (define (thread-pool-executor-shutdown! executor)
-    ;; executor-future's future-cancel uses with-atomic
-    ;; so first finish up what we need to do for the executor
-    ;; then call future-cancel.
-    (define (executor-shutdown executor)
+    ;; Cancel tracked futures before force-terminating pooled threads.
+    ;; This avoids mutating futures after thread termination may leave
+    ;; future mutexes abandoned.
+    (define (prepare-shutdown executor)
       (with-atomic executor
 	(let ((state (executor-state executor)))
 	  (guard (e (else (executor-state-set! executor state)
@@ -243,14 +243,18 @@
 	    ;; chenge it here
 	    (when (eq? state 'running)
 	      (executor-state-set! executor 'shutdown))
-	    ;; we terminate the threads so that we can finish all
-	    ;; infinite looped threads.
-	    ;; NB, it's dangerous
-	    (thread-pool-release! (pooled-executor-pool executor) 'terminate)
-	    (list-queue-remove-all! (pooled-executor-pool-ids executor))))))
-    ;; now cancel futures
+	    (list-queue-list (pooled-executor-pool-ids executor))))))
+    (define (finish-shutdown executor)
+      (with-atomic executor
+	;; we terminate the threads so that we can finish all
+	;; infinite looped threads.
+	;; NB, it's dangerous
+	(thread-pool-release! (pooled-executor-pool executor) 'terminate)
+	(list-queue-remove-all! (pooled-executor-pool-ids executor))))
+    ;; cancel futures first (out side of with-atomic)
     (for-each (lambda (future) (future-cancel (cdr future)))
-	      (executor-shutdown executor)))
+	      (prepare-shutdown executor))
+    (finish-shutdown executor))
   
   (define (thread-pool-executor-execute-future! executor future)
     (or (with-atomic executor
