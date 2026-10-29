@@ -360,6 +360,8 @@ typedef struct WinTLSContextRec
   DWORD ownerPid;
   FILETIME ownerCreationTime;
   int ownsImportedKey;
+  LONG refCount;
+  LONG disposed;
 } WinTLSContext;
 
 typedef struct WinTLSDataRec
@@ -623,9 +625,19 @@ static DWORD cleanup_private_key(WinTLSContext *context, int clearCertProps)
   return e;
 }
 
+static void retain_context(WinTLSContext *context)
+{
+  InterlockedIncrement(&context->refCount);
+}
+
+static void release_context(WinTLSContext *context);
+
 static void free_context(WinTLSContext *context)
 {
   int i;
+  if (InterlockedExchange(&context->disposed, TRUE) != FALSE) {
+    return;
+  }
   cleanup_private_key(context, TRUE);
   if (context->certificates && context->certificateCount) {
     for (i = 0; i < context->certificateCount; i++) {
@@ -641,6 +653,13 @@ static void free_context(WinTLSContext *context)
   }
 
   Sg_UnregisterFinalizer(context);
+}
+
+static void release_context(WinTLSContext *context)
+{
+  if (InterlockedDecrement(&context->refCount) == 0) {
+    free_context(context);
+  }
 }
 
 static void tls_socket_finalizer(SgObject self, void *data)
@@ -677,7 +696,11 @@ static SgTLSSocket * make_tls_socket(SgSocket *socket, WinTLSContext *ctx)
     context->hProv = 0;
     context->keyType = RSA;
     clear_owned_key_state(context);
+    context->refCount = 1;
+    context->disposed = FALSE;
     Sg_RegisterFinalizer(context, tls_context_finalize, NULL);
+  } else {
+    retain_context(context);
   }
   return r;
 }
@@ -1100,7 +1123,8 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
     serverP = server_init(r);
     break;
   default:
-    free_context(data->tlsContext);
+    release_context(data->tlsContext);
+    data->tlsContext = NULL;
     Sg_AssertionViolation(SG_INTERN("socket->tls-socket"),
 			  Sg_Sprintf(UC("Client or server socket is required but got %S"), socket),
 			  socket);
@@ -1877,10 +1901,14 @@ void Sg_TLSSocketClose(SgTLSSocket *tlsSocket)
 {
   WinTLSData *data = (WinTLSData *)tlsSocket->data;
   if (!data->closed) {
+    WinTLSContext *context = data->tlsContext;
     tls_socket_shutdown(tlsSocket);
     DeleteSecurityContext(&data->context);
     FreeCredentialsHandle(&data->credential);
     data->tlsContext = NULL;      /* for GC */
+    if (context) {
+      release_context(context);
+    }
     Sg_SocketClose(tlsSocket->socket);
     data->closed = TRUE;
     Sg_UnregisterFinalizer(SG_OBJ(tlsSocket));
