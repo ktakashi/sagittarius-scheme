@@ -62,23 +62,26 @@ This procedure waits if the execution of the _future_ isn't finished yet.
 
 Cancels the execution of _future_.
 
-This procedure may or may not cancel the execution depending on the
-implementation of _future_. The `<simple-future>` provides by
-this library won't disturb the execution. Thus calling this procedure
-doesn't do anything but changing the future's state.
+This procedure atomically transitions the given _future_ to the
+`terminated` state when cancellation is still possible.
 
-NOTE: once this procedure is called, then calling `future-get`with _future_ raises a `&future-terminated`.
+If cancellation succeeds then this procedure returns `#t`, otherwise `#f`.
+
+For a running task, changing the state to `terminated` does not
+automatically stop the underlying thread unless the implementation
+provides a canceller.
+
+NOTE: once this procedure succeeds, then calling `future-get` with
+_future_ raises a `&future-terminated`.
 
 ```scheme
 (import (rnrs) (util concurrent))
 
-(define f (future (display "cancelled") (newline)))
+(define f (make-executor-future (lambda () 'done)))
 (future-cancel f)
 (future-get f)
 ```
 => ``&future-terminated``
-
-The above example may or may not print `"cancelled"`.
 
 
 ###### [!Function] `future-done?`  _future_
@@ -94,12 +97,27 @@ Returns #t if given execution of _future_ is terminated by
 
 Returns current state of the given _future_.
 
-The returning state is depending on the implementation of _future_.
-Only 2 states are defined in this library, `done` and `terminated`.
+The returning state depends on the implementation of _future_.
+The base implementation uses the following states:
 
-`done` is set when `future-get` is called.
+- `created`: task is not started yet.
+- `executing`: task is claimed and currently running.
+- `finished`: task completion is published.
+- `done`: a caller consumed the completion via `future-get`.
+- `terminated`: cancellation succeeded.
 
-`terminated` is set when `future-cancel` is called.
+State transitions are synchronised under the future mutex:
+
+| Current state | Operation | Next state |
+|---------------|-----------|------------|
+| `created` | executor claims task | `executing` |
+| `created` | `future-cancel` succeeds | `terminated` |
+| `executing` | task returns or raises | `finished` |
+| `finished` | `future-get` consumes completion | `done` |
+| `terminated` | late completion attempt | `terminated` |
+
+Completion publishes result (or exception) before the `finished`
+state becomes observable.
 
 
 ###### [!Condition Type] `&future-terminated` 

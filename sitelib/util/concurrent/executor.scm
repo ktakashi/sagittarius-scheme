@@ -117,17 +117,14 @@
 	       (list-queue-remove-front! l)))))
     ;; the oldest might already be finished.
     (let ((oldest (get-oldest executor)))
-      (and oldest
-	   ;; if the running future is finishing and locking the mutex,
-	   ;; we'd get abandoned mutex. to avoid it lock it.
-	   (with-atomic executor
-	     (thread-pool-thread-terminate! (pooled-executor-pool executor)
-					    (car oldest)))
-	   ;; The execution threaf of the target future is terminated,
-	   ;; which means, the mutex of the future is abondaned, so just
-	   ;; set the state
-	   (future-state-set! (cdr oldest) 'terminated)
-	   (cleanup executor (cdr oldest))))
+      (when oldest
+	(future-cancel (cdr oldest))
+	;; if the running future is finishing and locking the mutex,
+	;; we'd get abandoned mutex. to avoid it lock it.
+	(with-atomic executor
+	  (thread-pool-thread-terminate! (pooled-executor-pool executor)
+					 (car oldest)))
+	(cleanup executor (cdr oldest))))
     ;; retry
     (execute-future! executor future))
 
@@ -234,10 +231,10 @@
   
   ;; shutdown
   (define (thread-pool-executor-shutdown! executor)
-    ;; executor-future's future-cancel uses with-atomic
-    ;; so first finish up what we need to do for the executor
-    ;; then call future-cancel.
-    (define (executor-shutdown executor)
+    ;; Cancel tracked futures before force-terminating pooled threads.
+    ;; This avoids mutating futures after thread termination may leave
+    ;; future mutexes abandoned.
+    (define (prepare-shutdown executor)
       (with-atomic executor
 	(let ((state (executor-state executor)))
 	  (guard (e (else (executor-state-set! executor state)
@@ -246,14 +243,18 @@
 	    ;; chenge it here
 	    (when (eq? state 'running)
 	      (executor-state-set! executor 'shutdown))
-	    ;; we terminate the threads so that we can finish all
-	    ;; infinite looped threads.
-	    ;; NB, it's dangerous
-	    (thread-pool-release! (pooled-executor-pool executor) 'terminate)
-	    (list-queue-remove-all! (pooled-executor-pool-ids executor))))))
-    ;; now cancel futures
+	    (list-queue-list (pooled-executor-pool-ids executor))))))
+    (define (finish-shutdown executor)
+      (with-atomic executor
+	;; we terminate the threads so that we can finish all
+	;; infinite looped threads.
+	;; NB, it's dangerous
+	(thread-pool-release! (pooled-executor-pool executor) 'terminate)
+	(list-queue-remove-all! (pooled-executor-pool-ids executor))))
+    ;; cancel futures first (out side of with-atomic)
     (for-each (lambda (future) (future-cancel (cdr future)))
-	      (executor-shutdown executor)))
+	      (prepare-shutdown executor))
+    (finish-shutdown executor))
   
   (define (thread-pool-executor-execute-future! executor future)
     (or (with-atomic executor
@@ -271,20 +272,18 @@
   ;; We can push the future to thread-pool
   (define (push-future-handler future executor)
     (define (canceller future)
-      (future-state-set! future 'terminated)
       (cleanup executor future))
     (define (task-invoker future)
       (lambda ()
 	(future-execute-task! future (lambda (f) (cleanup executor f)))))
     (define (add-future future executor)
-      (unless (shared-box? (future-result future))
-	(future-result-set! future (make-shared-box)))
-      (let ((id (thread-pool-push-task! (pooled-executor-pool executor)
-					(task-invoker future))))
-	(future-canceller-set! future canceller)
-	(list-queue-add-back! (pooled-executor-pool-ids executor)
-			      (cons id future))
-	executor))
+      (if (future-prepare-execution! future canceller)
+	  (let ((id (thread-pool-push-task! (pooled-executor-pool executor)
+					    (task-invoker future))))
+	    (list-queue-add-back! (pooled-executor-pool-ids executor)
+				  (cons id future))
+	    executor)
+	  executor))
     ;; in case this is called directly
     (unless (eq? (executor-state executor) 'running)
       (assertion-violation 'push-future-handler
@@ -329,9 +328,8 @@
   (define (fork-join-executor-execute-future! (e fork-join-executor?) f)
     ;; the same as simple future
     (define (task-invoker future) (lambda () (future-execute-task! future)))
-    (unless (shared-box? (future-result f))
-      (future-result-set! f (make-shared-box)))
-    (fork-join-pool-push-task! (pooled-executor-pool e) (task-invoker f))
+    (when (future-prepare-execution! f)
+      (fork-join-pool-push-task! (pooled-executor-pool e) (task-invoker f)))
     f)
   (define (fork-join-executor-shutdown! (e fork-join-executor?))
     (fork-join-pool-shutdown! (pooled-executor-pool e))

@@ -26,3 +26,98 @@ diff -ru sagittarius-0.9.15/src/CMakeLists.txt sagittarius-0.9.15-new/src/CMakeL
    IF (HAVE_PAM_APPL_H)
      TARGET_LINK_LIBRARIES(sagittarius pam)
    ENDIF()
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 3ceb2ecce..17d342128 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -163,6 +163,11 @@ IF (NOT HAVE_CLOCK_GETTIME)
+   UNSET(HAVE_CLOCK_GETTIME CACHE)
+   CHECK_LIBRARY_EXISTS(rt clock_gettime "time.h" HAVE_CLOCK_GETTIME)
+ ENDIF()
++CHECK_FUNCTION_EXISTS(roundeven     HAVE_ROUNDEVEN)
++IF (NOT HAVE_ROUNDEVEN)
++  UNSET(HAVE_ROUNDEVEN CACHE)
++  CHECK_LIBRARY_EXISTS(m roundeven "math.h" HAVE_ROUNDEVEN)
++ENDIF()
+ CHECK_FUNCTION_EXISTS(gettimeofday  HAVE_GETTIMEOFDAY)
+ CHECK_FUNCTION_EXISTS(mmap          HAVE_MMAP)
+ CHECK_FUNCTION_EXISTS(getrusage     HAVE_GETRUSAGE)
+diff --git a/cmake/config-cmake.h.in b/cmake/config-cmake.h.in
+index b4bc9b156..b9d6c152f 100644
+--- a/cmake/config-cmake.h.in
++++ b/cmake/config-cmake.h.in
+@@ -67,6 +67,8 @@
+ /* C11 feature for MSVC as wchar_t is 16bits... */
+ #cmakedefine HAVE_CHAR32_T
+ #cmakedefine HAVE_ATOMIC_INTPTR_T
++/* C23 feature */
++#cmakedefine HAVE_ROUNDEVEN
+ 
+ #cmakedefine HAVE_MUTEX_RECURSIVE
+ #cmakedefine HAVE_MUTEX_RECURSIVE_NP
+diff --git a/src/bignum.c b/src/bignum.c
+index 918fdb166..4f6e53b0f 100644
+--- a/src/bignum.c
++++ b/src/bignum.c
+@@ -1954,24 +1954,10 @@ static SgObject small_bignum_to_string(SgBignum *b, int radix, int use_upper)
+   return rs;
+ }
+ 
+-/* FIXME this is also in number.c */
+-static SG_INLINE double roundeven(double v)
+-{
+-  double r;
+-  double frac = modf(v, &r);
+-  if (v > 0.0) {
+-    if (frac > 0.5) r += 1.0;
+-    else if (frac == 0.5) {
+-      if (fmod(r, 2.0) != 0.0) r += 1.0;
+-    }
+-  } else {
+-    if (frac < -0.5) r -= 1.0;
+-    else if (frac == -0.5) {
+-      if (fmod(r, 2.0) != 0.0) r -= 1.0;
+-    }
+-  }
+-  return r;
+-}
++#ifndef HAVE_ROUNDEVEN
++# include "roundeven.inc"
++#endif
++
+ /* this is used here */
+ static SgBignum * bignum_expt(SgBignum *b, long exponent);
+ 
+diff --git a/src/c99_flonum.h b/src/c99_flonum.h
+index 62b9e23cf..6027076a8 100644
+--- a/src/c99_flonum.h
++++ b/src/c99_flonum.h
+@@ -36,7 +36,9 @@
+ #include <float.h>
+ #include <sagittarius/config.h>
+ 
+-#include "roundeven.inc"
++#ifndef HAVE_ROUNDEVEN
++# include "roundeven.inc"
++#endif
+ 
+ #if (__STDC_VERSION__ < 199901L) && !defined(__GNUC__)
+ # if defined(_MSC_VER)
+diff --git a/src/number.c b/src/number.c
+index ef9a54159..fd4fc2953 100644
+--- a/src/number.c
++++ b/src/number.c
+@@ -102,7 +102,9 @@ enum { /* used in the exactness flag */
+ static const int64_t iexpt_2n52 = 0x10000000000000LL; // 2^(53-1)
+ static const int64_t iexpt_2n53 = 0x20000000000000LL; // 2^53
+ 
+-#include "roundeven.inc"
++#ifndef HAVE_ROUNDEVEN
++# include "roundeven.inc"
++#endif
+ 
+ /* classes */
+ static SgClass *numeric_cpl[] = {
+-- 
+2.54.0 (Apple Git-157)
+

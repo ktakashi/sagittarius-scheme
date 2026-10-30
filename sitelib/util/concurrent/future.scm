@@ -64,6 +64,8 @@
 	    shared-box-put! shared-box-get!
 	    ;; these are non public API as well
 	    future-update-state!
+	    future-claim-task!
+	    future-prepare-execution!
 	    future-execute-task!
 	    future-try-lock!
 	    future-lock!
@@ -127,11 +129,20 @@
     (protocol (lambda (p)
 		(lambda (thunk result)
 		  (p thunk result 'created #f (make-mutex))))))
-  (define (future-update-state! future state)
+
+  (define (call-with-future-lock future proc)
     (let ((lock (future-lock future)))
       (mutex-lock! lock)
-      (future-state-set! future state)
-      (mutex-unlock! lock)))
+      (guard (e (else (mutex-unlock! lock) (raise e)))
+	(call-with-values proc
+	  (lambda args
+	    (mutex-unlock! lock)
+	    (apply values args))))))
+
+  (define (future-update-state! future state)
+    (call-with-future-lock future
+      (lambda ()
+	(future-state-set! future state))))
 
   (define (future-try-lock! future)
     (let ((lock (future-lock future)))
@@ -145,46 +156,83 @@
     (let ((lock (future-lock future)))
       (mutex-unlock! lock)))
 
-  (define (future-clear-thunk! future)
-    (let ((lock (future-lock future)))
-      (mutex-lock! lock)
-      (let ((thunk (future-thunk future)))
-	(future-thunk-set! future #f)
-	(mutex-unlock! lock)
-	thunk)))
+  (define (future-claim-task! future)
+    (call-with-future-lock future
+      (lambda ()
+	(let ((state (future-state future))
+	      (thunk (future-thunk future)))
+	  (and thunk
+	       (memq state '(created execute-internal))
+	       (begin
+		 (future-thunk-set! future #f)
+		 (future-state-set! future 'executing)
+		 thunk))))))
+
+  (define (future-prepare-execution! future :optional (canceller #f))
+    (call-with-future-lock future
+      (lambda ()
+	(let ((state (future-state future)))
+	  (if (memq state '(done finished terminated))
+	      #f
+	      (begin
+		(unless (shared-box? (future-result future))
+		  (future-result-set! future (make-shared-box)))
+		(future-canceller-set! future canceller)
+		#t))))))
+
+  (define (future-publish-completion! future result exceptional?)
+    (call-with-future-lock future
+      (lambda ()
+	(let ((state (future-state future)))
+	  (if (memq state '(done finished terminated))
+	      #f
+	      (begin
+		(future-canceller-set! future (and exceptional? #t))
+		(let ((q (future-result future)))
+		  (when (shared-box? q)
+		    (shared-box-put! q result)))
+		(future-state-set! future 'finished)
+		#t))))))
+
+  (define (future-transition-to-terminated! future)
+    (call-with-future-lock future
+      (lambda ()
+	(let ((state (future-state future))
+	      (q (future-result future))
+	      (canceller (future-canceller future)))
+	  (if (memq state '(done finished terminated))
+	      (values #f #f #f)
+	      (begin
+		(future-thunk-set! future #f)
+		(future-state-set! future 'terminated)
+		(future-canceller-set! future #f)
+		(values #t canceller (and (shared-box? q) q))))))))
   
   (define (future-execute-task! future :optional (cleanup #f))
-    (let ((q (future-result future))
-	  (thunk (future-thunk future)))
-      ;; Clear thunk to prevent double execution
-      (cond ((and thunk (future-clear-thunk! future)) =>
-	     (lambda (thunk)
-	       (let ((state (future-state future)))
-		 (when (memq state '(created execute-internal))
-		   (future-state-set! future 'executing)
-		   (guard (e (else
-			      (when cleanup (cleanup future))
-			      (future-canceller-set! future #t) ;; kinda abusing
-			      (future-state-set! future 'finished)
-			      (shared-box-put! q e)))
-		     (let ((r (thunk)))
-		       (when cleanup (cleanup future))
-		       (future-canceller-set! future #f)
-		       (future-state-set! future 'finished)
-		       (shared-box-put! q r)))
-		   (set! thunk #f))))))))
+    (define (finalize result exceptional?)
+      (let-values (((v e?)
+		    (if cleanup
+			(guard (e (else (values e #t)))
+			  (cleanup future)
+			  (values result exceptional?))
+			(values result exceptional?))))
+	(future-publish-completion! future v e?)))
+    (let ((thunk (future-claim-task! future)))
+      (when thunk
+	(let-values (((result exceptional?)
+		      (guard (e (else (values e #t)))
+			(values (thunk) #f))))
+	  (finalize result exceptional?)))))
   
   (define (make-piped-future)
     (let* ((box (make-shared-box))
 	   (f (make-future #f box)))
       (values f
 	      (lambda (v) 
-		(shared-box-put! box v)
-		(future-state-set! f 'finished)
+		(future-publish-completion! f v #f)
 		f)
 	      (lambda (e)
-		(future-canceller-set! f #t)
-		(shared-box-put! box e)
+		(future-publish-completion! f e #t)
 		f))))
 
   (define (make-composable-future)
@@ -208,21 +256,19 @@
       (future-state-set! f 'done)
       f))
   
-  (define (simple-invoke thunk f q)
+  (define (simple-invoke thunk f)
     (lambda ()
-      (guard (e (else (future-canceller-set! f #t)
-		      (future-state-set! f 'finished)
-		      (shared-box-put! q e)))
-	(let ((r (thunk)))
-	  (future-state-set! f 'finished)
-	  (shared-box-put! q r)))))
+      (let-values (((result exceptional?)
+		    (guard (e (else (values e #t)))
+		      (values (thunk) #f))))
+	(future-publish-completion! f result exceptional?))))
   (define-record-type simple-future
     (parent future)
     (protocol (lambda (n)
 		(lambda (thunk)
 		  (let ((q (make-shared-box)))
 		    (let ((f ((n thunk q))))
-		      (thread-start! (make-thread (simple-invoke thunk f q)))
+		      (thread-start! (make-thread (simple-invoke thunk f)))
 		      f))))))
 
   (define-syntax class (syntax-rules ()))
@@ -242,38 +288,55 @@
 	    (make-message-condition "future is terminated")
 	    (make-irritants-condition future))))
 
-  ;; kinda silly
+  (define (future-complete-get! future value value?)
+    (call-with-future-lock future
+      (lambda ()
+	(let ((state (future-state future)))
+	  (cond ((eq? state 'terminated)
+		 (values 'terminated #f #f))
+		(else
+		 (when value?
+		   (when (shared-box? (future-result future))
+		     (future-result-set! future value)))
+		 (unless (eq? state 'done)
+		   (future-state-set! future 'done))
+		 (values 'done
+			 (future-result future)
+			 (eqv? (future-canceller future) #t))))))))
+
   (define (future-get future . opt)
-    (define (finish r)
-      ;; now we can change the state shared.
-      (future-update-state! future 'done)
-      (if (eqv? (future-canceller future) #t) ;; kinda silly
-	  (raise r)
-	  r))
-    (when (eq? (future-state future) 'terminated)
-      (raise-future-terminated future))
-    (let* ((state (future-state future))
-	   (r (future-result future)))
-      ;; (format #t "fget ~a~%" r)
-      (cond ((and (not (eq? state 'done)) (shared-box? r))
+    (define (finish v has-value?)
+      (let-values (((status result exceptional?)
+		    (future-complete-get! future v has-value?)))
+	(cond ((eq? status 'terminated) (raise-future-terminated future))
+	      (exceptional? (raise result))
+	      (else result))))
+    (let-values (((state r)
+		  (call-with-future-lock future
+		    (lambda ()
+		      (values (future-state future)
+			      (future-result future))))))
+      (cond ((eq? state 'terminated)
+	     (raise-future-terminated future))
+	    ((and (not (eq? state 'done)) (shared-box? r))
 	     (let-values (((v timeout?) (apply shared-box-get! r opt)))
-	       (cond (timeout? v)
-		     (else
-		      (%sb-value-set! r #f)
-		      (future-result-set! future v)
-		      (finish (future-result future))))))
+	       (if timeout?
+		   v
+		   (finish v #t))))
 	    ((and (not (eq? state 'done)) (procedure? r))
-	     (future-result-set! future (apply r future opt))
-	     (finish (future-result future)))
-	    (else (finish r)))))
-  ;; kinda dummy
+	     (finish (apply r future opt) #t))
+	    (else
+	     (finish #f #f)))))
+
+  (define future-cancelled-mark (list 'future-cancelled-mark))
   (define (future-cancel future)
-    (unless (eq? (future-state future) 'done)
-      (future-state-set! future 'terminated))
-    (let ((c (future-canceller future)))
-      (when (procedure? c)
-	(c future)
-	(future-canceller-set! future #f))))
+    (let-values (((cancelled? canceller q)
+		  (future-transition-to-terminated! future)))
+      (when q
+	(shared-box-put! q future-cancelled-mark))
+      (when (procedure? canceller)
+	(canceller future))
+      cancelled?))
 
   (define (future-done? future)
     (and (memq (future-state future) '(done finished)) #t))
