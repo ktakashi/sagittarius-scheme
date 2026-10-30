@@ -27,9 +27,9 @@
  */
 
 /*
-References:
-- https://msdn.microsoft.com/en-us/library/windows/desktop/aa375195(v=vs.85).aspx
- */
+  References:
+  - https://msdn.microsoft.com/en-us/library/windows/desktop/aa375195(v=vs.85).aspx
+*/
 
 #ifndef UNICODE
 # define UNICODE
@@ -44,6 +44,7 @@ References:
 #include <wintrust.h>
 #include <wincrypt.h>
 #include <schannel.h>
+#include <bcrypt.h>
 #include <ncrypt.h>
 /* #include <security.h> */
 #include <sspi.h>
@@ -56,12 +57,13 @@ References:
 #ifdef _MSC_VER
 # pragma comment(lib, "crypt32.lib")
 # pragma comment(lib, "secur32.lib")
+# pragma comment(lib, "bcrypt.lib")
 # pragma comment(lib, "ncrypt.lib")
 #endif
 
 /*
-some of the environment (e.g. Cygwin) doesn't have this. so define it
-https://msdn.microsoft.com/en-us/library/windows/desktop/aa379814(v=vs.85).aspx
+  some of the environment (e.g. Cygwin) doesn't have this. so define it
+  https://msdn.microsoft.com/en-us/library/windows/desktop/aa379814(v=vs.85).aspx
 */
 #ifndef SECBUFFER_APPLICATION_PROTOCOLS
 # define SECBUFFER_APPLICATION_PROTOCOLS 18
@@ -105,21 +107,10 @@ static SgObject get_windows_last_error(int e)
 # define Sg_GetLastErrorMessageWithErrorCode get_windows_last_error
 #endif
 
-#define W_(x) L ## x
-#define W(x) W_(x)
-
 #ifdef USE_UCS4_CPP
-static LPWSTR SERVER_KEY_CONTAINER_NAME =
-  L"Sagittarius (" W(SAGITTARIUS_TRIPLE) L" " W(SAGITTARIUS_VERSION) L") SSL Server Socket Key Container";
-static LPWSTR CLIENT_KEY_CONTAINER_NAME =
-  L"Sagittarius (" W(SAGITTARIUS_TRIPLE) L" " W(SAGITTARIUS_VERSION) L") SSL Client Socket Key Container";
 static LPWSTR RSA_KEY_PROVIDER = MS_DEF_RSA_SCHANNEL_PROV;
-static LPWSTR DH_KEY_PROVIDER = MS_DEF_DH_SCHANNEL_PROV;
 #else
-static LPWSTR SERVER_KEY_CONTAINER_NAME = NULL;
-static LPWSTR CLIENT_KEY_CONTAINER_NAME = NULL;
 static LPWSTR RSA_KEY_PROVIDER = NULL;
-static LPWSTR DH_KEY_PROVIDER = NULL;
 #endif
 
 /* enable them if you want to debug */
@@ -365,6 +356,12 @@ typedef struct WinTLSContextRec
   HCRYPTKEY privateKey;
   HCRYPTPROV hProv;
   KEY_TYPE keyType;
+  wchar_t *ownedKeyName;
+  DWORD ownerPid;
+  FILETIME ownerCreationTime;
+  int ownsImportedKey;
+  LONG refCount;
+  LONG disposed;
 } WinTLSContext;
 
 typedef struct WinTLSDataRec
@@ -379,6 +376,141 @@ typedef struct WinTLSDataRec
   /* for reconnection */
   wchar_t *dn;
 } WinTLSData;
+
+#define TLS_KEY_NAME_PREFIX L"SagittariusTLSKey"
+#define TLS_KEY_ROLE_CLIENT L"client"
+#define TLS_KEY_ROLE_SERVER L"server"
+#define TLS_KEY_NAME_MAX_CHARS 192
+#define TLS_KEY_NAME_RETRY_COUNT 16
+#define TLS_KEY_RANDOM_SIZE 16
+
+static void clear_owned_key_state(WinTLSContext *context)
+{
+  context->ownedKeyName = NULL;
+  context->ownerPid = 0;
+  context->ownerCreationTime.dwLowDateTime = 0;
+  context->ownerCreationTime.dwHighDateTime = 0;
+  context->ownsImportedKey = FALSE;
+}
+
+static void mark_owned_key_state(WinTLSContext *context,
+				 wchar_t *keyName,
+				 DWORD ownerPid,
+				 const FILETIME *creationTime)
+{
+  context->ownedKeyName = keyName;
+  context->ownerPid = ownerPid;
+  context->ownerCreationTime = *creationTime;
+  context->ownsImportedKey = TRUE;
+}
+
+static void bytes_to_hex(const BYTE *bytes, DWORD size, wchar_t *out)
+{
+  static const wchar_t hex[] = L"0123456789abcdef";
+  DWORD i;
+  for (i = 0; i < size; i++) {
+    out[i * 2] = hex[(bytes[i] >> 4) & 0x0f];
+    out[i * 2 + 1] = hex[bytes[i] & 0x0f];
+  }
+  out[size * 2] = 0;
+}
+
+static DWORD get_current_process_creation_time(FILETIME *creationTime)
+{
+  FILETIME exitTime, kernelTime, userTime;
+  if (!GetProcessTimes(GetCurrentProcess(), creationTime,
+		       &exitTime, &kernelTime, &userTime)) {
+    return GetLastError();
+  }
+  return ERROR_SUCCESS;
+}
+
+static DWORD generate_unique_key_name(const wchar_t *keyKind,
+				      const wchar_t *keyRole,
+				      wchar_t **nameOut,
+				      DWORD *ownerPidOut,
+				      FILETIME *creationTimeOut)
+{
+  NTSTATUS ns;
+  DWORD ownerPid = GetCurrentProcessId();
+  FILETIME creationTime;
+  BYTE randomBytes[TLS_KEY_RANDOM_SIZE];
+  wchar_t randomHex[TLS_KEY_RANDOM_SIZE * 2 + 1];
+  wchar_t *name =
+    SG_NEW_ATOMIC2(wchar_t *, sizeof(wchar_t) * TLS_KEY_NAME_MAX_CHARS);
+  int written;
+  DWORD r = get_current_process_creation_time(&creationTime);
+  if (r != ERROR_SUCCESS) return r;
+
+  ns = BCryptGenRandom(NULL, randomBytes, TLS_KEY_RANDOM_SIZE,
+		       BCRYPT_USE_SYSTEM_PREFERRED_RNG);
+  if (ns != 0) {
+    return (DWORD)ns;
+  }
+  bytes_to_hex(randomBytes, TLS_KEY_RANDOM_SIZE, randomHex);
+  written = swprintf(name, TLS_KEY_NAME_MAX_CHARS,
+		     L"%ls-%ls-%ls-p%08lx-c%08lx%08lx-r%ls",
+		     TLS_KEY_NAME_PREFIX,
+		     keyKind,
+		     keyRole,
+		     (unsigned long)ownerPid,
+		     (unsigned long)creationTime.dwHighDateTime,
+		     (unsigned long)creationTime.dwLowDateTime,
+		     randomHex);
+  if (written < 0 || written >= TLS_KEY_NAME_MAX_CHARS) {
+    return ERROR_BUFFER_OVERFLOW;
+  }
+  *nameOut = name;
+  *ownerPidOut = ownerPid;
+  *creationTimeOut = creationTime;
+  return ERROR_SUCCESS;
+}
+
+static DWORD delete_owned_rsa_key_container(WinTLSContext *context)
+{
+  if (context->ownsImportedKey && context->ownedKeyName) {
+    HCRYPTPROV hProv = 0;
+    if (!CryptAcquireContext(&hProv, context->ownedKeyName,
+			     RSA_KEY_PROVIDER,
+			     PROV_RSA_SCHANNEL,
+			     CRYPT_DELETEKEYSET)) {
+      DWORD e = GetLastError();
+      if (e != NTE_BAD_KEYSET && e != ERROR_FILE_NOT_FOUND) {
+	return e;
+      }
+    }
+    if (hProv != 0) {
+      CryptReleaseContext(hProv, 0);
+    }
+  }
+  return ERROR_SUCCESS;
+}
+
+#if _MSC_VER > 1500
+static SECURITY_STATUS delete_owned_ecc_key(WinTLSContext *context)
+{
+  SECURITY_STATUS ss = ERROR_SUCCESS;
+  if (context->privateKey) {
+    ss = NCryptDeleteKey((NCRYPT_KEY_HANDLE)context->privateKey, 0);
+    if (ss == ERROR_SUCCESS) {
+      return ss;
+    }
+    NCryptFreeObject((NCRYPT_HANDLE)context->privateKey);
+  }
+  if (context->hProv != 0 && context->ownedKeyName) {
+    NCRYPT_KEY_HANDLE key = 0;
+    ss = NCryptOpenKey((NCRYPT_PROV_HANDLE)context->hProv, &key,
+		       context->ownedKeyName, 0, 0);
+    if (ss == ERROR_SUCCESS) {
+      ss = NCryptDeleteKey(key, 0);
+    }
+    if (ss == NTE_BAD_KEYSET) {
+      return ERROR_SUCCESS;
+    }
+  }
+  return ss;
+}
+#endif
 
 #define IMPL_NAME UNISP_NAME_W
 /* #define IMPL_NAME SCHANNEL_NAME_W */
@@ -428,48 +560,85 @@ static void client_init(SgTLSSocket *r)
   DUMP_CRED_HANDLE(&data->credential);
 }
 
-static int free_cert_props(WinTLSContext *context)
+static void free_cert_props(WinTLSContext *context)
 {
   if (context->certificates && context->certificateCount) {
     PCCERT_CONTEXT ctx = context->certificates[0];
     CertSetCertificateContextProperty(ctx, CERT_KEY_PROV_INFO_PROP_ID, 0, NULL);
-    /* Seems this releases the private key... */
-    CertSetCertificateContextProperty(ctx, CERT_NCRYPT_KEY_HANDLE_PROP_ID, 0,NULL);
-    return TRUE;
+    CertSetCertificateContextProperty(ctx, CERT_KEY_CONTEXT_PROP_ID, 0, NULL);
+    CertSetCertificateContextProperty(ctx, CERT_NCRYPT_KEY_HANDLE_PROP_ID, 0, NULL);
   }
-  return FALSE;
 }
+
+static DWORD cleanup_private_key(WinTLSContext *context, int clearCertProps)
+{
+  DWORD e = ERROR_SUCCESS;
+  if (clearCertProps) {
+    free_cert_props(context);
+  }
+  if (context->keyType == RSA) {
+    if (context->privateKey) {
+      if (!CryptDestroyKey(context->privateKey) && e == ERROR_SUCCESS) {
+	e = GetLastError();
+      }
+      context->privateKey = 0;
+    }
+    if (context->hProv != 0) {
+      if (!CryptReleaseContext(context->hProv, 0) && e == ERROR_SUCCESS) {
+	e = GetLastError();
+      }
+      context->hProv = 0;
+    }
+    if (context->ownsImportedKey) {
+      DWORD r = delete_owned_rsa_key_container(context);
+      if (r != ERROR_SUCCESS && e == ERROR_SUCCESS) {
+	e = r;
+      }
+    }
+    clear_owned_key_state(context);
+  }
+#if _MSC_VER > 1500
+  if (context->keyType == ECC) {
+    SECURITY_STATUS ss = ERROR_SUCCESS;
+    if (context->ownsImportedKey) {
+      ss = delete_owned_ecc_key(context);
+      if (ss != ERROR_SUCCESS && e == ERROR_SUCCESS) {
+	e = (DWORD)ss;
+      }
+    } else if (context->privateKey) {
+      ss = NCryptFreeObject((NCRYPT_HANDLE)context->privateKey);
+      if (ss != ERROR_SUCCESS && e == ERROR_SUCCESS) {
+	e = (DWORD)ss;
+      }
+    }
+    context->privateKey = 0;
+    if (context->hProv != 0) {
+      ss = NCryptFreeObject((NCRYPT_HANDLE)context->hProv);
+      if (ss != ERROR_SUCCESS && e == ERROR_SUCCESS) {
+	e = (DWORD)ss;
+      }
+      context->hProv = 0;
+    }
+    clear_owned_key_state(context);
+  }
+#endif
+  return e;
+}
+
+static void retain_context(WinTLSContext *context)
+{
+  InterlockedIncrement(&context->refCount);
+}
+
+static void release_context(WinTLSContext *context);
 
 static void free_context(WinTLSContext *context)
 {
   int i;
-  if (context->keyType == RSA) {
-    if (context->privateKey) {
-      if (!free_cert_props(context)) {
-	CryptDestroyKey(context->privateKey);
-	/* hProv is associated to the keyCtx... */
-	if (context->hProv != 0) {
-	  CryptReleaseContext(context->hProv, 0);
-	  context->hProv = 0;
-	}
-      }
-      context->privateKey = NULL;
-    }
+  if (InterlockedExchange(&context->disposed, TRUE) != FALSE) {
+    return;
   }
-#if _MSC_VER > 1500
-  if (context->keyType == ECC) {
-    if (context->privateKey) {
-      if (!free_cert_props(context)) {
-	NCryptFreeObject(context->privateKey);
-      }
-      context->privateKey = NULL;
-    }
-    if (context->hProv != 0) {
-      NCryptFreeObject(context->hProv);
-      context->hProv = 0;
-    }
-  }
-#endif
+  cleanup_private_key(context, TRUE);
   if (context->certificates && context->certificateCount) {
     for (i = 0; i < context->certificateCount; i++) {
       CertFreeCertificateContext(context->certificates[i]);
@@ -484,6 +653,13 @@ static void free_context(WinTLSContext *context)
   }
 
   Sg_UnregisterFinalizer(context);
+}
+
+static void release_context(WinTLSContext *context)
+{
+  if (InterlockedDecrement(&context->refCount) == 0) {
+    free_context(context);
+  }
 }
 
 static void tls_socket_finalizer(SgObject self, void *data)
@@ -519,7 +695,12 @@ static SgTLSSocket * make_tls_socket(SgSocket *socket, WinTLSContext *ctx)
     context->privateKey = NULL;
     context->hProv = 0;
     context->keyType = RSA;
+    clear_owned_key_state(context);
+    context->refCount = 1;
+    context->disposed = FALSE;
     Sg_RegisterFinalizer(context, tls_context_finalize, NULL);
+  } else {
+    retain_context(context);
   }
   return r;
 }
@@ -648,7 +829,7 @@ static DWORD check_integrity(WinTLSContext *context)
 }
 
 static DWORD add_rsa_private_key(WinTLSContext *context,
-				 LPWSTR containerName,
+				 LPCWSTR keyRole,
 				 LPBYTE keyBlob,
 				 DWORD keyBlobSize)
 {
@@ -656,25 +837,41 @@ static DWORD add_rsa_private_key(WinTLSContext *context,
   CERT_KEY_CONTEXT keyCtx = {0};
   CRYPT_KEY_PROV_INFO provInfo;
 
-  if (!CryptAcquireContext(&context->hProv, containerName, RSA_KEY_PROVIDER,
-			   PROV_RSA_SCHANNEL, CRYPT_NEWKEYSET)) {
-    if (NTE_EXISTS == GetLastError()) {
-      if (!CryptAcquireContext(&context->hProv, containerName, RSA_KEY_PROVIDER,
-			       PROV_RSA_SCHANNEL, 0)) {
-	return GetLastError();
+  {
+    int i;
+    for (i = 0; i < TLS_KEY_NAME_RETRY_COUNT; i++) {
+      wchar_t *containerName;
+      DWORD ownerPid;
+      FILETIME ownerCreationTime;
+      DWORD r = generate_unique_key_name(L"rsa", keyRole,
+					 &containerName,
+					 &ownerPid,
+					 &ownerCreationTime);
+      if (r != ERROR_SUCCESS) return r;
+
+      if (CryptAcquireContext(&context->hProv, containerName, RSA_KEY_PROVIDER,
+			      PROV_RSA_SCHANNEL, CRYPT_NEWKEYSET)) {
+	mark_owned_key_state(context, containerName, ownerPid, &ownerCreationTime);
+	break;
       }
-    } else {
-      return GetLastError();
+      r = GetLastError();
+      if (r != NTE_EXISTS) {
+	return r;
+      }
+    }
+    if (!context->ownsImportedKey) {
+      return NTE_EXISTS;
     }
   }
-  /* CryptSetProvParam(hProv, PP_DELETEKEY, NULL, 0); */
+
   if (!CryptImportKey(context->hProv, keyBlob, keyBlobSize,
 		      NULL, 0, &context->privateKey)) {
-    CryptReleaseContext(context->hProv, 0);
-    return GetLastError();
+    DWORD e = GetLastError();
+    cleanup_private_key(context, FALSE);
+    return e;
   }
   
-  provInfo.pwszContainerName = containerName;
+  provInfo.pwszContainerName = context->ownedKeyName;
   provInfo.pwszProvName = RSA_KEY_PROVIDER;
   provInfo.dwProvType = PROV_RSA_SCHANNEL;
   provInfo.dwFlags = CERT_SET_KEY_CONTEXT_PROP_ID;
@@ -682,26 +879,33 @@ static DWORD add_rsa_private_key(WinTLSContext *context,
   provInfo.cProvParam = 0;
   if (!CertSetCertificateContextProperty(ctx, CERT_KEY_PROV_INFO_PROP_ID, 0,
 					 (const void *)&provInfo)) {
-    CryptDestroyKey(context->privateKey);
-    context->privateKey = NULL;
-    return GetLastError();
+    DWORD e = GetLastError();
+    cleanup_private_key(context, TRUE);
+    return e;
   }
   keyCtx.cbSize = sizeof(CERT_KEY_CONTEXT);
   keyCtx.hCryptProv = context->hProv;
   keyCtx.dwKeySpec = AT_KEYEXCHANGE;
   if (!CertSetCertificateContextProperty(ctx, CERT_KEY_CONTEXT_PROP_ID, 0,
 					 (const void *)&keyCtx)) {
-    CryptDestroyKey(context->privateKey);
-    context->privateKey = NULL;
-    return GetLastError();
+    DWORD e = GetLastError();
+    cleanup_private_key(context, TRUE);
+    return e;
   }
   DUMP_CERT_CONTEXT(ctx);
-  
-  return check_integrity(context);
+
+  {
+    DWORD r = check_integrity(context);
+    if (r != S_OK) {
+      cleanup_private_key(context, TRUE);
+      return r;
+    }
+  }
+  return S_OK;
 }
 
 static DWORD add_ecc_private_key(WinTLSContext *context,
-				 LPWSTR containerName,
+				 LPCWSTR keyRole,
 				 LPBYTE keyBlob)
 {
 #if _MSC_VER > 1500
@@ -720,7 +924,6 @@ static DWORD add_ecc_private_key(WinTLSContext *context,
   BCRYPT_ECCKEY_BLOB *pKeyBlob =
     SG_NEW_ATOMIC2(BCRYPT_ECCKEY_BLOB *, keyBlobSize);
   CRYPT_KEY_PROV_INFO provInfo;
-  wchar_t keyName[64] = {0};
 
   NCryptBuffer ncBuf = {0};
   NCryptBufferDesc ncBufDesc = {0};
@@ -731,8 +934,8 @@ static DWORD add_ecc_private_key(WinTLSContext *context,
   pKeyBlob->dwMagic = privSize == ECC_256_MAGIC_NUMBER
     ? BCRYPT_ECDSA_PRIVATE_P256_MAGIC
     : privSize == ECC_384_MAGIC_NUMBER
-      ? BCRYPT_ECDSA_PRIVATE_P384_MAGIC
-      : BCRYPT_ECDSA_PRIVATE_P521_MAGIC;
+    ? BCRYPT_ECDSA_PRIVATE_P384_MAGIC
+    : BCRYPT_ECDSA_PRIVATE_P521_MAGIC;
   pKeyBlob->cbKey = privSize;
   /* Format of the BLOB */
   /* https://docs.microsoft.com/en-us/windows/win32/api/bcrypt/ns-bcrypt-bcrypt_ecckey_blob */
@@ -746,30 +949,49 @@ static DWORD add_ecc_private_key(WinTLSContext *context,
     return ss;
   }
 
-  swprintf(keyName, 64, L"%lx", (ULONG)((uintptr_t)pPrivKeyInfo));
+  {
+    int i;
+    for (i = 0; i < TLS_KEY_NAME_RETRY_COUNT; i++) {
+      wchar_t *keyName;
+      DWORD ownerPid;
+      FILETIME ownerCreationTime;
+      DWORD r = generate_unique_key_name(L"ecc", keyRole,
+					 &keyName,
+					 &ownerPid,
+					 &ownerCreationTime);
+      if (r != ERROR_SUCCESS) {
+	cleanup_private_key(context, FALSE);
+	return r;
+      }
 
-  /* import with key name */
-  /* https://stackoverflow.com/questions/12076096/ncryptopenkey
-     For some reason extra 2 is needed, no idea why.
-     Found out from the above.
-   */
-  ncBuf.cbBuffer = (ULONG)(wcslen(keyName) * sizeof(wchar_t) + 2);
-  ncBuf.BufferType = NCRYPTBUFFER_PKCS_KEY_NAME;
-  ncBuf.pvBuffer = keyName;
-  ncBufDesc.ulVersion = 0;
-  ncBufDesc.cBuffers = 1;
-  ncBufDesc.pBuffers = &ncBuf;
-  
-  ss = NCryptImportKey(context->hProv, 0, BCRYPT_ECCPRIVATE_BLOB,
-		       &ncBufDesc, &context->privateKey,
-		       (BYTE *)pKeyBlob, keyBlobSize,
-		       NCRYPT_OVERWRITE_KEY_FLAG);
-  if (ss != ERROR_SUCCESS) {
-    fmt_dump("  Failed NCryptImportKey [%lx]\n", ss);
-    return ss;
+      ncBuf.cbBuffer = (ULONG)((wcslen(keyName) + 1) * sizeof(wchar_t));
+      ncBuf.BufferType = NCRYPTBUFFER_PKCS_KEY_NAME;
+      ncBuf.pvBuffer = keyName;
+      ncBufDesc.ulVersion = 0;
+      ncBufDesc.cBuffers = 1;
+      ncBufDesc.pBuffers = &ncBuf;
+
+      ss = NCryptImportKey(context->hProv, 0, BCRYPT_ECCPRIVATE_BLOB,
+			   &ncBufDesc, &context->privateKey,
+			   (BYTE *)pKeyBlob, keyBlobSize,
+			   0);
+      if (ss == ERROR_SUCCESS) {
+	mark_owned_key_state(context, keyName, ownerPid, &ownerCreationTime);
+	break;
+      }
+      if (ss != NTE_EXISTS) {
+	fmt_dump("  Failed NCryptImportKey [%lx]\n", ss);
+	cleanup_private_key(context, FALSE);
+	return ss;
+      }
+    }
+    if (!context->ownsImportedKey) {
+      cleanup_private_key(context, FALSE);
+      return NTE_EXISTS;
+    }
   }
   
-  provInfo.pwszContainerName = keyName;
+  provInfo.pwszContainerName = context->ownedKeyName;
   provInfo.pwszProvName = MS_KEY_STORAGE_PROVIDER;
   provInfo.dwProvType = 0;
   provInfo.dwFlags = 0;
@@ -778,21 +1000,28 @@ static DWORD add_ecc_private_key(WinTLSContext *context,
 
   if (!CertSetCertificateContextProperty(ctx, CERT_KEY_PROV_INFO_PROP_ID, 0,
 					 (const void *)&provInfo)) {
-    NCryptFreeObject(context->privateKey);
-    context->privateKey = NULL;
-    return GetLastError();
+    DWORD e = GetLastError();
+    cleanup_private_key(context, TRUE);
+    return e;
   }
 
   if (!CertSetCertificateContextProperty(ctx, CERT_NCRYPT_KEY_HANDLE_PROP_ID, 0,
 					 (const void *)context->privateKey)) {
-    NCryptFreeObject(context->privateKey);
-    context->privateKey = NULL;
-    return GetLastError();
+    DWORD e = GetLastError();
+    cleanup_private_key(context, TRUE);
+    return e;
   }
 
   DUMP_CERT_CONTEXT(ctx);
-  
-  return check_integrity(context);
+
+  {
+    DWORD r = check_integrity(context);
+    if (r != S_OK) {
+      cleanup_private_key(context, TRUE);
+      return r;
+    }
+  }
+  return S_OK;
 #else
   return E_NOINTERFACE;
 #endif
@@ -801,11 +1030,14 @@ static DWORD add_ecc_private_key(WinTLSContext *context,
 
 static DWORD add_private_key(WinTLSData *data,
 			     SgByteVector *privateKey,
-			     LPWSTR containerName)
+			     LPCWSTR keyRole)
 {
   WinTLSContext *context = data->tlsContext;
   if (privateKey && context->certificateCount > 0) {
     DWORD keyBlobSize;
+    if (context->privateKey || context->hProv || context->ownsImportedKey) {
+      cleanup_private_key(context, TRUE);
+    }
     LPBYTE keyBlob = decode_private_key(privateKey, &keyBlobSize,
 					&context->keyType);
     if (keyBlob == NULL) {
@@ -813,10 +1045,10 @@ static DWORD add_private_key(WinTLSData *data,
     }
     if (context->keyType == RSA) {
       msg_dump("  Private key is RSA\n");
-      return add_rsa_private_key(context, containerName, keyBlob, keyBlobSize);
+      return add_rsa_private_key(context, keyRole, keyBlob, keyBlobSize);
     } else if (context->keyType == ECC) {
       msg_dump("  Private key is ECC\n");
-      return add_ecc_private_key(context, containerName, keyBlob);
+      return add_ecc_private_key(context, keyRole, keyBlob);
     } else if (context->keyType == PKCS8) {
       msg_dump("  Private key is PKCS8\n");
       return E_NOINTERFACE;	/* not yet ;) */
@@ -856,8 +1088,8 @@ static int server_init(SgTLSSocket *s)
 
 static int validate_alpn_protocol_name_list(SgObject who, SgObject alpn);
 static int build_alpn_protocols_buffer(SgObject alpn,
-               unsigned char **buffer,
-               unsigned int *bufferSize);
+				       unsigned char **buffer,
+				       unsigned int *bufferSize);
 
 SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
 				  /* list of bytevectors */
@@ -882,19 +1114,20 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
   msg_dump("Loading private key and initialising socket ... \n");
   switch (socket->type) {
   case SG_SOCKET_CLIENT:
-    result = add_private_key(data, privateKey, CLIENT_KEY_CONTAINER_NAME);
+    result = add_private_key(data, privateKey, TLS_KEY_ROLE_CLIENT);
     fmt_dump("Client private key loading process is done -- %x\n", result);
     break;
   case SG_SOCKET_SERVER:
-    result = add_private_key(data, privateKey, SERVER_KEY_CONTAINER_NAME);
+    result = add_private_key(data, privateKey, TLS_KEY_ROLE_SERVER);
     fmt_dump("Server private key loading process is done -- %x\n", result);
     serverP = server_init(r);
     break;
   default:
-    free_context(data->tlsContext);
+    release_context(data->tlsContext);
+    data->tlsContext = NULL;
     Sg_AssertionViolation(SG_INTERN("socket->tls-socket"),
-      Sg_Sprintf(UC("Client or server socket is required but got %S"), socket),
-      socket);
+			  Sg_Sprintf(UC("Client or server socket is required but got %S"), socket),
+			  socket);
     return NULL;		/* dummy */
   }
 
@@ -934,7 +1167,7 @@ static void send_sec_buffer(SgObject who, SgTLSSocket *tlsSocket,
     /* send the data we got to the remote part */
     int rval = Sg_SocketSend(socket, (uint8_t *)bufso->pvBuffer,
 			     bufso->cbBuffer, 0);
-     FreeContextBuffer(bufso->pvBuffer);
+    FreeContextBuffer(bufso->pvBuffer);
     if ((unsigned int)rval != bufso->cbBuffer) {
       raise_socket_error(who,
 			 SG_MAKE_STRING("Failed to send handshake message"),
@@ -966,16 +1199,16 @@ static int validate_alpn_protocol_name_list(SgObject who, SgObject alpn)
   if (SG_FALSEP(alpn)) return FALSE;
   if (!SG_BVECTORP(alpn)) {
     Sg_AssertionViolation(who,
-                          SG_MAKE_STRING("bytevector or #f is required for ALPN"),
-                          alpn);
+      SG_MAKE_STRING("bytevector or #f is required for ALPN"), 
+      alpn);
   }
 
   size = (int)SG_BVECTOR_SIZE(alpn);
   data = SG_BVECTOR_ELEMENTS(alpn);
   if (size < 2) {
     Sg_AssertionViolation(who,
-                          SG_MAKE_STRING("ALPN must start with a 2-byte protocol-name-list length"),
-                          alpn);
+      SG_MAKE_STRING("ALPN must start with a 2-byte protocol-name-list length"),
+      alpn);
   }
   if ((((int)data[0]) << 8 | (int)data[1]) != size - 2) {
     Sg_AssertionViolation(who,
@@ -986,8 +1219,8 @@ static int validate_alpn_protocol_name_list(SgObject who, SgObject alpn)
     int len = data[i++];
     if (len == 0 || (i + len) > size) {
       Sg_AssertionViolation(who,
-                            SG_MAKE_STRING("Invalid ALPN protocol-name-list format"),
-                            alpn);
+	SG_MAKE_STRING("Invalid ALPN protocol-name-list format"),
+	alpn);
     }
     i += len;
   }
@@ -1081,7 +1314,7 @@ static SgObject default_verify_certificate(PCCERT_CONTEXT cc,
     goto cleanup;
   }
 
-cleanup:
+ cleanup:
   if (chainCtx) CertFreeCertificateChain(chainCtx);
   return errMsg;
 }
@@ -1102,7 +1335,7 @@ static void set_nagotiated_alpn(SgTLSSocket* tlsSocket)
   SecPkgContext_ApplicationProtocol alpn;
   SECURITY_STATUS r = SEC_E_OK;
   r = QueryContextAttributes(&data->context, SECPKG_ATTR_APPLICATION_PROTOCOL,
-    (PVOID)&alpn);
+			     (PVOID)&alpn);
   if (r == SEC_E_OK &&
       alpn.ProtoNegoStatus == SecApplicationProtocolNegotiationStatus_Success) {
     tlsSocket->selectedALPN = Sg_AsciiToString((const char *)alpn.ProtocolId, alpn.ProtocolIdSize);
@@ -1167,14 +1400,14 @@ static int verify_certificate(SgTLSSocket *tlsSocket, SgObject who)
   return FALSE;
 }
 
-#define SSPI_FLAGS  ISC_REQ_MANUAL_CRED_VALIDATION | \
-  ISC_REQ_SEQUENCE_DETECT    |			     \
-  ISC_REQ_REPLAY_DETECT      |			     \
-  ISC_REQ_CONFIDENTIALITY    |			     \
-  ISC_RET_EXTENDED_ERROR     |			     \
-  ISC_REQ_ALLOCATE_MEMORY    |			     \
-  /* ISC_REQ_USE_SUPPLIED_CREDS | */		     \
-  ISC_REQ_STREAM				     \
+#define SSPI_FLAGS  ISC_REQ_MANUAL_CRED_VALIDATION |	\
+  ISC_REQ_SEQUENCE_DETECT    |				\
+  ISC_REQ_REPLAY_DETECT      |				\
+  ISC_REQ_CONFIDENTIALITY    |				\
+  ISC_RET_EXTENDED_ERROR     |				\
+  ISC_REQ_ALLOCATE_MEMORY    |				\
+  /* ISC_REQ_USE_SUPPLIED_CREDS | */			\
+  ISC_REQ_STREAM					\
 
 static wchar_t * client_handshake0(SgTLSSocket *tlsSocket,
                                    SgObject sni,
@@ -1197,18 +1430,18 @@ static wchar_t * client_handshake0(SgTLSSocket *tlsSocket,
   data->dn = dn;
   /* ALPN is a bytevector of protocol-name-list
      So first 2 bytes are length
-   */
+  */
   {
     unsigned char *buffer = NULL;
     unsigned int total_size = 0;
     if (build_alpn_protocols_buffer(alpn, &buffer, &total_size)) {
-    INIT_SEC_BUFFER(&bufsi, SECBUFFER_APPLICATION_PROTOCOLS,
-                    buffer, total_size);
-    INIT_SEC_BUFFER_DESC(&sbin, &bufsi, 1);
-  } else {
-    INIT_SEC_BUFFER(&bufsi, SECBUFFER_EMPTY, NULL, 0);
-    INIT_SEC_BUFFER_DESC(&sbin, &bufsi, 1);
-  }
+      INIT_SEC_BUFFER(&bufsi, SECBUFFER_APPLICATION_PROTOCOLS,
+		      buffer, total_size);
+      INIT_SEC_BUFFER_DESC(&sbin, &bufsi, 1);
+    } else {
+      INIT_SEC_BUFFER(&bufsi, SECBUFFER_EMPTY, NULL, 0);
+      INIT_SEC_BUFFER_DESC(&sbin, &bufsi, 1);
+    }
   }
   INIT_SEC_BUFFER(&bufso, SECBUFFER_TOKEN, NULL, 0);
   INIT_SEC_BUFFER_DESC(&sbout, &bufso, 1);
@@ -1248,14 +1481,14 @@ static int read_n(SgSocket *socket, uint8_t *buf, int count)
   return read;
 }
 /*
-   reference
-   - https://tools.ietf.org/html/rfc5246#section-6.2
-   TLS record structure is:
-   - enum (unit8) type
-   - unit8 major
-   - unit8 minor
-   - uint16 length
- */
+  reference
+  - https://tools.ietf.org/html/rfc5246#section-6.2
+  TLS record structure is:
+  - enum (unit8) type
+  - unit8 major
+  - unit8 minor
+  - uint16 length
+*/
 typedef union {
   struct {
     uint8_t lo;
@@ -1294,8 +1527,7 @@ static int try_load_client_certificate(SgTLSSocket *tlsSocket)
       return FALSE;
     }
     load_certificates(data, SG_CDR(r));
-    result = add_private_key(data, SG_BVECTOR(SG_CAR(r)),
-			     CLIENT_KEY_CONTAINER_NAME);
+    result = add_private_key(data, SG_BVECTOR(SG_CAR(r)), TLS_KEY_ROLE_CLIENT);
     return SEC_E_OK == result;
   }
   return FALSE;
@@ -1440,9 +1672,9 @@ static SgTLSSocket * to_server_socket(SgTLSSocket *parent, SgSocket *sock)
 #ifdef SCH_USE_STRONG_CRYPTO
     SCH_USE_STRONG_CRYPTO |
 #endif
-  #ifdef SCH_CRED_DISABLE_RECONNECTS
+#ifdef SCH_CRED_DISABLE_RECONNECTS
     SCH_CRED_DISABLE_RECONNECTS |
-  #endif
+#endif
     SCH_CRED_REVOCATION_CHECK_CHAIN;
   credData.dwMinimumCipherStrength = 128;
   credData.cCreds = data->tlsContext->certificateCount;
@@ -1483,8 +1715,8 @@ static int server_handshake(SgTLSSocket *tlsSocket)
   unsigned char *alpnBuffer = NULL;
   unsigned int alpnBufferSize = 0;
   int hasALPN = build_alpn_protocols_buffer(data->configuredALPN,
-					     &alpnBuffer,
-					     &alpnBufferSize);
+					    &alpnBuffer,
+					    &alpnBufferSize);
 
   if (tlsSocket->peerCertificateRequiredP
       || !SG_FALSEP(tlsSocket->peerCertificateVerifier)) {
@@ -1577,8 +1809,8 @@ SgObject Sg_TLSServerSocketHandshake(SgTLSSocket *tlsSocket)
 }
 
 /*
-https://msdn.microsoft.com/en-us/library/windows/desktop/aa380138(v=vs.85).aspx
- */
+  https://msdn.microsoft.com/en-us/library/windows/desktop/aa380138(v=vs.85).aspx
+*/
 static void safe_send(SOCKET socket, uint8_t *data, long size)
 {
   long rest = size;
@@ -1669,10 +1901,14 @@ void Sg_TLSSocketClose(SgTLSSocket *tlsSocket)
 {
   WinTLSData *data = (WinTLSData *)tlsSocket->data;
   if (!data->closed) {
+    WinTLSContext *context = data->tlsContext;
     tls_socket_shutdown(tlsSocket);
     DeleteSecurityContext(&data->context);
     FreeCredentialsHandle(&data->credential);
     data->tlsContext = NULL;      /* for GC */
+    if (context) {
+      release_context(context);
+    }
     Sg_SocketClose(tlsSocket->socket);
     data->closed = TRUE;
     Sg_UnregisterFinalizer(SG_OBJ(tlsSocket));
@@ -1932,42 +2168,29 @@ int Sg_X509VerifyCertificate(SgObject bv)
 
 static void cleanup_keyset(void *data)
 {
-  /* Delete key set*/
-  HCRYPTPROV hProv;
-  CryptAcquireContext(&hProv, SERVER_KEY_CONTAINER_NAME, RSA_KEY_PROVIDER,
-		      PROV_RSA_SCHANNEL, CRYPT_DELETEKEYSET);
-  CryptAcquireContext(&hProv, CLIENT_KEY_CONTAINER_NAME, RSA_KEY_PROVIDER,
-		      PROV_RSA_SCHANNEL, CRYPT_DELETEKEYSET);
-  CryptAcquireContext(&hProv, SERVER_KEY_CONTAINER_NAME, DH_KEY_PROVIDER,
-		      PROV_RSA_SCHANNEL, CRYPT_DELETEKEYSET);
-  CryptAcquireContext(&hProv, CLIENT_KEY_CONTAINER_NAME, DH_KEY_PROVIDER,
-		      PROV_RSA_SCHANNEL, CRYPT_DELETEKEYSET);
+  (void)data;
+  /*
+    Intentionally left as a no-op.
+
+    Global keyset deletion by fixed names can remove keys created by other
+    concurrent processes. Imported private keys are now unique per context and
+    are deleted only by the context that created them.
+
+    Crash or forced termination can still leave orphaned key objects. We avoid
+    provider-wide deletion here because ownership cannot be verified safely for
+    all providers without race conditions.
+  */
 }
 
 void Sg_InitTLSImplementation()
 {
 #ifndef USE_UCS4_CPP
   /* due to the widechar conversion we need to set up like this */
-  SgObject serverKeyContainer =
-    SG_MAKE_STRING("CYGWIN Sagittarius ("
-		   SAGITTARIUS_TRIPLE " " SAGITTARIUS_VERSION
-		   ") SSL Server Socket Key Container");
-  SgObject clientKeyContainer =
-    SG_MAKE_STRING("CYGWIN Sagittarius ("
-		   SAGITTARIUS_TRIPLE " " SAGITTARIUS_VERSION
-		   ") SSL Client Socket Key Container");
   SgObject rsaProvName = SG_MAKE_STRING(MS_DEF_RSA_SCHANNEL_PROV_A);
-  SgObject dhProvName = SG_MAKE_STRING(MS_DEF_DH_SCHANNEL_PROV_A);
-  SERVER_KEY_CONTAINER_NAME = Sg_StringToWCharTs(serverKeyContainer);
-  CLIENT_KEY_CONTAINER_NAME = Sg_StringToWCharTs(clientKeyContainer);
   RSA_KEY_PROVIDER = Sg_StringToWCharTs(rsaProvName);
-  DH_KEY_PROVIDER = Sg_StringToWCharTs(rsaProvName);
 #endif
   fmt_dump("RSA Key provider: '%S'\n", RSA_KEY_PROVIDER);
-  fmt_dump("DH Key provider: '%S'\n", DH_KEY_PROVIDER);
   fmt_dump("Service provider: '%S'\n", IMPL_NAME);
-  fmt_dump("Client key container: '%S'\n", CLIENT_KEY_CONTAINER_NAME);
-  fmt_dump("Server key container: '%S'\n", SERVER_KEY_CONTAINER_NAME);
   Sg_AddCleanupHandler(cleanup_keyset, NULL);
   cleanup_keyset(NULL);
 }
