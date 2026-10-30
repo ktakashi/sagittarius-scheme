@@ -89,6 +89,19 @@
                     (+ sum (bytevector-length (http2-frame-data-data f))))
               (loop (cdr rest) sum))))))
 
+;; The tests below drive the connection synchronously: the server side
+;; writes the whole response (up to the 65535 bytes HTTP/2 initial window)
+;; before this thread starts reading from the client socket. That only
+;; works as long as the kernel can buffer the whole response locally.
+;; Platforms with small default TCP buffers (e.g. some BSDs default to
+;; 32KB) would otherwise deadlock in `socket-send`, so make sure the
+;; sending side has enough room.
+(define (ensure-send-buffer! sock)
+  (let loop ((sizes '(1048576 524288 262144 131072)))
+    (and (pair? sizes)
+         (or (socket-setsockopt! sock SOL_SOCKET SO_SNDBUF (car sizes))
+             (loop (cdr sizes))))))
+
 (define (with-http2-connection app proc :optional (config (make-http2-config)))
   (define server-sock #f)
   (define accepted #f)
@@ -102,7 +115,8 @@
       (set! server-sock (make-server-socket "0"))
       (let ((port (number->string (socket-info-port (socket-info server-sock)))))
         (set! client (make-client-socket "localhost" port))
-        (set! accepted (socket-accept server-sock))))
+        (set! accepted (socket-accept server-sock))
+        (ensure-send-buffer! accepted)))
     (lambda ()
       (let ((conn (make-http-server:http2-connection
 		   (make-http-server "0" (lambda (req resp) #t)

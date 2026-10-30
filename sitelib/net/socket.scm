@@ -520,16 +520,26 @@
   
   (define (selector-waiter)
     (define native-selector (slot-ref selector 'native-selector))
-    (guard (e (else (on-error 'selector e) #f))
-      (let loop ()
-	(unless (socket-selector-closed? native-selector)
-	  (let-values (((socks timedouts)
-			(socket-selector-wait! native-selector)))
-	    (unless (null? socks)
-	      (actor-send-message! on-read-actor (map ->on-read-data socks)))
-	    (unless (null? timedouts)
-	      (actor-send-message! on-read-actor (map ->timeout-data timedouts)))
-	    (loop))))))
+    ;; A transient error, e.g. an interrupted system call reported as an
+    ;; error by the platform, must not terminate the waiter thread. If it
+    ;; did, every socket registered afterwards would never be notified,
+    ;; which results in a deadlock rather than an error. Still, we give up
+    ;; when the errors keep coming, to avoid spinning forever.
+    (define max-consecutive-errors 10)
+    (let loop ((errors 0))
+      (unless (or (socket-selector-closed? native-selector)
+		  (> errors max-consecutive-errors))
+	(let ((next (guard (e (else (on-error 'selector e) (+ errors 1)))
+		      (let-values (((socks timedouts)
+				    (socket-selector-wait! native-selector)))
+			(unless (null? socks)
+			  (actor-send-message! on-read-actor
+					       (map ->on-read-data socks)))
+			(unless (null? timedouts)
+			  (actor-send-message! on-read-actor
+					       (map ->timeout-data timedouts)))
+			0))))
+	  (loop next)))))
 
   (define (dispatch-socket receiver sender)
     (define (call-on-read e)

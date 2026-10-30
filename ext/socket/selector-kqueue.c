@@ -48,7 +48,12 @@ static int register_socket_context(void *context, SgObject slot)
   struct kevent ev;
   SgSocket *s = SG_SOCKET(SG_CAR(slot));
 
-  EV_SET(&ev, s->socket, EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0, slot);
+  /*
+    NOTE: we deliberately don't use EV_CLEAR here. The other
+    implementations (epoll and poll) are level triggered, so to keep the
+    same semantics on *BSD and macOS we must be level triggered as well.
+   */
+  EV_SET(&ev, s->socket, EVFILT_READ, EV_ADD, 0, 0, slot);
   return (kevent(ctx->fd, &ev, 1, NULL, 0, 0) == 0);
 }
 
@@ -85,7 +90,7 @@ static SgObject wait_selector(unix_context_t *ctx, int nsock,
     evm = SG_NEW_ATOMIC2(struct kevent *, n * sizeof(struct kevent));
   else evm = local_evm;
 
-  EV_SET(&stop_event, ctx->stop_fd, EVFILT_READ, EV_ADD | EV_CLEAR, 0, 0, NULL);
+  EV_SET(&stop_event, ctx->stop_fd, EVFILT_READ, EV_ADD, 0, 0, NULL);
   c = kevent(ctx->fd, &stop_event, 1, evm, n, sp);
 
   /* when the selector is closed, then the unix socket returns EBADF */
@@ -94,10 +99,17 @@ static SgObject wait_selector(unix_context_t *ctx, int nsock,
     return SG_FALSE;
   }
   for (i = 0; i < c; i++) {
-    if (evm[i].ident == ctx->stop_fd) {
+    /*
+      EV_ERROR is a report of a failed changelist entry, not a readiness
+      event. The identifier is still the one of the change, so it must be
+      filtered out before looking at the identifier, otherwise we'd try
+      to drain the (empty) stop socket or push a bogus slot.
+     */
+    if (evm[i].flags & EV_ERROR) continue;
+    if (evm[i].ident == (uintptr_t)ctx->stop_fd) {
       interrupted_unix_stop(ctx);
     } else if (evm[i].filter == EVFILT_READ) {
-      r = Sg_Cons(evm[i].udata, r);
+      r = Sg_Cons(SG_OBJ(evm[i].udata), r);
     }
   }
 

@@ -284,3 +284,4 @@ sagittarius-package
 /test/JSON-Schema-Test-Suite
 /test/jmespath.test
 /test/JSONTestSuite
+.tmp/

@@ -115,6 +115,29 @@ static void selector_finalizer(SgObject self, void *data)
   Sg_CloseSocketSelector(SG_SOCKET_SELECTOR(self));
 }
 
+/*
+   `timespec` with `tv_nsec` out of [0, 1000000000) range is invalid and
+   some platforms, e.g. *BSD and macOS, reject it with EINVAL. The others,
+   such as Linux, silently accept it as the value is converted to
+   milliseconds. So, we must always normalise it.
+ */
+static struct timespec * normalise_timespec(struct timespec *tm)
+{
+  if (tm->tv_nsec >= 1000000000L) {
+    tm->tv_sec += tm->tv_nsec / 1000000000L;
+    tm->tv_nsec = tm->tv_nsec % 1000000000L;
+  } else if (tm->tv_nsec < 0) {
+    long sec = (-tm->tv_nsec + 999999999L) / 1000000000L;
+    tm->tv_sec -= sec;
+    tm->tv_nsec += sec * 1000000000L;
+  }
+  if (tm->tv_sec < 0) {
+    tm->tv_sec = 0;
+    tm->tv_nsec = 0;
+  }
+  return tm;
+}
+
 static struct timespec *selector_timespec(SgObject timeout, struct timespec *tm)
 {
   if (SG_FALSEP(timeout)) return NULL;
@@ -124,7 +147,7 @@ static struct timespec *selector_timespec(SgObject timeout, struct timespec *tm)
     if (val < 0) goto badtv;
     tm->tv_sec = val / 1000000;
     tm->tv_nsec = (val % 1000000) * 1000;
-    return tm;
+    return normalise_timespec(tm);
   } else if (SG_BIGNUMP(timeout)) {
     long usec;
     SgObject sec;
@@ -132,13 +155,13 @@ static struct timespec *selector_timespec(SgObject timeout, struct timespec *tm)
     sec = Sg_BignumDivSI(SG_BIGNUM(timeout), 1000000, &usec);
     tm->tv_sec = Sg_GetInteger(sec);
     tm->tv_nsec = usec * 1000;
-    return tm;
+    return normalise_timespec(tm);
   } else if (SG_FLONUMP(timeout)) {
     long val = Sg_GetInteger(timeout);
     if (val < 0) goto badtv;
     tm->tv_sec = val / 1000000;
     tm->tv_nsec = (val % 1000000) * 1000;
-    return tm;
+    return normalise_timespec(tm);
   } else if (SG_PAIRP(timeout) && SG_PAIRP(SG_CDR(timeout))) {
     SgObject sec = SG_CAR(timeout);
     SgObject usec = SG_CADR(timeout);
@@ -149,14 +172,11 @@ static struct timespec *selector_timespec(SgObject timeout, struct timespec *tm)
     if (isec < 0 || iusec < 0) goto badtv;
     tm->tv_sec = isec;
     tm->tv_nsec = iusec * 1000;
-    return tm;
+    return normalise_timespec(tm);
   } else if (SG_TIMEP(timeout)) {
-    /* Normalize it */
-    long s = SG_TIME(timeout)->nsec / 1000000000;
-    long nsec = SG_TIME(timeout)->nsec % 1000000000;
-    tm->tv_sec = SG_TIME(timeout)->sec + s;
-    tm->tv_nsec = SG_TIME(timeout)->nsec + nsec;
-    return tm;
+    tm->tv_sec = (time_t)SG_TIME(timeout)->sec;
+    tm->tv_nsec = SG_TIME(timeout)->nsec;
+    return normalise_timespec(tm);
   }
  badtv:
   Sg_Error(UC("timespec needs to be a real number (in microseconds), a list "
@@ -216,6 +236,15 @@ SgObject Sg_SocketSelectorAdd(SgSocketSelector *selector,
 	Sg_GetTimeOfDay(&sec, &usec);
 	t->sec = sp->tv_sec + sec;
 	t->nsec = sp->tv_nsec + usec * 1000;
+	/*
+	  The deadline must be normalised, otherwise the comparison done
+	  by the timeout index becomes wrong and the computed remaining
+	  time may end up being an invalid `timespec`.
+	 */
+	if (t->nsec >= 1000000000L) {
+	  t->sec += t->nsec / 1000000000L;
+	  t->nsec = t->nsec % 1000000000L;
+	}
 	to = SG_OBJ(t);
       }
       slot = Sg_Cons(socket, Sg_Cons(to, data));
@@ -288,10 +317,15 @@ static struct timespec * update_timeout(SgSocketSelector *selector,
     int64_t sec = SG_TIME(to)->sec - now->sec;
     long nsec = SG_TIME(to)->nsec - now->nsec;
 
+    /* borrow, so that nsec is always within [0, 1000000000) */
+    if (nsec < 0) {
+      nsec += 1000000000L;
+      sec--;
+    }
     if (sec > 0 || (sec == 0 && nsec > 0)) {
-      out->tv_sec = (sec > 0) ? sec : 0;
-      out->tv_nsec = (nsec > 0) ? nsec : 0;
-      r = out;
+      out->tv_sec = (time_t)sec;
+      out->tv_nsec = nsec;
+      r = normalise_timespec(out);
     }
   }
   return r;
@@ -378,11 +412,17 @@ SgObject Sg_SocketSelectorWait(SgSocketSelector *selector, SgObject timeout)
       - retry
      */
     if (!SG_FALSEP(timeout)) {
+      /*
+	Subtract the elapsed time from the original timeout. Both values
+	must be normalised, otherwise an invalid `timespec` may be passed
+	to the underlying selector.
+       */
+      int64_t elapsed_sec = (int64_t)sec - (int64_t)now.sec;
+      long elapsed_nsec = (long)(usec * 1000) - (long)now.nsec;
       sp = &spec;
-      sp->tv_sec -= sec - now.sec;
-      sp->tv_nsec -= (usec * 1000) - now.nsec;
-      if (sp->tv_sec < 0) sp->tv_sec = 0;
-      if (sp->tv_nsec < 0) sp->tv_nsec = 0;
+      sp->tv_sec -= (time_t)elapsed_sec;
+      sp->tv_nsec -= elapsed_nsec;
+      normalise_timespec(sp);
     }
 
     now.sec = sec;
