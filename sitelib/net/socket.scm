@@ -215,6 +215,7 @@
 	    (clos core)
 	    (clos user)
 	    (sagittarius) ;; gensym, last-error-detail
+	    (sagittarius conditions) ;; system-error?
 	    (sagittarius time) ;; for time
 	    (rename (except (sagittarius socket)
 			    make-client-socket
@@ -520,26 +521,28 @@
   
   (define (selector-waiter)
     (define native-selector (slot-ref selector 'native-selector))
-    ;; A transient error, e.g. an interrupted system call reported as an
-    ;; error by the platform, must not terminate the waiter thread. If it
-    ;; did, every socket registered afterwards would never be notified,
-    ;; which results in a deadlock rather than an error. Still, we give up
-    ;; when the errors keep coming, to avoid spinning forever.
-    (define max-consecutive-errors 10)
-    (let loop ((errors 0))
-      (unless (or (socket-selector-closed? native-selector)
-		  (> errors max-consecutive-errors))
-	(let ((next (guard (e (else (on-error 'selector e) (+ errors 1)))
-		      (let-values (((socks timedouts)
-				    (socket-selector-wait! native-selector)))
-			(unless (null? socks)
-			  (actor-send-message! on-read-actor
-					       (map ->on-read-data socks)))
-			(unless (null? timedouts)
-			  (actor-send-message! on-read-actor
-					       (map ->timeout-data timedouts)))
-			0))))
-	  (loop next)))))
+    ;; A system error reported by the underlying selector, e.g. an
+    ;; interrupted system call, is transient and the selector is still
+    ;; usable. Terminating the waiter thread there would mean that no
+    ;; socket registered afterwards is ever notified, in other words a
+    ;; deadlock instead of an error. Anything else, such as the selector
+    ;; being closed, is fatal and ends the loop.
+    (define (recoverable? e) (system-error? e))
+    (let loop ()
+      (unless (socket-selector-closed? native-selector)
+	(let ((continue?
+	       (guard (e ((recoverable? e) (on-error 'selector e) #t)
+			 (else (on-error 'selector e) #f))
+		 (let-values (((socks timedouts)
+			       (socket-selector-wait! native-selector)))
+		   (unless (null? socks)
+		     (actor-send-message! on-read-actor
+					  (map ->on-read-data socks)))
+		   (unless (null? timedouts)
+		     (actor-send-message! on-read-actor
+					  (map ->timeout-data timedouts)))
+		   #t))))
+	  (when continue? (loop))))))
 
   (define (dispatch-socket receiver sender)
     (define (call-on-read e)
