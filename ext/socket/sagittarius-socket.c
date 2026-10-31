@@ -558,6 +558,23 @@ static void flush_tcp(SOCKET fd)
 static int socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
 			     SgObject timeout);
 
+/*
+  Returns the pending error of the socket, 0 means no error.
+  On some platforms, a failed asynchronous `connect` makes the socket
+  writable, so checking the writability isn't enough to know if the
+  connection is established.
+ */
+static int pending_socket_error(SgSocket *socket)
+{
+  int err = 0;
+  socklen_t len = sizeof(err);
+  if (getsockopt(socket->socket, SOL_SOCKET, SO_ERROR,
+		 (char *)&err, &len) < 0) {
+    return last_error;
+  }
+  return err;
+}
+
 SgObject Sg_SocketConnect(SgSocket *socket, SgAddrinfo* addrinfo,
 			  SgObject timeout)
 {
@@ -570,9 +587,20 @@ SgObject Sg_SocketConnect(SgSocket *socket, SgAddrinfo* addrinfo,
   rc = connect(socket->socket, p->ai_addr, (int)p->ai_addrlen);
   if (rc < 0) {
     int ec = last_error;
-    if (ec == EINPROGRESS || ec == EWOULDBLOCK) {
+    /*
+      EINTR means the connection is being established asynchronously,
+      exactly the same as EINPROGRESS. We must not retry `connect` here
+      as it'd fail with EALREADY on POSIX platforms, so simply wait until
+      the socket becomes writable, then check the pending error.
+      We use SIGALRM to interrupt threads without SA_RESTART, so this
+      happens rather often.
+     */
+    if (ec == EINPROGRESS || ec == EWOULDBLOCK || ec == EINTR) {
       int res = Sg_SocketReadyP(socket, SG_SOCKET_WRITE, timeout);
-      Sg_SocketBlocking(socket);
+      if (res) {
+	ec = pending_socket_error(socket);
+      }
+      if (nonblocking == 0) Sg_SocketBlocking(socket);
       if (!res) {
 	SgObject c = SG_LIST4(Sg_MakeConditionSocketConnection(socket),
 			      Sg_MakeWhoCondition(SG_INTERN("socket-connect!")),
@@ -581,7 +609,10 @@ SgObject Sg_SocketConnect(SgSocket *socket, SgAddrinfo* addrinfo,
 	Sg_Raise(Sg_Condition(c), FALSE);
 	return SG_FALSE;	/* dummy */
       }
-	  
+      if (ec != 0) {
+	socket->lastError = ec;
+	return SG_FALSE;
+      }
     } else {
       goto err;
     }
@@ -933,8 +964,16 @@ SgObject Sg_SocketAccept(SgSocket *socket)
 	SG_INTERRUPTED_THREAD() {
 	  return SG_FALSE;
 	} SG_INTERRUPTED_THREAD_ELSE() {
+	  addrlen = sizeof(addr);
 	  continue;
 	} SG_INTERRUPTED_THREAD_END();
+#ifndef _WIN32
+      } else if (last_error == ECONNABORTED) {
+	/* The pending connection is aborted before being accepted, this
+	   isn't an error of the listening socket, so just retry. */
+	addrlen = sizeof(addr);
+	continue;
+#endif
       } else if (!Sg_SocketOpenP(socket)) {
 	return SG_FALSE;
       } else {
@@ -1293,7 +1332,8 @@ static SgObject remove_socket(SgFdSet *fdset, pollfd_t *fds, nfds_t n, int flag)
 {
   SgObject h = SG_NIL, t = SG_NIL;
   for (int i = 0; i < n; i++) {
-    if (fds[i].revents && flag) {
+    /* NB: POLLERR, POLLHUP and POLLNVAL are always reported */
+    if (fds[i].revents & (flag | POLLERR | POLLHUP | POLLNVAL)) {
       SgObject s = search_socket(fds[i].fd, fdset->sockets);
       if (!SG_FALSEP(s)) SG_APPEND1(h, t, s);
     }
@@ -1318,7 +1358,8 @@ static int socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
 #undef add_length
   if (n == 0) return 0;		/* nothing to wait */
 
-  pollfd_t *fds = (pollfd_t *)malloc(sizeof(pollfd_t) * n);
+  /* GC managed, so that a non local exit doesn't leak it */
+  pollfd_t *fds = SG_NEW_ATOMIC2(pollfd_t *, sizeof(pollfd_t) * n);
   int i = 0;
 #define init_fds(fdset, flag)				\
   if (fdset) {						\
@@ -1353,14 +1394,17 @@ static int socket_select_int(SgFdSet *rfds, SgFdSet *wfds, SgFdSet *efds,
 	goto retry;
       } SG_INTERRUPTED_THREAD_END();
     }
-    raise_socket_error(SG_INTERN("socket-select"), 
-		       Sg_GetLastErrorMessageWithErrorCode(last_error),
-		       /* TODO should we make different condition? */
-		       Sg_MakeConditionSocket(SG_FALSE),
-		       SG_LIST4(rfds? rfds: SG_FALSE,
-				wfds? wfds: SG_FALSE,
-				efds? efds: SG_FALSE,
-				timeout));
+    {
+      int e = last_error;
+      raise_socket_error(SG_INTERN("socket-select"),
+			 Sg_GetLastErrorMessageWithErrorCode(e),
+			 /* TODO should we make different condition? */
+			 Sg_MakeConditionSocket(SG_FALSE),
+			 SG_LIST4(rfds? rfds: SG_FALSE,
+				  wfds? wfds: SG_FALSE,
+				  efds? efds: SG_FALSE,
+				  timeout));
+    }
   }
 #define REMOVE_SOCKET(fdset, fds, flag)				\
   if (fdset) {							\
@@ -1474,13 +1518,31 @@ static int socket_ready_p(int fd, SgSocketEvents events,
   if (tm) {
     timeout = (int)(tm->tv_sec*(uint64_t)1000 + tm->tv_usec / 1000);
   }
-	   
-  int state = poll(fds, 1, timeout);
+
+  int state;
+  do {
+    fds[0].revents = 0;
+    state = poll(fds, 1, timeout);
+    /*
+      We interrupt threads with SIGALRM without SA_RESTART, so EINTR is
+      a rather common and benign situation. Reporting "not ready" here
+      would, for example, turn an interrupted `connect` into a bogus
+      connection timeout.
+     */
+  } while (state < 0 && last_error == EINTR);
   if (state < 0) goto err;
+  /*
+    POLLERR and POLLHUP are only reported in revents. A socket in those
+    states will never become readable nor writable, so report it as
+    "ready" and let the caller discover the actual error.
+   */
   switch (events) {
-  case SG_SOCKET_WRITE:         return (fds[0].revents & POLLOUT) == POLLOUT;
-  case SG_SOCKET_ERROR:         return (fds[0].revents & POLLERR) == POLLERR;
-  case SG_SOCKET_READ: default: return (fds[0].revents & POLLIN ) == POLLIN;
+  case SG_SOCKET_WRITE:
+    return (fds[0].revents & (POLLOUT | POLLERR | POLLHUP | POLLNVAL)) != 0;
+  case SG_SOCKET_ERROR:
+    return (fds[0].revents & (POLLERR | POLLNVAL)) != 0;
+  case SG_SOCKET_READ: default:
+    return (fds[0].revents & (POLLIN | POLLERR | POLLHUP | POLLNVAL)) != 0;
   }
 #endif
 

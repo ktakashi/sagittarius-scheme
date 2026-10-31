@@ -368,7 +368,18 @@
 	(mutex-lock! client-lock)
 	(mutex-unlock! client-lock)
 
-	(apply socket-read-select #f (vector->list vec))))))
+	;; The two bytes are sent on separate connections, so they are not
+	;; necessarily delivered at the same time. Keep selecting on the
+	;; sockets which aren't ready yet until both are collected. Each
+	;; `socket-read-select` must still report the correct sockets,
+	;; which is what this test is about (call #134).
+	(let loop ((rest (vector->list vec)) (found '()))
+	  (if (or (null? rest) (= (length found) 2))
+	      ;; report them in the order of `vec`
+	      (filter (lambda (s) (memq s found)) (vector->list vec))
+	      (let ((r (apply socket-read-select #f rest)))
+		(loop (remp (lambda (s) (memq s r)) rest)
+		      (append found r)))))))))
   ;; lock it
   (mutex-lock! client-lock)
   (let ((s* (map (lambda (i)

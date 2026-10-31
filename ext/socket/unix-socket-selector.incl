@@ -7,10 +7,26 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 static int unix_socket()
 {
-  return socket(PF_UNIX, SOCK_DGRAM, 0);
+  int fd = socket(PF_UNIX, SOCK_DGRAM, 0);
+  if (fd >= 0) {
+    /*
+      The socket is only used to interrupt the selector, so we never want
+      to block on it. Especially receiving side, as some platforms (e.g.
+      *BSD) may report readability without any datagram queued (e.g. EOF
+      or error report), in that case a blocking `recvfrom` would block the
+      selector thread forever.
+     */
+    int flags = fcntl(fd, F_GETFL, 0);
+    if (flags < 0 || fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0) {
+      close(fd);
+      return -1;
+    }
+  }
+  return fd;
 }
 
 static struct sockaddr_un * bind_unix_socket(int socket,
@@ -37,21 +53,26 @@ static int sendto_unix_socket(int socket, struct sockaddr_un *addr,
 {
   struct sockaddr *sadr = (struct sockaddr *)addr;
   size_t s = sizeof(struct sockaddr_un);
-  int rest = datalen;
-  while (rest != 0) {
-    int r = sendto(socket, data, rest, 0, sadr, s);
-    if (r == rest) break;
-    rest -= r;
-    data += r;
+  /*
+    NOTE: this is a datagram socket, so the message is sent atomically or
+    not at all. Retrying only makes sense for EINTR. On *BSD, a full
+    receive buffer makes `sendto` fail with ENOBUFS instead of blocking,
+    in that case an interruption is already pending, so dropping this one
+    is harmless.
+   */
+  while (TRUE) {
+    int r = (int)sendto(socket, data, datalen, 0, sadr, s);
+    if (r >= 0) return r;
+    if (errno == EINTR) continue;
+    return -1;
   }
-  return datalen;
 }
 
 static int recvfrom_unix_socket(int socket, struct sockaddr_un *addr,
 				uint8_t *buffer, size_t buflen)
 {
   socklen_t l = sizeof(struct sockaddr_un);
-  return recvfrom(socket, buffer, buflen, 0, (struct sockaddr *)addr, &l);
+  return (int)recvfrom(socket, buffer, buflen, 0, (struct sockaddr *)addr, &l);
 }
 
 
@@ -78,6 +99,7 @@ static unix_context_t * setup_stop(unix_context_t *stop)
   if (stop->stop_fd == -1) return NULL;
   if (bind_unix_socket(stop->stop_fd, &stop->addr) == NULL) {
     close(stop->stop_fd);
+    invalidate_stop(stop);
     return NULL;
   }
   return stop;
@@ -100,15 +122,18 @@ static void interrupt_unix_stop(unix_context_t *stop)
 static void interrupted_unix_stop(unix_context_t *stop)
 {
   uint8_t buf[array_sizeof(msg)];
-  size_t rest = array_sizeof(msg);
+  /*
+    Drain all the queued datagrams. The socket is non blocking, so this
+    returns as soon as the queue is empty. We must not rely on the amount
+    of received bytes here, the selector may also report readability
+    without any datagram (e.g. EOF), which used to loop forever.
+   */
   while (TRUE) {
-    int r = recvfrom_unix_socket(stop->stop_fd, &stop->addr, buf, rest);
-    if (r < 0) {
-      /* something went wrong just ignore */
-      break;
-    }
-    if (r == rest) break;
-    rest -= r;
+    int r = recvfrom_unix_socket(stop->stop_fd, &stop->addr, buf,
+				 array_sizeof(buf));
+    if (r > 0) continue;	/* may have more, try again */
+    if (r < 0 && errno == EINTR) continue;
+    break;			/* empty, EOF or error, we're done */
   }
 }
 

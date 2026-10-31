@@ -215,6 +215,7 @@
 	    (clos core)
 	    (clos user)
 	    (sagittarius) ;; gensym, last-error-detail
+	    (sagittarius conditions) ;; system-error?
 	    (sagittarius time) ;; for time
 	    (rename (except (sagittarius socket)
 			    make-client-socket
@@ -520,16 +521,28 @@
   
   (define (selector-waiter)
     (define native-selector (slot-ref selector 'native-selector))
-    (guard (e (else (on-error 'selector e) #f))
-      (let loop ()
-	(unless (socket-selector-closed? native-selector)
-	  (let-values (((socks timedouts)
-			(socket-selector-wait! native-selector)))
-	    (unless (null? socks)
-	      (actor-send-message! on-read-actor (map ->on-read-data socks)))
-	    (unless (null? timedouts)
-	      (actor-send-message! on-read-actor (map ->timeout-data timedouts)))
-	    (loop))))))
+    ;; A system error reported by the underlying selector, e.g. an
+    ;; interrupted system call, is transient and the selector is still
+    ;; usable. Terminating the waiter thread there would mean that no
+    ;; socket registered afterwards is ever notified, in other words a
+    ;; deadlock instead of an error. Anything else, such as the selector
+    ;; being closed, is fatal and ends the loop.
+    (define (recoverable? e) (system-error? e))
+    (let loop ()
+      (unless (socket-selector-closed? native-selector)
+	(let ((continue?
+	       (guard (e ((recoverable? e) (on-error 'selector e) #t)
+			 (else (on-error 'selector e) #f))
+		 (let-values (((socks timedouts)
+			       (socket-selector-wait! native-selector)))
+		   (unless (null? socks)
+		     (actor-send-message! on-read-actor
+					  (map ->on-read-data socks)))
+		   (unless (null? timedouts)
+		     (actor-send-message! on-read-actor
+					  (map ->timeout-data timedouts)))
+		   #t))))
+	  (when continue? (loop))))))
 
   (define (dispatch-socket receiver sender)
     (define (call-on-read e)
