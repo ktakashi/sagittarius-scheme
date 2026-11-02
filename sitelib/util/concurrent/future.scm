@@ -209,14 +209,20 @@
 		(values #t canceller (and (shared-box? q) q))))))))
   
   (define (future-execute-task! future :optional (cleanup #f))
+    ;; NOTE: the future must reach its terminal state *before* the
+    ;; cleanup is executed. The cleanup is where an executor forgets
+    ;; about the future, so doing it first leaves a window where the
+    ;; future is still running but no longer tracked. A shutdown
+    ;; happening in that window terminates the executing thread without
+    ;; cancelling the future, which then stays in 'executing forever and
+    ;; makes `future-get` block indefinitely.
     (define (finalize result exceptional?)
-      (let-values (((v e?)
-		    (if cleanup
-			(guard (e (else (values e #t)))
-			  (cleanup future)
-			  (values result exceptional?))
-			(values result exceptional?))))
-	(future-publish-completion! future v e?)))
+      (let ((r (future-publish-completion! future result exceptional?)))
+	(when cleanup
+	  ;; the result is already published, so a failure of the
+	  ;; bookkeeping must not override it.
+	  (guard (e (else #f)) (cleanup future)))
+	r))
     (let ((thunk (future-claim-task! future)))
       (when thunk
 	(let-values (((result exceptional?)
