@@ -59,6 +59,20 @@
 	    <http2-config> http2-config? make-http2-config
 	    http2-config-max-concurrent-streams
 	    http2-config-enable-push?
+
+	    http-server:connection-info?
+	    make-http-server:connection-info
+	    http-server:connection-info-remote
+	    http-server:connection-info-peer-certificate
+	    http-server:connection-info-selected-alpn
+	    http-server:connection-info-protocol
+
+	    http-server:exchange?
+	    make-http-server:exchange
+	    http-server:exchange-attribute-ref
+	    http-server:exchange-attribute-set!
+	    http-server:exchange-connection-info
+	    http-server:exchange-state
 	    
 	    http-server:request?
 	    make-http-server:request
@@ -72,6 +86,7 @@
 	    http-server:request-body-port
 	    http-server:request-remote
 	    http-server:request-attributes
+	    http-server:request-exchange
 	    http-server:request-header-ref
 	    http-server:request-header-ref*
 	    http-server:request-attribute-ref
@@ -92,6 +107,7 @@
 	    http-server:response-cacheable?-set!
 	    http-server:response-cache-ttl
 	    http-server:response-cache-ttl-set!
+	    http-server:response-exchange
 	    http-server:response-header-ref
 	    http-server:response-header-ref*
 	    http-server:response-header-set!
@@ -120,6 +136,7 @@
 	    (srfi :18)
 	    (net socket)
 	    (net server)
+	    (net http-server exchange)
 	    (net http-server types)
 	    (net http-server request)
 	    (net http-server response)
@@ -209,7 +226,7 @@
                  (unless (http-server:connection-process! conn chunk)
                    (http-server:close-connection! conn)))
 		(else (http-server:close-connection! conn)))))))
-
+  
   (for-each (lambda (o)
 	      (http-server:upgrade-registry-register! upgrade-registry o))
 	    (http-server-config-upgrades config))
@@ -231,23 +248,14 @@
     (http-server:protocol-driver-connect! driver server socket app-handler)))
 
 (define (get-state server socket app-handler)
-  (define (certificate-handler socket app-handler)
-    (if (tls-socket? socket)
-	(lambda (req res)
-	  (cond ((tls-socket-peer-certificate socket) =>
-		 (lambda (cert)
-		   (http-server:request-peer-certificate-set! req cert))))
-	  (app-handler req res))
-	app-handler))
   (define lock (slot-ref server 'lock))
   (define states (slot-ref server 'states))
-
+  
   (mutex-lock! lock)
   (cond ((hashtable-ref states socket #f) =>
 	 (lambda (state) (mutex-unlock! lock) state))
 	(else
-	 (let* ((handler (certificate-handler socket app-handler))
-		(state (make-server-http-connection server socket handler)))
+	 (let ((state (make-server-http-connection server socket app-handler)))
            (hashtable-set! states socket state)
            (mutex-unlock! lock)
            state))))
@@ -255,7 +263,7 @@
 (define (set-state! server socket conn)
   (define lock (slot-ref server 'lock))
   (define states (slot-ref server 'states))
-
+  
   (mutex-lock! lock)
   (hashtable-set! states socket conn)
   (mutex-unlock! lock))
@@ -270,5 +278,4 @@
 	 r
 	 (http-server:close-connection! conn)
 	 #t)))
-
 )

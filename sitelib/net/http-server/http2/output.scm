@@ -27,6 +27,7 @@
     (import (rnrs)
 	    (srfi :18)
 	    (net socket)
+	    (net http-server exchange)
 	    (net http-server request)
 	    (net http-server response)
 	    (net http-server types)
@@ -77,6 +78,10 @@
   #f)
 
 (define (send-rst-stream! conn sid code)
+  (let ((stream (find-stream conn sid)))
+    (when stream
+      (%http-server:exchange-mark-aborted!
+       (http2-server-stream-exchange stream))))
   (drop-stream! conn sid)
   (send-frame! conn (make-http2-frame-rst-stream 0 sid code) #f))
 
@@ -108,10 +113,12 @@
 
 ;; write response
 (define (write-stream-response! conn stream req res)
+  (define exchange (http-server:request-exchange req))
   (emit-push-responses! conn stream req res)
   (let-values (((headers body body-port skip-body?)
                 (response->hpack-headers req res)))
     (define sid (http2-server-stream-id stream))
+    (%http-server:exchange-mark-response-started! exchange)
     (send-frame! conn
                  (make-http2-frame-headers 0 sid #f #f headers)
                  (or skip-body?
@@ -120,7 +127,9 @@
     (if (or skip-body?
             (and (zero? (bytevector-length body))
                  (not body-port)))
-        (drop-stream! conn sid)
+        (begin
+	  (%http-server:exchange-mark-completed! exchange)
+	  (drop-stream! conn sid))
         (begin
           (http2-server-stream-pending-output-set! stream body)
           (http2-server-stream-pending-input-port-set! stream body-port)
@@ -144,9 +153,10 @@
           (http2-server-connection-state-next-push-stream-id-set! conn (+ sid 2))
           sid))))
 
-(define (prepare-pushed-request state parent-req stream-id method target headers)
+(define (prepare-pushed-request state parent-req stream method target headers)
   (define socket (http2-server-connection-state-socket state))
   (define scheme (if (tls-socket? socket) "https" "http"))
+  (define stream-id (http2-server-stream-id stream))
   (define authority
     (or (http-server:headers-ref headers "host" #f)
         (and parent-req (http-server:request-header-ref parent-req "host" #f))
@@ -164,7 +174,9 @@
                 query
                 push-headers
                 #vu8()
-                stream-id)))
+                stream-id
+		(http2-server-connection-state-connection-info state)
+		(http2-server-stream-exchange stream))))
       (values req
               (append `((#*":method"    ,(string->utf8 method-token))
                         (#*":scheme"    ,(string->utf8 scheme))
@@ -174,7 +186,10 @@
 
 (define (make-push-stream conn stream-id parent-id)
   (let ((wire-weight +default-priority-wire-weight+)
-        (dependency parent-id))
+        (dependency parent-id)
+	(exchange
+	 (make-http-server:exchange
+	  (http2-server-connection-state-connection-info conn))))
     (http2-priority-tree-add!
      (http2-server-connection-state-priority-tree conn)
      stream-id
@@ -200,7 +215,8 @@
       #f
       #f
       dependency
-      wire-weight))))
+      wire-weight
+      exchange))))
 
 (define (dispatch-pushed-application! conn stream req)
   (let ((res (invoke-app-handler conn stream req)))
@@ -217,10 +233,14 @@
              (headers (caddr push)))
          (let ((push-id (allocate-push-stream-id! state)))
            (when push-id
-             (let-values (((push-req promise-headers)
-                           (prepare-pushed-request state req push-id method target headers)))
-               (let ((push-stream (make-push-stream state
-                                   push-id (http2-server-stream-id stream))))
+             (let ((push-stream (make-push-stream
+				 state
+				 push-id
+				 (http2-server-stream-id stream))))
+	       (when push-stream
+		 (let-values (((push-req promise-headers)
+			       (prepare-pushed-request
+				state req push-stream method target headers)))
                  (send-frame! state
                               (make-http2-frame-push-promise
                                0
@@ -228,7 +248,7 @@
                                push-id
                                promise-headers)
                               #f)
-                 (dispatch-pushed-application! state push-stream push-req)))))))
+                 (dispatch-pushed-application! state push-stream push-req))))))))
      (http-server:response-pushes res))))
 
 ;; priority scheduler
@@ -278,6 +298,8 @@
                                       (not (http2-server-stream-pending-input-port stream))
                                       (http2-server-stream-pending-end-stream? stream))
                              (send-frame! conn (make-http2-frame-data 0 sid #vu8()) #t)
+			     (%http-server:exchange-mark-completed!
+			      (http2-server-stream-exchange stream))
                              (drop-stream! conn sid))
                            #f)
                           (else
@@ -297,6 +319,8 @@
                                 (- (http2-server-stream-send-window stream) send-size))
                                (http2-priority-tree-account! tree sid send-size)
                                (when end?
+				 (%http-server:exchange-mark-completed!
+				  (http2-server-stream-exchange stream))
                                  (drop-stream! conn sid))
                                (loop))))))))))))
 ))

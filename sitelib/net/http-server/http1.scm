@@ -18,6 +18,7 @@
 	    (clos user)
 	    (sagittarius) ;; for get-keyword
 	    (net socket)
+	    (net http-server exchange)
 	    (net http-server types)
 	    (net http-server request)
 	    (net http-server response)
@@ -53,9 +54,11 @@
 (define-record-type http-server:http1-request
   (parent http-server:request)
   (protocol (lambda (n)
-	      (lambda (method target path query version headers body remote-info)
+	      (lambda (method target path query version headers body remote-info
+		       exchange)
 		((n method target path query version headers body remote-info
-		    '()))))))
+		    '()
+		    exchange))))))
 
 (define +crlf+ #vu8(#x0d #x0a))
 (define +crlf-crlf+ #vu8(#x0d #x0a #x0d #x0a))
@@ -110,19 +113,23 @@
           (mutable chunk-scan)
           (mutable chunk-size)
 	  app-handler
-	  remote-info)
+	  connection-info)
   (protocol (lambda (p)
-	      (lambda (app-handler info)
+	      (lambda (app-handler connection-info)
 		(p 'start 0 #f #f #f #f #f 'none 0 #f '() 0 0
-		   app-handler info)))))
+		   app-handler connection-info)))))
 
 (define (make-remainder buffer next)
   (bv-sub buffer next (bytevector-length buffer)))
 
-(define (make-http1-request* method target version headers body remote-info)
+(define (make-http1-request* method target version headers body connection-info)
   (let-values (((path query) (parse-target target)))
+    (define exchange (make-http-server:exchange connection-info))
     (make-http-server:http1-request method target path query
-				    version headers body remote-info)))
+				    version headers body
+				    (http-server:connection-info-remote
+				     connection-info)
+				    exchange)))
 
 ;; the line must end with \r\n
 (define (strict-read-line bin)
@@ -153,7 +160,7 @@
                                (http1-consume-state-version st)
                                (http1-consume-state-headers st)
                                body
-			       (http1-consume-state-remote-info st))
+			       (http1-consume-state-connection-info st))
           #f
           (make-remainder buffer next)
           #f))
@@ -353,21 +360,28 @@
   (define driver (http-server:http-connection-driver conn))
   (define st (http-server:http-connection-parse-state conn))
   (define app-handler (http1-consume-state-app-handler st))
-  (define (normalize-handler-result result fallback)
-    (if (http-server:response? result) result fallback))
+  (define (make-application-error-response exchange)
+    (let ((er (make-http-server:response 500 exchange)))
+      (http-server:response-text! er "Unhandled application error")
+      er))
   (define (invoke-handler app-handler req res)
+    (let ((exchange (http-server:request-exchange req)))
+      (%http-server:exchange-mark-handling! exchange)
+      (guard (e (else (make-application-error-response exchange)))
+	(%http-server:normalize-handler-response
+	 (app-handler req res) res exchange))))
+  (define (serve! driver conn exchange req result)
     (guard (e (else
-               (let ((er (make-http-server:response 500)))
-                 (http-server:response-text! er "Unhandled application error")
-                 er)))
-      (normalize-handler-result (app-handler req res) res)))
+	       (%http-server:exchange-mark-aborted! exchange)
+	       #t))
+      (%http-server:exchange-mark-response-started! exchange)
+      (let ((r (http-server:protocol-driver-serve! driver conn req result)))
+	(%http-server:exchange-mark-completed! exchange)
+	r)))
 
   (let loop ((served 0))
     (let-values (((kind req b) (http-server:http1-consume conn)))
-      (cond ((or (eq? kind 'start)
-                 (eq? kind 'line)
-                 (eq? kind 'header))
-             #f)
+      (cond ((or (eq? kind 'start) (eq? kind 'line) (eq? kind 'header)) #f)
             ((eq? kind 'error)
              (let* ((code req)
                     (message b)
@@ -385,10 +399,10 @@
                  (if keep-open? upgraded-conn #t))
 		((eq? upgrade-status 'error) #t)
 		(else
-                 (let* ((res (make-http-server:response))
+                 (let* ((exchange (http-server:request-exchange req))
+			(res (make-http-server:response 200 exchange))
 			(result (invoke-handler app-handler req res))
-			(close? (http-server:protocol-driver-serve!
-                                 driver conn req result)))
+			(close? (serve! driver conn exchange req result)))
                    (http-server:http-connection-request-count-set!
                     conn
                     (+ 1 (http-server:http-connection-request-count conn)))
@@ -417,13 +431,15 @@
     (close-port port)))
 
 (define (stream-body-to-socket! socket port chunk-handler)
-  (guard (e (else #f))
+  (dynamic-wind
+    (lambda () #f)
+    (lambda ()
     (let loop ()
       (let ((bv (get-bytevector-n port +http1-stream-chunk-size+)))
 	(unless (eof-object? bv)
           (chunk-handler bv)
-          (loop))))
-    (close-port port)))
+          (loop)))))
+    (lambda () (close-input-port-quietly port))))
 
 (define (stream-raw-body! socket port)
   (stream-body-to-socket! socket port
@@ -554,8 +570,17 @@
 		(lambda (conn) #t) ;; nothing to do
 		#f
 		*http-server:http1-driver*))
+	 (remote-info (http-server:connection-remote-info conn))
+	 (connection-info (if (tls-socket? socket)
+			      (make-http-server:connection-info
+			       remote-info
+			       (tls-socket-peer-certificate socket)
+			       (tls-socket-selected-alpn socket)
+			       "http/1.1")
+			      (make-http-server:connection-info
+			       remote-info #f #f "http/1.1")))
 	 (state (make-http1-consume-state app-handler
-		 (http-server:connection-remote-info conn))))
+		 connection-info)))
     (http-server:http-connection-parse-state-set! conn state)
     conn))
 

@@ -19,6 +19,7 @@
 	    http-server:response-cacheable?-set!
 	    http-server:response-cache-ttl
 	    http-server:response-cache-ttl-set!
+	    http-server:response-exchange
 
 	    http-server:response-header-ref
 	    http-server:response-header-ref*
@@ -29,8 +30,12 @@
 	    http-server:response-text!
 	    http-server:response-bytes!
 	    http-server:response-port!
-	    http-server:response-copy)
+	    http-server:response-copy
+
+	    %http-server:response-bind-exchange!
+	    %http-server:normalize-handler-response)
     (import (rnrs)
+	    (net http-server exchange)
 	    (net http-server types))
   
 (define-record-type (http-server:response
@@ -42,16 +47,36 @@
           (mutable body)
 	  (mutable pushes)
           (mutable cacheable?)
-          (mutable cache-ttl)))
+          (mutable cache-ttl)
+	  (mutable exchange http-server:response-exchange %response-exchange-set!)))
 
-(define (make-http-server:response :optional (status 200))
+(define (make-http-server:response :optional (status 200) (exchange #f))
   (%make-http-server:response status
                               (http-server:reason-phrase status)
                               (make-http-server:headers)
                               #vu8()
                               '()
                               #f
-                              #f))
+                              #f
+			      exchange))
+
+(define (%http-server:response-bind-exchange! res exchange)
+  (let ((current (http-server:response-exchange res)))
+    (cond ((not exchange) res)
+	  ((not current)
+	   (%response-exchange-set! res exchange)
+	   res)
+	  ((eq? current exchange) res)
+	  (else
+	   (assertion-violation '%http-server:response-bind-exchange!
+		"Response is already associated with another exchange"
+		res current exchange)))))
+
+(define (%http-server:normalize-handler-response result fallback exchange)
+  (%http-server:response-bind-exchange! fallback exchange)
+  (if (http-server:response? result)
+      (%http-server:response-bind-exchange! result exchange)
+      fallback))
 
 (define (http-server:response-header-ref res name :optional (default #f))
   (http-server:headers-ref (http-server:response-headers res) name default))
@@ -129,13 +154,13 @@
     (list (car e)
           (cadr e)
           (headers-copy (caddr e))))
-  (let ((r (%make-http-server:response
-            (http-server:response-status res)
-            (http-server:response-reason res)
-            (headers-copy (http-server:response-headers res))
-            (http-server:response-body res)
-            (map push-entry-copy (http-server:response-pushes res))
-            (http-server:response-cacheable? res)
-            (http-server:response-cache-ttl res))))
-    r))
+  (%make-http-server:response
+   (http-server:response-status res)
+   (http-server:response-reason res)
+   (headers-copy (http-server:response-headers res))
+   (http-server:response-body res)
+   (map push-entry-copy (http-server:response-pushes res))
+   (http-server:response-cacheable? res)
+   (http-server:response-cache-ttl res)
+   #f))
 )

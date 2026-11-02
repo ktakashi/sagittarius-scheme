@@ -38,10 +38,12 @@
 	    http2-server-stream-priority-dependency-set!
 	    http2-server-stream-priority-weight
 	    http2-server-stream-priority-weight-set!
+	    http2-server-stream-exchange
 
 	    http2-server-connection-state? make-http2-server-connection-state
 	    http2-server-connection-state-socket
 	    http2-server-connection-state-config
+	    http2-server-connection-state-connection-info
 	    http2-server-connection-state-app-handler
 	    http2-server-connection-state-streams
 	    http2-server-connection-state-stream-manager
@@ -88,6 +90,7 @@
 	    )
     (import (rnrs)
 	    (clos user)
+	    (net http-server exchange)
 	    (net http-server types)
 	    (net http-server protocol)
 	    (net http-server request)
@@ -112,50 +115,60 @@
   (fields stream-id)
   (protocol
    (lambda (p)
-     (lambda (method target path query headers body stream-id)
-       ((p method target path query "HTTP/2" headers body #f '()) stream-id)))))
+     (lambda (method target path query headers body stream-id
+		     :optional (connection-info #f) (exchange #f))
+       (let* ((info (or (and exchange
+			(http-server:exchange-connection-info exchange))
+			connection-info
+			(make-http-server:connection-info #f #f #f "h2")))
+	      (exchange* (or exchange (make-http-server:exchange info)))
+	      (remote (http-server:connection-info-remote info)))
+	 ((p method target path query "HTTP/2" headers body remote '() exchange)
+	  stream-id))))))
 
 (define-record-type http2-server-stream
   (fields id
-          method
-          target
-          path
-          query
-          headers
-          (mutable body-chunks)
-          (mutable body-size)
-          (mutable send-window)
-          (mutable recv-window)
-          (mutable recv-consumed)
-          (mutable pending-output)
-          (mutable pending-input-port)
-          (mutable pending-end-stream?)
-          (mutable priority-dependency)
-          (mutable priority-weight)))
+	  method
+	  target
+	  path
+	  query
+	  headers
+	  (mutable body-chunks)
+	  (mutable body-size)
+	  (mutable send-window)
+	  (mutable recv-window)
+	  (mutable recv-consumed)
+	  (mutable pending-output)
+	  (mutable pending-input-port)
+	  (mutable pending-end-stream?)
+	  (mutable priority-dependency)
+	  (mutable priority-weight)
+	  exchange))
 
 (define-record-type http2-server-connection-state
   (fields socket
-          config
-          app-handler
-          streams
+	  config
+	  connection-info
+	  app-handler
+	  streams
 	  stream-manager
-          decoder-context
-          encoder-context
-          read-buffer
-          write-buffer
-          mutex
-          (mutable pending)
-          (mutable stage)
-          (mutable last-stream-id)
-          (mutable next-push-stream-id)
-          (mutable local-max-frame-size)
-          (mutable remote-max-frame-size)
-          (mutable remote-enable-push?)
-          (mutable remote-initial-window-size)
-          (mutable connection-send-window)
-          (mutable connection-recv-window)
-          (mutable connection-recv-consumed)
-          priority-tree))
+	  decoder-context
+	  encoder-context
+	  read-buffer
+	  write-buffer
+	  mutex
+	  (mutable pending)
+	  (mutable stage)
+	  (mutable last-stream-id)
+	  (mutable next-push-stream-id)
+	  (mutable local-max-frame-size)
+	  (mutable remote-max-frame-size)
+	  (mutable remote-enable-push?)
+	  (mutable remote-initial-window-size)
+	  (mutable connection-send-window)
+	  (mutable connection-recv-window)
+	  (mutable connection-recv-consumed)
+	  priority-tree))
 
 (define (connection-closed? state)
   (eq? (http2-server-connection-state-stage state) 'closed))
@@ -168,6 +181,18 @@
 (define (close-connection! conn)
   (define state (->connection-state conn))
   (unless (connection-closed? state)
+    (let ((sid* '()))
+      (for-each-stream state
+       (lambda (stream)
+	 (set! sid* (cons (http2-server-stream-id stream) sid*))))
+      (for-each
+       (lambda (sid)
+	 (let ((stream (find-stream state sid)))
+	   (when stream
+	     (%http-server:exchange-mark-aborted!
+	      (http2-server-stream-exchange stream))))
+	 (drop-stream! state sid))
+       sid*))
     (http2-server-connection-state-stage-set! state 'closed)))
 
 ;; stream
@@ -210,15 +235,16 @@
       #f))
 
 (define (invoke-app-handler state stream req)
-  (let ((res (make-http-server:response))
-        (app-handler (http2-server-connection-state-app-handler state)))
-    (guard (e (else
-               (let ((er (make-http-server:response 500)))
-                 (http-server:response-text!
-                  er
-                  "Unhandled application error")
-                 er)))
-      (let ((r (app-handler req res)))
-        (if (http-server:response? r) r res)))))
+  (define exchange (http-server:request-exchange req))
+  (define app-handler (http2-server-connection-state-app-handler state))
+  (define res (make-http-server:response 200 exchange))
+  (define (make-application-error-response)
+    (let ((er (make-http-server:response 500 exchange)))
+      (http-server:response-text! er "Unhandled application error")
+      er))
+  (%http-server:exchange-mark-handling! exchange)
+  (guard (e (else (make-application-error-response)))
+    (%http-server:normalize-handler-response
+     (app-handler req res) res exchange)))
 
 )

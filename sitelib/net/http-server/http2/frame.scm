@@ -15,6 +15,7 @@
 	    dispatch-application!)
     (import (rnrs)
 	    (net http-server protocol)
+	    (net http-server exchange)
 	    (net http-server request)
 	    (net http-server response)
 	    (net http-server types)
@@ -150,6 +151,10 @@
     #f)
 
    ((http2-frame-rst-stream? frame)
+    (let ((stream (find-stream state sid)))
+      (when stream
+	(%http-server:exchange-mark-aborted!
+	 (http2-server-stream-exchange stream))))
     (drop-stream! state sid)
     #t)
 
@@ -183,7 +188,9 @@
 
 (define (stream->request state stream)
   (let ((body (bytevector-concatenate
-               (reverse (http2-server-stream-body-chunks stream)))))
+               (reverse (http2-server-stream-body-chunks stream))))
+	(exchange (http2-server-stream-exchange stream))
+	(connection-info (http2-server-connection-state-connection-info state)))
     (make-http-server:http2-request
      (http2-server-stream-method stream)
      (http2-server-stream-target stream)
@@ -191,7 +198,9 @@
      (http2-server-stream-query stream)
      (http2-server-stream-headers stream)
      body
-     (http2-server-stream-id stream))))
+     (http2-server-stream-id stream)
+     connection-info
+     exchange)))
 
 (define (dispatch-application! state stream)
   (let* ((req (stream->request state stream))
@@ -227,6 +236,9 @@
 		(let* ((wire-weight
 			(or (http2-frame-headers-weight frame)
 			    +default-priority-wire-weight+))
+		       (connection-info
+			(http2-server-connection-state-connection-info state))
+		       (exchange (make-http-server:exchange connection-info))
 		       (stream
 			(make-http2-server-stream
 			 sid
@@ -244,7 +256,8 @@
 			 #f
 			 #f
 			 dependency
-			 wire-weight)))
+			 wire-weight
+			 exchange)))
 		  (http2-priority-tree-add!
 		   (http2-server-connection-state-priority-tree state)
 		   sid

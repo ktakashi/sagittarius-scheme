@@ -117,6 +117,150 @@
                 (bytevector-copy bv (+ idx 4) (bytevector-length bv)))
         (values bv #vu8()))))
 
+(let ()
+  (define ci (make-http-server:connection-info '(remote . "local") #f "h2" "h2"))
+  (define ex (make-http-server:exchange ci))
+  (test-assert "exchange predicate" (http-server:exchange? ex))
+  (test-equal "exchange initial state" 'created (http-server:exchange-state ex))
+  (test-assert "exchange has connection info"
+	       (eq? ci (http-server:exchange-connection-info ex)))
+  (test-eqv "exchange unknown attribute defaults to #f"
+	    #f
+	    (http-server:exchange-attribute-ref ex 'trace-id))
+  (http-server:exchange-attribute-set! ex 'trace-id "abc")
+  (test-equal "exchange stores attributes"
+	      "abc"
+	      (http-server:exchange-attribute-ref ex 'trace-id)))
+
+(let ()
+  (define handled-exchange #f)
+  (define req-exchange #f)
+  (define res-exchange #f)
+  (define state-in-handler #f)
+  (define (app req res)
+    (set! req-exchange (http-server:request-exchange req))
+    (set! res-exchange (http-server:response-exchange res))
+    (set! state-in-handler (http-server:exchange-state req-exchange))
+    (set! handled-exchange req-exchange)
+    (http-server:response-text! res "ok")
+    res)
+  (define server (make-http-server "0" app))
+  (server-start! server :background #t)
+  (thread-sleep! 0.2)
+  (let ((sock (make-client-socket "localhost" (server-port server))))
+    (socket-send sock #*"GET /exchange HTTP/1.1\r\nHost: localhost\r\n\r\n")
+    (let ((txt (recv-text sock)))
+      (test-assert "exchange request status" (contains? txt "HTTP/1.1 200 OK")))
+    (socket-close sock))
+  (server-stop! server)
+  (test-assert "request and response share exchange"
+	       (and req-exchange res-exchange (eq? req-exchange res-exchange)))
+  (test-equal "exchange is handling in app" 'handling state-in-handler)
+  (test-equal "exchange completes after response"
+	      'completed
+	      (and handled-exchange
+		   (http-server:exchange-state handled-exchange))))
+
+(let ()
+  (define observed-request-exchange #f)
+  (define replacement #f)
+  (define (app req res)
+    (set! observed-request-exchange (http-server:request-exchange req))
+    (set! replacement (make-http-server:response 201))
+    (http-server:response-text! replacement "created")
+    replacement)
+  (define server (make-http-server "0" app))
+  (server-start! server :background #t)
+  (thread-sleep! 0.2)
+  (let ((sock (make-client-socket "localhost" (server-port server))))
+    (socket-send sock #*"GET /replacement HTTP/1.1\r\nHost: localhost\r\n\r\n")
+    (let ((txt (recv-text sock)))
+      (test-assert "replacement response status" (contains? txt "HTTP/1.1 201 Created"))
+      (test-assert "replacement response body" (contains? txt "created")))
+    (socket-close sock))
+  (server-stop! server)
+  (test-assert "replacement response is bound to request exchange"
+	       (and replacement observed-request-exchange
+		    (eq? (http-server:response-exchange replacement)
+			 observed-request-exchange))))
+
+(let ()
+  (define seen-exchange #f)
+  (define (app req res)
+    (set! seen-exchange (http-server:request-exchange req))
+    (let* ((foreign-info (make-http-server:connection-info #f))
+	   (foreign-exchange (make-http-server:exchange foreign-info))
+	   (foreign-response (make-http-server:response 200 foreign-exchange)))
+      (http-server:response-text! foreign-response "must not be used")
+      foreign-response))
+  (define server (make-http-server "0" app))
+  (server-start! server :background #t)
+  (thread-sleep! 0.2)
+  (let ((sock (make-client-socket "localhost" (server-port server))))
+    (socket-send sock #*"GET /invalid-replacement HTTP/1.1\r\nHost: localhost\r\n\r\n")
+    (let ((txt (recv-text sock)))
+      (test-assert "cross exchange replacement rejected"
+		   (contains? txt "HTTP/1.1 500 Internal Server Error")))
+    (socket-close sock))
+  (server-stop! server)
+  (test-equal "exchange remains completed after safe error response"
+	      'completed
+	      (and seen-exchange (http-server:exchange-state seen-exchange))))
+
+(let ()
+  (define observed-request-exchange #f)
+  (define observed-response-exchange #f)
+  (define provided-response #f)
+  (define (app req res)
+    (set! observed-request-exchange (http-server:request-exchange req))
+    (set! observed-response-exchange (http-server:response-exchange res))
+    (set! provided-response res)
+    (http-server:response-text! res "fallback")
+    'ignored)
+  (define server (make-http-server "0" app))
+  (server-start! server :background #t)
+  (thread-sleep! 0.2)
+  (let ((sock (make-client-socket "localhost" (server-port server))))
+    (socket-send sock #*"GET /fallback HTTP/1.1\r\nHost: localhost\r\n\r\n")
+    (recv-text sock)
+    (socket-close sock))
+  (server-stop! server)
+  (test-assert "non response handler was invoked"
+	       observed-request-exchange)
+  (test-equal "non response result keeps fallback response body"
+	      "fallback"
+	      (and provided-response
+		   (utf8->string
+		    (http-server:response-body provided-response))))
+  (test-assert "fallback response uses request exchange"
+	       (and observed-request-exchange observed-response-exchange
+		    (eq? observed-request-exchange observed-response-exchange))))
+
+(let ()
+  (define exchanges '())
+  (define (app req res)
+    (set! exchanges (cons (http-server:request-exchange req) exchanges))
+    (http-server:response-text! res (http-server:request-path req))
+    res)
+  (define server (make-http-server "0" app))
+  (server-start! server :background #t)
+  (thread-sleep! 0.2)
+  (let ((sock (make-client-socket "localhost" (server-port server))))
+    (socket-send sock
+		 #*"GET /first HTTP/1.1\r\nHost: localhost\r\n\r\nGET /second HTTP/1.1\r\nHost: localhost\r\n\r\n")
+    (recv-text sock)
+    (socket-close sock))
+  (server-stop! server)
+  (let ((seen (reverse exchanges)))
+    (test-equal "two exchanges observed on keep-alive connection" 2 (length seen))
+    (test-assert "keep-alive requests use different exchanges"
+		 (and (= (length seen) 2)
+		      (not (eq? (car seen) (cadr seen)))))
+    (test-assert "keep-alive requests share connection info"
+		 (and (= (length seen) 2)
+		      (eq? (http-server:exchange-connection-info (car seen))
+			   (http-server:exchange-connection-info (cadr seen)))))))
+
 ;; TODO driver tests
 ;; (let ()
 ;;   (define legacy-driver

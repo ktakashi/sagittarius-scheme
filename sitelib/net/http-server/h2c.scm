@@ -14,6 +14,7 @@
           (clos user)
           (net socket)
           (net http-server types)
+          (net http-server exchange)
           (net http-server request)
           (net http-server response)
           (net http-server http1)
@@ -93,6 +94,9 @@
                        app-handler
                        :settings settings
                        :upgrade-request req
+		       :connection-info
+		       (http-server:exchange-connection-info
+			(http-server:request-exchange req))
                        :expect-preface? #f)))
                  (http-server:http-connection-request-count-set!
                   new-conn

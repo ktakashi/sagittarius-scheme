@@ -203,6 +203,104 @@
                 (utf8->string (http2-frame-data-data response-data-frame))))))))
 
 (let ()
+  (define seen-exchange #f)
+  (define replacement #f)
+  (define request-headers
+    '((#*":method" #*"GET")
+      (#*":scheme" #*"http")
+      (#*":path" #*"/replacement")
+      (#*":authority" #*"localhost")))
+  (with-http2-connection
+   (lambda (req res)
+     (set! seen-exchange (http-server:request-exchange req))
+     (set! replacement (make-http-server:response 202))
+     (http-server:response-text! replacement "accepted")
+     replacement)
+   (lambda (client accepted conn)
+     (define payload
+       (bytevector-append
+        +http2-connection-preface+
+        (encode-frames
+         (list (cons (make-http2-frame-settings 0 0 '()) #f)
+               (cons (make-http2-frame-headers 0 1 #f #f request-headers) #t)))))
+     (test-assert "connection accepts replacement response request"
+                  (not (http-server:connection-process! conn payload)))
+     (thread-sleep! 0.02)
+     (let* ((raw (recv-bytes client))
+            (frames (decode-frames raw))
+            (response-headers-frame
+             (find (lambda (f)
+                     (and (http2-frame-headers? f)
+                          (= (http2-frame-stream-identifier f) 1)))
+                   frames))
+            (response-data-frame
+             (find (lambda (f)
+                     (and (http2-frame-data? f)
+                          (= (http2-frame-stream-identifier f) 1)))
+                   frames)))
+       (test-equal "replacement response :status"
+                   "202"
+		   (and response-headers-frame
+			(header-value
+			 (http2-frame-headers-headers response-headers-frame)
+			 ":status")))
+       (test-equal "replacement response body"
+                   "accepted"
+		   (and response-data-frame
+			(utf8->string (http2-frame-data-data response-data-frame))))
+       (test-assert "replacement response is bound to request exchange"
+		    (and replacement seen-exchange
+			 (eq? (http-server:response-exchange replacement)
+			      seen-exchange)))
+       (test-equal "replacement exchange completes"
+		   'completed
+		   (and seen-exchange
+			(http-server:exchange-state seen-exchange)))))))
+
+(let ()
+  (define seen-exchange #f)
+  (define request-headers
+    '((#*":method" #*"GET")
+      (#*":scheme" #*"http")
+      (#*":path" #*"/foreign-replacement")
+      (#*":authority" #*"localhost")))
+  (with-http2-connection
+   (lambda (req res)
+     (set! seen-exchange (http-server:request-exchange req))
+     (let* ((foreign-info (make-http-server:connection-info #f))
+	    (foreign-exchange (make-http-server:exchange foreign-info))
+	    (foreign-response (make-http-server:response 200 foreign-exchange)))
+       (http-server:response-text! foreign-response "must not be used")
+       foreign-response))
+   (lambda (client accepted conn)
+     (define payload
+       (bytevector-append
+        +http2-connection-preface+
+        (encode-frames
+         (list (cons (make-http2-frame-settings 0 0 '()) #f)
+               (cons (make-http2-frame-headers 0 1 #f #f request-headers) #t)))))
+     (test-assert "connection accepts cross-exchange replacement request"
+                  (not (http-server:connection-process! conn payload)))
+     (thread-sleep! 0.02)
+     (let* ((raw (recv-bytes client))
+            (frames (decode-frames raw))
+            (response-headers-frame
+             (find (lambda (f)
+                     (and (http2-frame-headers? f)
+                          (= (http2-frame-stream-identifier f) 1)))
+                   frames)))
+       (test-equal "cross exchange replacement returns 500"
+                   "500"
+		   (and response-headers-frame
+			(header-value
+			 (http2-frame-headers-headers response-headers-frame)
+			 ":status")))
+       (test-equal "cross exchange replacement exchange completes"
+		   'completed
+		   (and seen-exchange
+			(http-server:exchange-state seen-exchange)))))))
+
+(let ()
   (with-http2-connection
    (lambda (req res)
      (http-server:response-text! res "ignored")

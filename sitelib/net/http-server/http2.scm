@@ -20,6 +20,8 @@
 	    (clos user)
 	    (srfi :18)
 	    (net server)
+	    (net socket)
+	    (net http-server exchange)
 	    (net http-server protocol)
 	    (net http-server request)
 	    (net http-server types)
@@ -43,10 +45,15 @@
 	      (lambda (server socket process close state driver)
 		((n server socket process close state driver))))))
 
+(define (socket-remote-info socket)
+  (guard (e (else #f))
+    (socket-info socket)))
+
 (define (request->upgrade-stream conn req stream-id)
   (let ((wire-weight +default-priority-wire-weight+)
         (dependency 0)
-        (body (http-server:request-body-bytevector req)))
+        (body (http-server:request-body-bytevector req))
+	(exchange (http-server:request-exchange req)))
     (http2-priority-tree-add!
      (http2-server-connection-state-priority-tree conn)
      stream-id
@@ -73,7 +80,8 @@
      #f
      #f
      dependency
-     wire-weight)))
+     wire-weight
+     exchange)))
 
 (define (replay-upgrade-request! conn req)
   (let ((stream (request->upgrade-stream conn req 1)))
@@ -179,10 +187,10 @@
         #t)))
 
 (define (make-http-server:http2-connection server socket app-handler
-                                           :key
-                                           (settings '())
-                                           (upgrade-request #f)
-                                           (expect-preface? #t))
+                                           :key (settings '())
+						(upgrade-request #f)
+						(expect-preface? #t)
+						(connection-info #f))
   (define (driver-config server)
     (define registry  (slot-ref server 'protocol-registry))
     (define driver *http-server:http2-driver*)
@@ -190,34 +198,44 @@
 	  (else (make-http2-config))))
   
   (let* ((config (driver-config server))
+	 (connection-info (or connection-info
+			      (if (tls-socket? socket)
+				  (make-http-server:connection-info
+				   (socket-remote-info socket)
+				   (tls-socket-peer-certificate socket)
+				   (tls-socket-selected-alpn socket)
+				   "h2")
+				  (make-http-server:connection-info
+				   (socket-remote-info socket) #f #f "h2"))))
 	 (max-concurrent-streams (http2-config-max-concurrent-streams config))
          (priority-node-cap (+ 5 (* 2 max-concurrent-streams)))
 	 (stream-manager (make-http2-stream-manager max-concurrent-streams))
          (decoder (make-hpack-context +default-header-table-size+))
          (encoder (make-hpack-context +default-header-table-size+))
          (state (make-http2-server-connection-state
-                 socket
-                 config
-                 app-handler
-                 (http2-stream-manager-streams stream-manager)
+		 socket
+		 config
+		 connection-info
+		 app-handler
+		 (http2-stream-manager-streams stream-manager)
 		 stream-manager
-                 decoder
-                 encoder
-                 (make-frame-buffer)
-                 (make-frame-buffer)
-                 (make-mutex)
-                 #vu8()
-                 (if expect-preface? 'await-preface 'ready)
-                 0
-                 2
-                 +default-max-frame-size+
-                 +default-max-frame-size+
-                 #t
-                 +default-initial-window-size+
-                 +default-initial-window-size+
-                 +default-initial-window-size+
-                 0
-                 (make-http2-priority-tree priority-node-cap))))
+		 decoder
+		 encoder
+		 (make-frame-buffer)
+		 (make-frame-buffer)
+		 (make-mutex)
+		 #vu8()
+		 (if expect-preface? 'await-preface 'ready)
+		 0
+		 2
+		 +default-max-frame-size+
+		 +default-max-frame-size+
+		 #t
+		 +default-initial-window-size+
+		 +default-initial-window-size+
+		 +default-initial-window-size+
+		 0
+		 (make-http2-priority-tree priority-node-cap))))
     (unless expect-preface?
       (send-initial-settings! state))
     (unless (null? settings)
