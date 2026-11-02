@@ -286,6 +286,12 @@ SgTLSSocket* Sg_SocketToTLSSocket(SgSocket *socket,
   SSL_CTX_set_options(ctx, SSL_OP_ALL | SSL_OP_FLAGS);
   SSL_CTX_set_mode(ctx, SSL_MODE_AUTO_RETRY | SSL_MODE_RELEASE_BUFFERS);
   SSL_CTX_set_cipher_list(ctx, CIPHER_LIST);
+
+#ifdef LIBRESSL_VERSION_NUMBER
+  /* LibreSSL's TLS 1.3 stack has broken client certificate support.
+     Force TLS 1.2 to ensure SSL_CTX_set_client_cert_cb() works. */
+  SSL_CTX_set_max_proto_version(ctx, TLS1_2_VERSION);
+#endif
   
 #if 0
   SSL_CTX_set_min_proto_version(ctx, TLS1_2_VERSION);

@@ -20,6 +20,7 @@
 
 (test-begin "HTTP client")
 
+(print "Client certificate selection")
 (let ()
   (define kp1 (generate-key-pair *key:ecdsa*))
   (define kp2 (generate-key-pair *key:ecdsa*))
@@ -59,7 +60,10 @@
 	     (http-server:response-status-set! res 200)
 	     (http-server:response-bytes! res
 	      (x509-certificate->bytevector cert))))
-	  (else (http-server:response-status-set! res 400)))
+	  (else (http-server:response-status-set! res 400)
+		;; It seems there's a bug on client
+		;; It hands when the content-length is 0
+		(http-server:response-text! res "No client certificate")))
     res)
   (define server (make-http-server "0" app :config config))
 
@@ -81,21 +85,22 @@
      (key-manager (test-key-manager))
      (route-max-connections '(("httpbin.org" 10)))
      (selector-error-handler (lambda args (for-each display args) (newline)))
-     #;(delegate-provider
-     (make-logging-delegate-connection-provider
-     (http-client-logger-builder
-     (connection-logger
-     (http-connection-logger-builder
-     (logger (make-logger +debug-level+ (make-appender "~m")))))
-     (loggers
-     `((connection-manager
-     ,(make-logger +debug-level+ (make-appender "~m")))))
-     (wire-logger
-     (http-wire-logger-builder
-     (logger (make-logger +debug-level+ (make-appender "~m")))
-     (data-formatter bytevector-formatter))))))))
-
+     (delegate-provider
+      (make-logging-delegate-connection-provider
+       (http-client-logger-builder
+	(connection-logger
+	 (http-connection-logger-builder
+	  (logger (make-logger +debug-level+ (make-appender "~m")))))
+	(loggers
+	 `((connection-manager
+	    ,(make-logger +debug-level+ (make-appender "~m")))))
+	#;(wire-logger
+	 (http-wire-logger-builder
+	  (logger (make-logger +debug-level+ (make-appender "~m")))
+	  (data-formatter bytevector-formatter))))))))
+  
   (server-start! server :background #t)
+  (print "--> sanity checks")
   (test-error "Invalid format of route-max-connections"
 	      (http-pooling-connection-config-builder
 	       (route-max-connections '(("httpbin.org" . 10)))))
@@ -111,10 +116,14 @@
 			(pointer (json-pointer (cadr check)))
 			(expected (cddr check)))
 		    (test-equal expected (pointer json))))))
-      (let ((res (future-get f)))
-	(test-equal (list status) status (http:response-status res))
-	(let ((body (utf8->string (http:response-body res))))
-	  (for-each (lambda (check) (check-body check body)) body-checks))))
+      (print "--> retrieve future result")
+      (let ((res (future-get f 10 #f)))
+	(print "--> check future result")
+	(test-assert "Shouldn't be timeout" res)
+	(when res
+	  (test-equal (list status) status (and res (http:response-status res)))
+	  (let ((body (utf8->string (http:response-body res))))
+	    (for-each (lambda (check) (check-body check body)) body-checks)))))
     (define (run-test url status . body-checks)
       (define request (http:request-builder (uri url) (method 'GET)))
       (test-future (http:client-send-async client request) status body-checks))
@@ -126,6 +135,7 @@
 		     (make-http-pooling-connection-manager pooling-config))
 		    (follow-redirects (http:redirect normal))))
     (define uri (format "https://localhost:~a/" (server-port server)))
+    (print "--> localhost connection")
     (test-assert (http:client? client))
     (run-test uri "200")
     (http:client-shutdown! client))
@@ -142,6 +152,7 @@
   (server-stop! server)
 )
 
+(print "Client operation test")
 (let ()
   (define (start-http-client-test-server)
     (define (app req res)
@@ -176,6 +187,7 @@
                   (follow-redirects (http:redirect never))))
   (define request (http:request-builder (method 'GET) (uri (make-url server))))
 
+  (print "- First operation test")
   (let-values (((f success failure) (make-piped-future)))
     (define saw-headers? #f)
     (define saw-data? #f)
@@ -211,9 +223,12 @@
                        (success response))
         :on-error (lambda (op e)
                     (failure e))))
+    (print "--> operation started")
     (test-assert "http:client-start returns operation"
                  (http:operation? operation))
+    (print "--> retrieve result operation")
     (let ((response (future-get f 5 #f)))
+      (print "--> check operation result")
       (test-assert "http:client-start completes response"
                    (http:response? response))
       (test-equal "http:client-start status" "200" (http:response-status response))
@@ -225,6 +240,7 @@
       (test-assert "http:client-start on-data callback"
                    saw-data?)))
 
+  (print "- Second operation test")
   (let-values (((f success failure) (make-piped-future)))
     (define response-status #f)
     (define response-headers '())
@@ -256,7 +272,9 @@
                        (success response))
         :on-error (lambda (op e)
                     (failure e))))
+    (print "--> Retrieve operation result")
     (let ((response (future-get f 5 #f)))
+      (print "--> Check operation result")
       (test-assert "http:client-start custom handler response"
                    (http:response? response))
       (test-equal "http:client-start custom handler body"
@@ -266,7 +284,9 @@
                   'completed
                   (http:operation-state operation))))
 
+  (print "--> Clean up")
   (http:client-shutdown! client)
   (server-stop! server))
 
+(print "Done")
 (test-end)

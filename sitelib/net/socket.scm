@@ -522,14 +522,15 @@
     (define native-selector (slot-ref selector 'native-selector))
     (guard (e (else (on-error 'selector e) #f))
       (let loop ()
-	(unless (socket-selector-closed? native-selector)
-	  (let-values (((socks timedouts)
-			(socket-selector-wait! native-selector)))
-	    (unless (null? socks)
-	      (actor-send-message! on-read-actor (map ->on-read-data socks)))
-	    (unless (null? timedouts)
-	      (actor-send-message! on-read-actor (map ->timeout-data timedouts)))
-	    (loop))))))
+	(let-values (((socks timedouts)
+		      (socket-selector-wait! native-selector)))
+	  (unless (null? socks)
+	    (actor-send-message! on-read-actor
+				 (map ->on-read-data socks)))
+	  (unless (null? timedouts)
+	    (actor-send-message! on-read-actor
+				 (map ->timeout-data timedouts)))
+	  (loop)))))
 
   (define (dispatch-socket receiver sender)
     (define (call-on-read e)
