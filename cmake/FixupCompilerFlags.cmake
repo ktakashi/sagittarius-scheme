@@ -59,6 +59,7 @@ MACRO (FIXUP_COMPILER_FLAGS _PROCESSOR _PLATFORM)
     # just put it whenever. it doesn't hurt anyway...
     IF (${${_PROCESSOR}} STREQUAL "x86_64" OR
 	${${_PROCESSOR}} STREQUAL "aarch64" OR
+	${${_PROCESSOR}} MATCHES "^(powerpc|ppc)64(le)?$" OR
 	${${_PLATFORM}} STREQUAL "sunos")
       SET(CMAKE_C_FLAGS "-fPIC ${CMAKE_C_FLAGS}")
       SET(CMAKE_CXX_FLAGS "-fPIC ${CMAKE_CXX_FLAGS}")
