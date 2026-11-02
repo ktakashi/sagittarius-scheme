@@ -127,7 +127,10 @@
 		   te-values))
 	       (values 'chunked #f)))
 	    ((pair? cl-values)
-	     (values 'length (validate-content-length cl-values)))
+	     (let ((len (validate-content-length cl-values)))
+	       (if (zero? len)
+		   (values 'none #f)
+		   (values 'length len))))
 	    (else (values 'until-close #f)))))
 
 (define (http:connection-reusable-after? headers version)

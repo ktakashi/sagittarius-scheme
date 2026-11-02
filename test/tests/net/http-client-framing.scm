@@ -68,6 +68,9 @@
 (test-equal "content length valid"
 	    '(length 5)
 	    (framing '(("content-length" "5"))))
+(test-equal "content length is zero"
+	    '(none #f)
+	    (framing '(("content-length" "0"))))
 (test-equal "multiple equal content length values"
 	    '(length 5)
 	    (framing '(("content-length" "5")
