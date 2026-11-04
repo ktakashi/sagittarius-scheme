@@ -92,9 +92,7 @@
     (values (if (string=? path "") "/" path) query)))
 
 (define (parse-content-length raw)
-  (guard (e (else #f))
-    (let ((n (string->number (trim raw))))
-      (and (integer? n) (>= n 0) n))))
+  (http-server:parse-nonnegative-integer raw))
 
 
 ;; state offsets are absolute and valid while the buffer only grows by append.
@@ -131,6 +129,21 @@
 				     connection-info)
 				    exchange)))
 
+(define (reset-http1-consume-state! st)
+  (http1-consume-state-stage-set! st 'start)
+  (http1-consume-state-scan-set! st 0)
+  (http1-consume-state-line-end-set! st #f)
+  (http1-consume-state-method-set! st #f)
+  (http1-consume-state-target-set! st #f)
+  (http1-consume-state-version-set! st #f)
+  (http1-consume-state-headers-set! st #f)
+  (http1-consume-state-framing-set! st 'none)
+  (http1-consume-state-body-start-set! st 0)
+  (http1-consume-state-length-set! st #f)
+  (http1-consume-state-chunks-set! st '())
+  (http1-consume-state-chunk-scan-set! st 0)
+  (http1-consume-state-chunk-size-set! st 0))
+
 ;; the line must end with \r\n
 (define (strict-read-line bin)
   (let-values (((out e) (open-bytevector-output-port)))
@@ -154,16 +167,17 @@
       (make-http-server:headers headers))))
 
 (define (http1-ready st buffer body next)
-  (values 'ready
-          (make-http1-request* (http1-consume-state-method st)
-                               (http1-consume-state-target st)
-                               (http1-consume-state-version st)
-                               (http1-consume-state-headers st)
-                               body
-			       (http1-consume-state-connection-info st))
-          #f
-          (make-remainder buffer next)
-          #f))
+  (let ((method (http1-consume-state-method st))
+        (target (http1-consume-state-target st))
+        (version (http1-consume-state-version st))
+        (headers (http1-consume-state-headers st))
+        (connection-info (http1-consume-state-connection-info st)))
+    (reset-http1-consume-state! st)
+    (values 'ready
+            (make-http1-request* method target version headers body connection-info)
+            #f
+            (make-remainder buffer next)
+            #f)))
 
 (define (consume:start st buffer max-header-bytes next)
   (let* ((blen (bytevector-length buffer))
@@ -368,8 +382,18 @@
     (let ((exchange (http-server:request-exchange req)))
       (%http-server:exchange-mark-handling! exchange)
       (guard (e (else (make-application-error-response exchange)))
-	(%http-server:normalize-handler-response
-	 (app-handler req res) res exchange))))
+  (let ((response (%http-server:normalize-handler-response
+      (app-handler req res) res exchange)))
+    (let-values (((ok? code message)
+      (http-server:validate-final-response
+       (http-server:request-method req)
+       (http-server:response-status response)
+       'http1)))
+      (if ok?
+    response
+    (let ((err (make-http-server:response code exchange)))
+      (http-server:response-text! err message)
+      err)))))))
   (define (serve! driver conn exchange req result)
     (guard (e (else
 	       (%http-server:exchange-mark-aborted! exchange)
@@ -456,11 +480,6 @@
        (socket-send socket +crlf+))))
   (socket-send socket +chunked-stream-end+))
 
-(define (status-has-no-body? code)
-  (or (eqv? code 204)
-      (eqv? code 304)
-      (and (<= 100 code) (< code 200))))
-
 (define utf8-transcoder (make-transcoder (utf-8-codec) (eol-style lf)))
 (define (write-head! socket code reason headers)
   (let-values (((out extract) (open-bytevector-output-port utf8-transcoder)))
@@ -501,6 +520,20 @@
   (define (ensure-header res name value)
     (unless (http-server:response-header-ref res name #f)
       (http-server:response-header-set! res name value)))
+  (define (request-method req)
+    (and req (http-server:request-method req)))
+  (define (request-http11? req)
+    (and req (string=? (http-server:request-http-version req) "HTTP/1.1")))
+  (define (response-headers)
+    (http-server:response-headers res))
+  (define (header-ref name)
+    (http-server:response-header-ref res name #f))
+  (define (delete-header! name)
+    (http-server:headers-delete! (response-headers) name))
+  (define (set-header! name value)
+    (http-server:response-header-set! res name value))
+  (define (contains-token? name token)
+    (http-server:headers-contains-token? (response-headers) name token))
   (let* ((code (http-server:response-status res))
          (reason (or (http-server:response-reason res)
                      (http-server:reason-phrase code))))
@@ -510,52 +543,77 @@
         (let ((err (make-http-server:response 500)))
           (http-server:response-text! err "Unsupported response body type")
           (http-server:http1-serve socket req err))
-        (let* ((skip-body? (or (status-has-no-body? code)
-                               (and req
-                                    (eq? (http-server:request-method req)
-                                         'HEAD))))
+        (let* ((mode (http-server:response-content-mode
+                      (request-method req)
+                      code))
+               (content-allowed? (http-server:response-content-allowed? mode))
+               (content-length-policy
+                (http-server:response-content-length-policy mode))
+               (transfer-coding-allowed?
+                (http-server:response-transfer-coding-allowed? mode))
                (streaming? (eq? body-kind 'port))
+               (buffered? (eq? body-kind 'bytes))
+               (body-size (and buffered? (bytevector-length body)))
                (chunked-stream?
-                (and streaming?
-                     (or (not req)
-                         (string=? (http-server:request-http-version req)
-                                   "HTTP/1.1"))))
+                (and content-allowed? streaming? (request-http11? req)))
                (close? (or (not req)
                            (request-close? req)
-                           (http-server:headers-contains-token?
-                            (http-server:response-headers res)
-                            "connection"
-                            "close")
-                           (and streaming? (not chunked-stream?))))
+                           (contains-token? "connection" "close")
+                           (and content-allowed?
+                                streaming?
+                                (not chunked-stream?))))
 	       (value (if close? "close" "keep-alive")))
 	  (ensure-header res "date" (http-server:current-http-date))
-          (cond (chunked-stream?
-                 (http-server:headers-delete!
-                  (http-server:response-headers res)
-                  "content-length")
-                 (http-server:response-header-set! res
-                                                  "transfer-encoding"
-                                                  "chunked"))
-                (streaming?
-                 (http-server:headers-delete!
-                  (http-server:response-headers res)
-                  "content-length")
-                 (http-server:headers-delete!
-                  (http-server:response-headers res)
-                  "transfer-encoding"))
+
+          (when (not content-allowed?)
+            (when streaming?
+              (close-input-port-quietly body)))
+
+          (if (and content-allowed? buffered?)
+              (begin
+                (set-header! "content-length" (number->string body-size))
+                (delete-header! "transfer-encoding"))
+              (case content-length-policy
+                ((forbidden)
+                 (delete-header! "content-length"))
+                ((zero-or-omit)
+                 (set-header! "content-length" "0"))
+                ((representation)
+                 (let ((provided (header-ref "content-length")))
+                   (cond ((and (eq? (request-method req) 'HEAD)
+                       (not (eqv? code 304))
+                       body-size)
+                      ;; HEAD can report corresponding representation length.
+                      (set-header! "content-length"
+                           (number->string body-size)))
+                     ((not provided) #f)
+                         ((not (http-server:parse-nonnegative-integer provided))
+                          (delete-header! "content-length"))
+                         ((and streaming? provided)
+                          ;; Input-port response length is not verifiable.
+                      (delete-header! "content-length")))))))
+
+          (cond ((not transfer-coding-allowed?)
+                 (delete-header! "transfer-encoding"))
+                (chunked-stream?
+                 (delete-header! "content-length")
+                 (set-header! "transfer-encoding" "chunked"))
                 (else
-		 (ensure-header res "content-length" 
-				(number->string (bytevector-length body)))))
-	  (http-server:response-header-set! res "connection" value)
+                 (delete-header! "transfer-encoding")))
+
+          ;; Keep framing coherent.
+          (when (and (header-ref "content-length")
+                     (header-ref "transfer-encoding"))
+            (delete-header! "transfer-encoding"))
+
+	  (set-header! "connection" value)
           (write-head!
            socket
            code
            reason
            (filter-response-headers
-            (http-server:headers->alist (http-server:response-headers res))))
-          (when (and skip-body? streaming?)
-            (close-input-port-quietly body))
-          (unless skip-body?
+            (http-server:headers->alist (response-headers))))
+          (when content-allowed?
             (if streaming?
                 (if chunked-stream?
                     (stream-chunked-body! socket body)

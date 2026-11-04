@@ -244,7 +244,17 @@
       er))
   (%http-server:exchange-mark-handling! exchange)
   (guard (e (else (make-application-error-response)))
-    (%http-server:normalize-handler-response
-     (app-handler req res) res exchange)))
+    (let ((response (%http-server:normalize-handler-response
+		     (app-handler req res) res exchange)))
+      (let-values (((ok? code message)
+		    (http-server:validate-final-response
+		     (http-server:request-method req)
+		     (http-server:response-status response)
+		     'http2)))
+	(if ok?
+	    response
+	    (let ((err (make-http-server:response code exchange)))
+	      (http-server:response-text! err message)
+	      err))))))
 
 )

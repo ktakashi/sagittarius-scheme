@@ -568,6 +568,222 @@
   
   (server-stop! server))
 
+(let ()
+  (define last-port #f)
+  (define (app req res)
+    (let ((path (http-server:request-path req))
+          (method (http-server:request-method req)))
+      (cond
+       ((and (eq? method 'CONNECT)
+             (string=? path "example.com:443"))
+        (http-server:response-status-set! res 200)
+        (http-server:response-text! res "connect-body")
+        res)
+       ((string=? path "/ok")
+        (http-server:response-text! res "ok")
+        res)
+       ((string=? path "/204-default")
+        (http-server:response-status-set! res 204)
+        res)
+       ((string=? path "/204-bytes")
+        (http-server:response-status-set! res 204)
+        (http-server:response-bytes! res #*"abc")
+        res)
+       ((string=? path "/204-cl")
+        (http-server:response-status-set! res 204)
+        (http-server:response-header-set! res "content-length" "3")
+        (http-server:response-bytes! res #*"abc")
+        res)
+       ((string=? path "/204-te")
+        (http-server:response-status-set! res 204)
+        (http-server:response-header-set! res "transfer-encoding" "chunked")
+        (http-server:response-bytes! res #*"abc")
+        res)
+       ((string=? path "/205-bytes")
+        (http-server:response-status-set! res 205)
+        (http-server:response-bytes! res #*"abc")
+        res)
+       ((string=? path "/205-port")
+        (http-server:response-status-set! res 205)
+        (set! last-port (open-bytevector-input-port #*"abc"))
+        (http-server:response-port! res last-port)
+        res)
+       ((string=? path "/304-valid")
+        (http-server:response-status-set! res 304)
+        (http-server:response-header-set! res "content-length" "7")
+        (http-server:response-bytes! res #*"ignored")
+        res)
+       ((string=? path "/304-empty")
+        (http-server:response-status-set! res 304)
+        res)
+       ((string=? path "/head-bytes")
+        (http-server:response-bytes! res #*"abcdef")
+        res)
+       ((string=? path "/head-port")
+        (set! last-port (open-bytevector-input-port #*"abcdef"))
+        (http-server:response-port! res last-port)
+        res)
+       ((string=? path "/200-bad-cl")
+        (http-server:response-header-set! res "content-length" "999")
+        (http-server:response-text! res "hello")
+        res)
+       ((string=? path "/200-app-te")
+        (http-server:response-header-set! res "transfer-encoding" "chunked")
+        (http-server:response-bytes! res #*"hello")
+        res)
+       ((string=? path "/stream")
+        (http-server:response-port! res (open-bytevector-input-port #*"hello-stream"))
+        res)
+       ((string=? path "/status-1xx")
+        (http-server:response-status-set! res 103)
+        (http-server:response-text! res "hint")
+        res)
+       (else
+        (http-server:response-text! res "unknown")
+        res))))
+  (define (send-request payload)
+    (let ((sock (make-client-socket "localhost" (server-port server))))
+      (socket-send sock payload)
+      (let ((raw (recv-bytes sock)))
+        (socket-close sock)
+        raw)))
+  (define server (make-http-server "0" app :config default-config))
+  (server-start! server :background #t)
+  (thread-sleep! 0.2)
+
+  (let-values (((head body)
+                (split-http-response
+                 (send-request #*"GET /204-default HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n"))))
+    (let ((h (utf8->string head)))
+      (test-assert "204 default status" (contains? h "HTTP/1.1 204 No Content"))
+      (test-assert "204 default no content-length" (not (contains? h "content-length:")))
+      (test-assert "204 default no transfer-encoding" (not (contains? h "transfer-encoding:")))
+      (test-equal "204 default no body" 0 (bytevector-length body))))
+
+  (let-values (((head body)
+                (split-http-response
+                 (send-request #*"GET /204-bytes HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n"))))
+    (let ((h (utf8->string head)))
+      (test-assert "204 bytes no content-length" (not (contains? h "content-length:")))
+      (test-assert "204 bytes no transfer-encoding" (not (contains? h "transfer-encoding:")))
+      (test-equal "204 bytes no body" 0 (bytevector-length body))))
+
+  (let-values (((head body)
+                (split-http-response
+                 (send-request #*"GET /204-cl HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n"))))
+    (let ((h (utf8->string head)))
+      (test-assert "204 strips supplied content-length" (not (contains? h "content-length:")))
+      (test-assert "204 cl no transfer-encoding" (not (contains? h "transfer-encoding:")))
+      (test-equal "204 cl no body" 0 (bytevector-length body))))
+
+  (let-values (((head body)
+                (split-http-response
+                 (send-request #*"GET /204-te HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n"))))
+    (let ((h (utf8->string head)))
+      (test-assert "204 strips supplied transfer-encoding" (not (contains? h "transfer-encoding:")))
+      (test-assert "204 te no content-length" (not (contains? h "content-length:")))
+      (test-equal "204 te no body" 0 (bytevector-length body))))
+
+  (let-values (((head body)
+                (split-http-response
+                 (send-request #*"GET /205-bytes HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n"))))
+    (let ((h (utf8->string head)))
+      (test-assert "205 bytes status" (contains? h "HTTP/1.1 205 Reset Content"))
+      (test-assert "205 bytes has zero content-length" (contains? h "content-length: 0"))
+      (test-assert "205 bytes no transfer-encoding" (not (contains? h "transfer-encoding:")))
+      (test-equal "205 bytes no body" 0 (bytevector-length body))))
+
+  (let-values (((head body)
+                (split-http-response
+                 (send-request #*"GET /205-port HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n"))))
+    (let ((h (utf8->string head)))
+      (test-assert "205 port has zero content-length" (contains? h "content-length: 0"))
+      (test-equal "205 port no body" 0 (bytevector-length body))
+      (test-assert "205 port is closed" (and last-port (port-closed? last-port)))))
+
+  (let-values (((head body)
+                (split-http-response
+                 (send-request #*"GET /304-valid HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n"))))
+    (let ((h (utf8->string head)))
+      (test-assert "304 valid status" (contains? h "HTTP/1.1 304 Not Modified"))
+      (test-assert "304 valid keeps representation content-length" (contains? h "content-length: 7"))
+      (test-equal "304 valid no body" 0 (bytevector-length body))))
+
+  (let-values (((head body)
+                (split-http-response
+                 (send-request #*"GET /304-empty HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n"))))
+    (let ((h (utf8->string head)))
+      (test-assert "304 empty no content-length" (not (contains? h "content-length:")))
+      (test-equal "304 empty no body" 0 (bytevector-length body))))
+
+  (let-values (((head body)
+                (split-http-response
+                 (send-request #*"HEAD /head-bytes HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n"))))
+    (let ((h (utf8->string head)))
+      (test-assert "HEAD bytes has representation length" (contains? h "content-length: 6"))
+      (test-equal "HEAD bytes no body" 0 (bytevector-length body))))
+
+  (let-values (((head body)
+                (split-http-response
+                 (send-request #*"HEAD /head-port HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n"))))
+    (let ((h (utf8->string head)))
+      (test-assert "HEAD port has no unverifiable content-length"
+                   (not (contains? h "content-length:")))
+      (test-equal "HEAD port no body" 0 (bytevector-length body))
+      (test-assert "HEAD port is closed" (and last-port (port-closed? last-port)))))
+
+  (let-values (((head body)
+                (split-http-response
+                 (send-request #*"GET /200-bad-cl HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n"))))
+    (let ((h (utf8->string head)))
+      (test-assert "200 normalizes mismatched content-length" (contains? h "content-length: 5"))
+      (test-assert "200 removed bad supplied content-length" (not (contains? h "content-length: 999")))
+      (test-equal "200 bad-cl body" "hello" (utf8->string body))))
+
+  (let-values (((head body)
+                (split-http-response
+                 (send-request #*"GET /200-app-te HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n"))))
+    (let ((h (utf8->string head)))
+      (test-assert "200 app transfer-encoding removed" (not (contains? h "transfer-encoding:")))
+      (test-assert "200 app transfer-encoding keeps content-length" (contains? h "content-length: 5"))
+      (test-equal "200 app te body" "hello" (utf8->string body))))
+
+  (let-values (((head body)
+                (split-http-response
+                 (send-request #*"GET /stream HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n"))))
+    (let ((h (utf8->string head)))
+      (test-assert "stream response is chunked" (contains? h "transfer-encoding: chunked"))
+      (test-assert "stream response omits content-length" (not (contains? h "content-length:")))
+      (test-assert "stream response ends with terminating chunk"
+                   (contains? (utf8->string body) "0\r\n\r\n"))))
+
+  (let ((txt (utf8->string
+              (send-request #*"GET /status-1xx HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n"))))
+    (test-assert "final 1xx handler response is rejected"
+                 (contains? txt "HTTP/1.1 500 Internal Server Error")))
+
+  (let ((txt (utf8->string
+              (send-request #*"CONNECT example.com:443 HTTP/1.1\r\nHost: example.com:443\r\nConnection: close\r\n\r\n"))))
+    (test-assert "successful CONNECT is rejected without tunnel support"
+                 (contains? txt "HTTP/1.1 501 Not Implemented")))
+
+  (let ((sock (make-client-socket "localhost" (server-port server))))
+    (socket-send sock
+                 #*"GET /204-default HTTP/1.1\r\nHost: localhost\r\n\r\nGET /ok HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n")
+    (let* ((raw (recv-bytes sock)))
+      (let-values (((head tail) (split-http-response raw)))
+        (let ((h1 (utf8->string head))
+              (h2 (utf8->string tail)))
+          (test-assert "persistent connection survives 204"
+                       (contains? h2 "HTTP/1.1 200 OK"))
+          (test-assert "first 204 has no content-length"
+                       (not (contains? h1 "content-length:")))
+          (test-assert "first 204 has no transfer-encoding"
+                       (not (contains? h1 "transfer-encoding:"))))))
+    (socket-close sock))
+
+  (server-stop! server))
+
 ;; prior knowledge is not supported. 
 ;; Maybe if we have better handling
 ;; (let ()

@@ -50,6 +50,15 @@
 
             http-server:normalize-header-name
             http-server:hop-by-hop-header?
+            http-server:parse-nonnegative-integer
+
+            http-server:informational-status?
+            http-server:successful-status?
+            http-server:response-content-mode
+            http-server:response-content-allowed?
+            http-server:response-content-length-policy
+            http-server:response-transfer-coding-allowed?
+            http-server:validate-final-response
 
             http-server:reason-phrase
             http-server:status-class
@@ -171,6 +180,12 @@
          (append (http-server:headers-entries headers)
                  (list (cons key (list v))))))))
 
+(define (http-server:parse-nonnegative-integer v)
+  (guard (e (else #f))
+    (let* ((s (string-trim-ascii (->string v)))
+           (n (string->number s)))
+      (and (integer? n) (>= n 0) n))))
+
 (define (http-server:headers-delete! headers name)
   (let ((key (http-server:normalize-header-name name)))
     (http-server:headers-entries-set!
@@ -206,8 +221,8 @@
                (loop-v (cdr rest)))))))
 
 (define +hop-by-hop-header-names+
-  '("connection" "keep-alive" "proxy-authenticate" "proxy-authorization"
-    "te" "trailer" "transfer-encoding" "upgrade"))
+  '("connection" "keep-alive" "proxy-connection" "te" "trailer"
+    "transfer-encoding" "upgrade"))
 
 (define (http-server:hop-by-hop-header? name)
   (let ((key (http-server:normalize-header-name name)))
@@ -216,13 +231,70 @@
            (or (string=? key (car rest))
                (loop (cdr rest)))))))
 
+(define (http-server:informational-status? code)
+  (and (integer? code) (<= 100 code 199)))
+
+(define (http-server:successful-status? code)
+  (and (integer? code) (<= 200 code 299)))
+
+(define (method-token=? method token)
+  (cond ((symbol? method) (string=? (string-upcase (symbol->string method)) token))
+        ((string? method) (string=? (string-upcase method) token))
+        (else #f)))
+
+(define (http-server:response-content-mode method status)
+  (cond ((and (method-token=? method "CONNECT")
+              (http-server:successful-status? status))
+         'connect-tunnel)
+        ((http-server:informational-status? status) 'informational)
+        ((eqv? status 204) 'no-content)
+        ((eqv? status 205) 'reset-content)
+        ((or (eqv? status 304)
+             (method-token=? method "HEAD"))
+         'representation-metadata)
+        (else 'normal)))
+
+(define (http-server:response-content-allowed? mode)
+  (eq? mode 'normal))
+
+(define (http-server:response-content-length-policy mode)
+  (case mode
+    ((normal) 'body-length)
+    ((representation-metadata) 'representation)
+    ((reset-content) 'zero-or-omit)
+    (else 'forbidden)))
+
+(define (http-server:response-transfer-coding-allowed? mode)
+  (case mode
+    ((normal representation-metadata) #t)
+    (else #f)))
+
+(define (http-server:validate-final-response method status protocol)
+  (cond ((http-server:informational-status? status)
+         (values #f
+                 500
+                 "Informational responses cannot be used as final responses"))
+        ((and (method-token=? method "CONNECT")
+              (http-server:successful-status? status))
+         (values #f
+                 501
+                 "CONNECT tunnel is not supported"))
+        ((and (eq? protocol 'http2)
+              (eqv? status 101))
+         (values #f
+                 500
+                 "HTTP/2 does not support 101 Switching Protocols"))
+        (else (values #t #f #f))))
+
 (define +status-reasons+
   '((100 . "Continue")
     (101 . "Switching Protocols")
+    (103 . "Early Hints")
     (200 . "OK")
     (201 . "Created")
     (202 . "Accepted")
     (204 . "No Content")
+    (205 . "Reset Content")
     (206 . "Partial Content")
     (301 . "Moved Permanently")
     (302 . "Found")
@@ -234,6 +306,7 @@
     (403 . "Forbidden")
     (404 . "Not Found")
     (405 . "Method Not Allowed")
+    (407 . "Proxy Authentication Required")
     (408 . "Request Timeout")
     (411 . "Length Required")
     (413 . "Payload Too Large")
