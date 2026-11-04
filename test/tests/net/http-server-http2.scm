@@ -676,4 +676,250 @@
        (test-assert "push promise is suppressed by peer settings" (not push-frame))))
    config))
 
+(let ()
+  (define last-port #f)
+  (define (app req res)
+    (let ((path (http-server:request-path req))
+	  (method (http-server:request-method req)))
+      (cond
+       ((and (eq? method 'CONNECT)
+             (string=? path "example.com:443"))
+	(http-server:response-status-set! res 200)
+	(http-server:response-text! res "connect-body")
+	res)
+       ((string=? path "/204-default")
+	(http-server:response-status-set! res 204)
+	res)
+       ((string=? path "/204-bytes")
+	(http-server:response-status-set! res 204)
+	(http-server:response-bytes! res #*"abc")
+	res)
+       ((string=? path "/204-cl")
+	(http-server:response-status-set! res 204)
+	(http-server:response-header-set! res "content-length" "3")
+	(http-server:response-bytes! res #*"abc")
+	res)
+       ((string=? path "/205-bytes")
+	(http-server:response-status-set! res 205)
+	(http-server:response-bytes! res #*"abc")
+	res)
+       ((string=? path "/205-port")
+	(http-server:response-status-set! res 205)
+	(set! last-port (open-bytevector-input-port #*"abc"))
+	(http-server:response-port! res last-port)
+	res)
+       ((string=? path "/304-valid")
+	(http-server:response-status-set! res 304)
+	(http-server:response-header-set! res "content-length" "7")
+	(http-server:response-bytes! res #*"ignored")
+	res)
+       ((string=? path "/304-empty")
+	(http-server:response-status-set! res 304)
+	res)
+       ((string=? path "/head-bytes")
+	(http-server:response-bytes! res #*"abcdef")
+	res)
+       ((string=? path "/200-bad-cl")
+	(http-server:response-header-set! res "content-length" "999")
+	(http-server:response-text! res "hello")
+	res)
+       ((string=? path "/200-buffered")
+	(http-server:response-text! res "hello")
+	res)
+       ((string=? path "/200-port")
+	(http-server:response-port! res (open-bytevector-input-port #*"hello-stream"))
+	res)
+       ((string=? path "/forbidden-headers")
+	(http-server:response-header-set! res "connection" "keep-alive, x-conn-owned")
+	(http-server:response-header-set! res "keep-alive" "timeout=1")
+	(http-server:response-header-set! res "proxy-connection" "close")
+	(http-server:response-header-set! res "transfer-encoding" "chunked")
+	(http-server:response-header-set! res "upgrade" "h2c")
+	(http-server:response-header-set! res "te" "trailers")
+	(http-server:response-header-set! res "x-conn-owned" "must-be-removed")
+	(http-server:response-text! res "ok")
+	res)
+       ((string=? path "/proxy-auth")
+	(http-server:response-status-set! res 407)
+	(http-server:response-header-set! res "proxy-authenticate" "Basic realm=\"proxy\"")
+	(http-server:response-text! res "proxy")
+	res)
+       ((string=? path "/status-1xx")
+	(http-server:response-status-set! res 103)
+	(http-server:response-text! res "hint")
+	res)
+       ((string=? path "/status-101")
+	(http-server:response-status-set! res 101)
+	(http-server:response-text! res "switch")
+	res)
+       (else
+	(http-server:response-text! res "unknown")
+	res))))
+
+  (define (make-headers method path)
+    (list (list #*":method" (string->utf8 method))
+	  (list #*":scheme" #*"http")
+	  (list #*":path" (string->utf8 path))
+	  (list #*":authority" #*"localhost")))
+
+  (define (make-connect-headers authority)
+    (list (list #*":method" #*"CONNECT")
+	  (list #*":authority" (string->utf8 authority))))
+
+  (define (request->frames request-headers)
+    (with-http2-connection
+     app
+     (lambda (client accepted conn)
+       (define payload
+         (bytevector-append
+	  +http2-connection-preface+
+	  (encode-frames
+	   (list (cons (make-http2-frame-settings 0 0 '()) #f)
+		 (cons (make-http2-frame-headers 0 1 #f #f request-headers) #t)))))
+       (test-assert "connection accepts compliance request"
+		    (not (http-server:connection-process! conn payload)))
+       (thread-sleep! 0.02)
+       (decode-frames (recv-bytes client)))))
+
+  (define (stream-headers-frame frames)
+    (find (lambda (f)
+            (and (http2-frame-headers? f)
+		 (= (http2-frame-stream-identifier f) 1)))
+	  frames))
+
+  (define (stream-data-frames frames)
+    (filter (lambda (f)
+              (and (http2-frame-data? f)
+		   (= (http2-frame-stream-identifier f) 1)))
+            frames))
+
+  (let* ((frames (request->frames (make-headers "GET" "/204-default")))
+         (h (stream-headers-frame frames))
+         (data (stream-data-frames frames)))
+    (test-assert "h2 204 default response headers" h)
+    (test-equal "h2 204 default status" "204"
+		(and h (header-value (http2-frame-headers-headers h) ":status")))
+    (test-eqv "h2 204 default no content-length"
+              #f
+              (and h (header-value (http2-frame-headers-headers h) "content-length")))
+    (test-equal "h2 204 default no data" 0 (length data))
+    (test-assert "h2 204 default end stream on headers"
+		 (and h
+		      (flag-set? (http2-frame-flags h)
+				 +http2-frame-flag-end-stream+))))
+
+  (let* ((frames (request->frames (make-headers "GET" "/204-bytes")))
+         (h (stream-headers-frame frames))
+         (data (stream-data-frames frames)))
+    (test-eqv "h2 204 bytes no content-length"
+              #f
+              (and h (header-value (http2-frame-headers-headers h) "content-length")))
+    (test-equal "h2 204 bytes no data" 0 (length data)))
+
+  (let* ((frames (request->frames (make-headers "GET" "/204-cl")))
+         (h (stream-headers-frame frames)))
+    (test-eqv "h2 204 strips supplied content-length"
+              #f
+              (and h (header-value (http2-frame-headers-headers h) "content-length"))))
+
+  (let* ((frames (request->frames (make-headers "GET" "/205-bytes")))
+         (h (stream-headers-frame frames))
+         (data (stream-data-frames frames)))
+    (test-equal "h2 205 status" "205"
+		(and h (header-value (http2-frame-headers-headers h) ":status")))
+    (test-equal "h2 205 no data" 0 (length data))
+    (test-assert "h2 205 end stream on headers"
+		 (and h
+		      (flag-set? (http2-frame-flags h)
+				 +http2-frame-flag-end-stream+))))
+
+  (let* ((frames (request->frames (make-headers "GET" "/205-port")))
+         (data (stream-data-frames frames)))
+    (test-equal "h2 205 port no data" 0 (length data))
+    (test-assert "h2 205 port is closed" (and last-port (port-closed? last-port))))
+
+  (let* ((frames (request->frames (make-headers "GET" "/304-valid")))
+         (h (stream-headers-frame frames))
+         (data (stream-data-frames frames)))
+    (test-equal "h2 304 status" "304"
+		(and h (header-value (http2-frame-headers-headers h) ":status")))
+    (test-equal "h2 304 keeps representation content-length" "7"
+		(and h (header-value (http2-frame-headers-headers h) "content-length")))
+    (test-equal "h2 304 no data" 0 (length data)))
+
+  (let* ((frames (request->frames (make-headers "GET" "/304-empty")))
+         (h (stream-headers-frame frames)))
+    (test-eqv "h2 304 empty no content-length"
+              #f
+              (and h (header-value (http2-frame-headers-headers h) "content-length"))))
+
+  (let* ((frames (request->frames (make-headers "HEAD" "/head-bytes")))
+         (h (stream-headers-frame frames))
+         (data (stream-data-frames frames)))
+    (test-equal "h2 HEAD no data" 0 (length data))
+    (test-equal "h2 HEAD keeps representation length" "6"
+		(and h (header-value (http2-frame-headers-headers h) "content-length"))))
+
+  (let* ((frames (request->frames (make-headers "GET" "/200-bad-cl")))
+         (h (stream-headers-frame frames)))
+    (test-equal "h2 200 normalizes mismatched content-length" "5"
+		(and h (header-value (http2-frame-headers-headers h) "content-length"))))
+
+  (let* ((frames (request->frames (make-headers "GET" "/200-buffered")))
+         (h (stream-headers-frame frames))
+         (data-sum (data-bytes-on-stream frames 1)))
+    (test-equal "h2 buffered content-length equals data bytes"
+		(number->string data-sum)
+		(and h (header-value (http2-frame-headers-headers h) "content-length"))))
+
+  (let* ((frames (request->frames (make-headers "GET" "/200-port")))
+         (h (stream-headers-frame frames))
+         (data (stream-data-frames frames))
+         (end-data
+	  (find (lambda (f) (and (http2-frame-data? f)
+				 (= (http2-frame-stream-identifier f) 1)
+				 (http2-frame-end-stream? f)))
+		data)))
+    (test-assert "h2 port response emits data" (pair? data))
+    (test-eqv "h2 port response has no content-length"
+              #f
+              (and h (header-value (http2-frame-headers-headers h) "content-length")))
+    (test-assert "h2 port response terminates stream" end-data))
+
+  (let* ((frames (request->frames (make-headers "GET" "/forbidden-headers")))
+         (h (stream-headers-frame frames))
+         (headers (and h (http2-frame-headers-headers h))))
+    (test-eqv "h2 strips connection header" #f (and headers (header-value headers "connection")))
+    (test-eqv "h2 strips keep-alive header" #f (and headers (header-value headers "keep-alive")))
+    (test-eqv "h2 strips proxy-connection header" #f (and headers (header-value headers "proxy-connection")))
+    (test-eqv "h2 strips transfer-encoding header" #f (and headers (header-value headers "transfer-encoding")))
+    (test-eqv "h2 strips upgrade header" #f (and headers (header-value headers "upgrade")))
+    (test-eqv "h2 strips te header" #f (and headers (header-value headers "te")))
+    (test-eqv "h2 strips connection-nominated custom header" #f (and headers (header-value headers "x-conn-owned"))))
+
+  (let* ((frames (request->frames (make-headers "GET" "/proxy-auth")))
+         (h (stream-headers-frame frames))
+         (headers (and h (http2-frame-headers-headers h))))
+    (test-equal "h2 proxy authenticate is preserved"
+		"Basic realm=\"proxy\""
+		(and headers (header-value headers "proxy-authenticate"))))
+
+  (let* ((frames (request->frames (make-headers "GET" "/status-1xx")))
+         (h (stream-headers-frame frames)))
+    (test-equal "h2 final 1xx handler response is rejected"
+		"500"
+		(and h (header-value (http2-frame-headers-headers h) ":status"))))
+
+  (let* ((frames (request->frames (make-headers "GET" "/status-101")))
+         (h (stream-headers-frame frames)))
+    (test-equal "h2 101 response is never emitted"
+		"500"
+		(and h (header-value (http2-frame-headers-headers h) ":status"))))
+
+  (let* ((frames (request->frames (make-connect-headers "example.com:443")))
+         (h (stream-headers-frame frames)))
+    (test-equal "h2 CONNECT without tunnel support is rejected"
+		"501"
+		(and h (header-value (http2-frame-headers-headers h) ":status")))))
+
 (test-end)

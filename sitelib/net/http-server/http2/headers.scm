@@ -24,6 +24,12 @@
 (define (parse-http2-request-headers headers)
   (define header-map (make-http-server:headers))
   (define (fail message) (values #f #f #f #f #f message))
+  (define (method-connect? method)
+    (and method (string=? (string-upcase method) "CONNECT")))
+  (define (add-authority-as-host! authority)
+    (when (and authority
+               (not (http-server:headers-ref header-map "host" #f)))
+      (http-server:headers-add! header-map "host" authority)))
   (let loop ((rest headers)
 	     (pseudo-open? #t)
 	     (method #f)
@@ -31,18 +37,33 @@
 	     (target #f)
 	     (authority #f))
     (if (null? rest)
-        (if (and method scheme target)
-            (let-values (((path query) (parse-target target)))
-              (when (and authority
-                         (not (http-server:headers-ref header-map "host" #f)))
-                (http-server:headers-add! header-map "host" authority))
-              (values (string->symbol method)
-                      target
-                      path
-                      query
-                      header-map
-                      #f))
-            (fail "Missing required pseudo headers"))
+        (let ((method-token (and method (string-upcase method))))
+          (cond ((not method-token)
+                 (fail "Missing required pseudo headers"))
+                ((method-connect? method-token)
+                 (cond ((or scheme target)
+                        (fail "CONNECT must use only :method and :authority pseudo headers"))
+                       ((not authority)
+                        (fail "Missing required pseudo headers"))
+                       (else
+                        (add-authority-as-host! authority)
+                        (values (string->symbol method-token)
+                                authority
+                                authority
+                                #f
+                                header-map
+                                #f))))
+                ((and scheme target)
+                 (let-values (((path query) (parse-target target)))
+                   (add-authority-as-host! authority)
+                   (values (string->symbol method-token)
+                           target
+                           path
+                           query
+                           header-map
+                           #f)))
+                (else
+                 (fail "Missing required pseudo headers"))))
         (let-values (((name value err pseudo?) (decode-header-entry (car rest))))
           (if err
               (fail err)
@@ -88,14 +109,19 @@
 (define (response->hpack-headers req res)
   (define (header-entry name value)
     (list (string->utf8 name) (string->utf8 value)))
-
-  (define (collect headers)
-    (let loop ((rest headers) (out '()))
+  (define (delete-header! name)
+    (http-server:headers-delete! (http-server:response-headers res) name))
+  (define (set-header! name value)
+    (http-server:response-header-set! res name value))
+  (define (header-ref name)
+    (http-server:response-header-ref res name #f))
+  (define (collect headers nominated)
+    (let loop ((rest (http-server:headers->alist headers)) (out '()))
       (if (null? rest)
           (reverse out)
-          (let ((name (http-server:normalize-header-name (caar rest)))
-                (values (cdar rest)))
-            (if (or (http-server:hop-by-hop-header? name)
+          (let* ((name (http-server:normalize-header-name (caar rest)))
+                 (values (cdar rest)))
+            (if (or (response-prohibited-header? name nominated)
                     (and (> (string-length name) 0)
                          (char=? (string-ref name 0) #\:)))
                 (loop (cdr rest) out)
@@ -104,56 +130,90 @@
                               out)))))))
 
   (let* ((status (http-server:response-status res))
-         (reason (or (http-server:response-reason res)
-                     (http-server:reason-phrase status)))
-        (body (http-server:response-body res)))
-      (let-values (((body-kind body-bytes body-port)
-           (response-body->payload body)))
-     (if (not body-kind)
-        (let ((err (make-http-server:response 500)))
-          (http-server:response-text! err "Unsupported response body type")
-          (response->hpack-headers req err))
-        (let* ((skip-body?
-		(or (status-has-no-body? status)
-                    (and req (eq? (http-server:request-method req) 'HEAD))))
-            (ignore (and skip-body?
-                   (eq? body-kind 'port)
-                   (guard (e (else #f))
-                  (close-port body-port)
-                  #t)))
-        (bytes (if skip-body? #vu8()
-             (if (eq? body-kind 'bytes) body-bytes #vu8())))
-        (port (if (or skip-body? (eq? body-kind 'bytes)) #f body-port)))
-      (unless (or skip-body?
-            (not (eq? body-kind 'bytes))
-            (http-server:response-header-ref res "content-length" #f))
-            (http-server:response-header-set! res
-         "content-length" (number->string (bytevector-length bytes))))
-          (unless (http-server:response-header-ref res "date" #f)
-            (http-server:response-header-set! res "date"
-                                              (http-server:current-http-date)))
-          (values (cons (header-entry ":status" (number->string status))
-                        (collect (http-server:headers->alist
-                                  (http-server:response-headers res))))
-           bytes
-           port
-           skip-body?))))))
+         (method (and req (http-server:request-method req)))
+         (mode (http-server:response-content-mode method status))
+         (content-allowed? (http-server:response-content-allowed? mode))
+         (content-length-policy
+          (http-server:response-content-length-policy mode))
+         (nominated
+          (connection-option-tokens (http-server:response-headers res)))
+         (body (http-server:response-body res)))
+    (let-values (((body-kind body-bytes body-port)
+                  (response-body->payload body)))
+      (if (not body-kind)
+          (let ((err (make-http-server:response 500)))
+            (http-server:response-text! err "Unsupported response body type")
+            (response->hpack-headers req err))
+          (let* ((buffered? (eq? body-kind 'bytes))
+                 (streaming? (eq? body-kind 'port))
+                 (body-size (and buffered? (bytevector-length body-bytes)))
+                 (skip-body? (not content-allowed?))
+                 (bytes (if (and content-allowed? buffered?) body-bytes #vu8()))
+                 (port (if (and content-allowed? streaming?) body-port #f)))
+            (unless (header-ref "date")
+              (set-header! "date" (http-server:current-http-date)))
+
+            (when (and skip-body? streaming?)
+              (guard (e (else #f))
+                (close-port body-port)))
+
+            (if (and content-allowed? buffered?)
+                (set-header! "content-length" (number->string body-size))
+                (case content-length-policy
+                  ((forbidden)
+                   (delete-header! "content-length"))
+                  ((zero-or-omit)
+                   (set-header! "content-length" "0"))
+                  ((representation)
+                   (let ((provided (header-ref "content-length")))
+                     (cond ((and (eq? method 'HEAD)
+                         (not (eqv? status 304))
+                         body-size)
+                        ;; HEAD may advertise the corresponding representation size.
+                        (set-header! "content-length"
+                             (number->string body-size)))
+                       ((not provided) #f)
+                           ((not (http-server:parse-nonnegative-integer provided))
+                            (delete-header! "content-length"))
+                           ((and streaming? provided)
+                            ;; Input-port response length is not verifiable.
+                        (delete-header! "content-length")))))))
+
+            ;; HTTP/2 responses must never carry HTTP/1.x framing headers.
+            (delete-header! "connection")
+            (delete-header! "proxy-connection")
+            (delete-header! "keep-alive")
+            (delete-header! "transfer-encoding")
+            (delete-header! "upgrade")
+            (delete-header! "te")
+
+            ;; Streaming responses don't have a verified content-length.
+            (when (and content-allowed? streaming?)
+              (delete-header! "content-length"))
+
+            (values (cons (header-entry ":status" (number->string status))
+                          (collect (http-server:response-headers res)
+                                   nominated))
+                    bytes
+                    port
+                  skip-body?))))))
 
 (define (collect-push-headers headers)
   (define (header-entry name value)
     (list (string->utf8 name) (string->utf8 value)))
-  (let loop ((rest (http-server:headers->alist headers)) (out '()))
-    (if (null? rest)
-        (reverse out)
-        (let ((name (http-server:normalize-header-name (caar rest)))
-              (values (cdar rest)))
-          (if (or (http-server:hop-by-hop-header? name)
-                  (and (> (string-length name) 0)
-                       (char=? (string-ref name 0) #\:)))
-              (loop (cdr rest) out)
-              (loop (cdr rest)
-                    (append (map (lambda (v) (header-entry name v)) values)
-                            out)))))))
+  (let ((nominated (connection-option-tokens headers)))
+    (let loop ((rest (http-server:headers->alist headers)) (out '()))
+      (if (null? rest)
+          (reverse out)
+          (let* ((name (http-server:normalize-header-name (caar rest)))
+                 (values (cdar rest)))
+            (if (or (response-prohibited-header? name nominated)
+                    (and (> (string-length name) 0)
+                         (char=? (string-ref name 0) #\:)))
+                (loop (cdr rest) out)
+                (loop (cdr rest)
+                      (append (map (lambda (v) (header-entry name v)) values)
+                              out))))))))
 
 (define (method->http-token method)
   (cond ((symbol? method) (string-upcase (symbol->string method)))
@@ -171,6 +231,44 @@
              (values (substring s 0 i) (substring s (+ i 1) len)))
             (else
              (loop (+ i 1)))))))
+
+(define (split-comma s)
+  (define len (string-length s))
+  (let loop ((i 0) (start 0) (out '()))
+    (cond ((= i len)
+           (reverse (cons (substring s start i) out)))
+          ((char=? (string-ref s i) #\,)
+           (loop (+ i 1) (+ i 1)
+                 (cons (substring s start i) out)))
+          (else (loop (+ i 1) start out)))))
+
+(define (string-member? target lis)
+  (let loop ((rest lis))
+    (and (pair? rest)
+         (or (string=? target (car rest))
+             (loop (cdr rest))))))
+
+(define (connection-option-tokens headers)
+  (let loop-value ((values (http-server:headers-ref* headers "connection" '()))
+                   (out '()))
+    (if (null? values)
+        out
+        (let loop-token ((tokens (split-comma (car values)))
+                         (current out))
+          (if (null? tokens)
+              (loop-value (cdr values) current)
+              (let ((name (http-server:normalize-header-name (car tokens))))
+                (loop-token (cdr tokens)
+                            (if (or (string=? name "")
+                                    (string-member? name current))
+                                current
+                                (cons name current)))))))))
+
+(define (response-prohibited-header? name nominated)
+  (or (http-server:hop-by-hop-header? name)
+      (string-member? name nominated)
+      (string=? name "te")
+      (string=? name "proxy-connection")))
 
 (define (connection-specific-header? name)
   (or (string=? name "connection")
@@ -204,11 +302,6 @@
         ((and (input-port? body) (binary-port? body))
          (values 'port #vu8() body))
         (else (values #f #f #f))))
-
-(define (status-has-no-body? code)
-  (or (eqv? code 204)
-      (eqv? code 304)
-      (and (<= 100 code) (< code 200))))
 
 (define (contains-uppercase-ascii? s)
   (let ((n (string-length s)))
