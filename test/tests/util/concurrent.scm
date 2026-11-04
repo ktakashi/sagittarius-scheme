@@ -349,6 +349,22 @@
   (test-assert "shutdown! (2)" (shutdown-executor! e))
   )
 
+(let ((e (make-executor 1)))
+  (test-assert "sequential execute remains available"
+	       (let loop ((i 0))
+		 (or (= i 200)
+		     (let ((f1 (future (class <executor-future>) 1))
+			   (f2 (future (class <executor-future>) 2)))
+		       (execute-future! e f1)
+		       (future-get f1)
+		       (guard (ex ((rejected-execution-error? ex) #f)
+				  (else (raise ex)))
+			 (execute-future! e f2)
+			 (future-get f2)
+			 (loop (+ i 1)))))))
+  (guard (ex (else #f))
+    (shutdown-executor! e)))
+
 ;; shutdown
 (let ((e (make-executor 3))
       (f1 (future (class <executor-future>) (thread-sleep! 10)))

@@ -225,6 +225,16 @@
       (remove-from-queue! (lambda (o) (eq? (cdr o) future))
 			  (pooled-executor-pool-ids executor))))
 
+  (define (future-active? future)
+    (memq (future-state future) '(created execute-internal executing)))
+
+  (define (compact-pool-ids! executor)
+    (define pool-ids (pooled-executor-pool-ids executor))
+    (list-queue-set-list!
+     pool-ids
+     (remove! (lambda (o) (not (future-active? (cdr o))))
+	      (list-queue-list pool-ids))))
+
   (define (thread-pool-executor-available? executor)
     (< (thread-pool-executor-pool-size executor) 
        (thread-pool-executor-max-pool-size executor)))
@@ -258,6 +268,7 @@
   
   (define (thread-pool-executor-execute-future! executor future)
     (or (with-atomic executor
+	  (compact-pool-ids! executor)
 	  (let ((pool-size (thread-pool-executor-pool-size executor))
 		(max-pool-size (thread-pool-executor-max-pool-size
 				executor)))
