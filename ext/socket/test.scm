@@ -59,6 +59,43 @@
 (define server-port
   (number->string (socket-info-port (socket-info echo-server-socket))))
 
+(define default-thread-join-timeout 10)
+(define default-queue-timeout 5)
+(define default-selector-timeout-usec (* 5 1000 1000))
+
+(define (timeout-failed who timeout)
+  (test-assert (format "~a (timeout ~as)" who timeout) #f))
+
+(define (join-thread/timeout who thread
+			     :optional (timeout default-thread-join-timeout)
+			     (timeout-value #f))
+  (guard (e ((join-timeout-exception? e)
+	     (guard (e (else #f))
+	       (thread-terminate! thread))
+	     (timeout-failed who timeout)
+	     timeout-value)
+	    (else (raise e)))
+    (thread-join! thread timeout)))
+
+(define (shared-queue-get/timeout who queue :optional (timeout default-queue-timeout))
+  (let ((timeout-marker (gensym "timeout-marker")))
+    (let ((v (shared-queue-get! queue timeout timeout-marker)))
+      (if (eq? v timeout-marker)
+	  (begin
+	    (timeout-failed who timeout)
+	    #f)
+	  v))))
+
+(define (wait-until/timeout who timeout step predicate)
+  (let loop ((elapsed 0.0))
+    (cond ((predicate) #t)
+	  ((>= elapsed timeout)
+	   (timeout-failed who timeout)
+	   #f)
+	  (else
+	   (thread-sleep! step)
+	   (loop (+ elapsed step))))))
+
 (test-begin "Sagittarius socket")
 
 ;; start echo server
@@ -91,7 +128,7 @@
   (test-equal "raw socket-send"
 	      (+ (string-length "push") 2) ;; for \r\n
 	      (socket-send client-socket (string->utf8 "push\r\n") 0))
-  (shared-queue-get! echo-server-queue)
+  (shared-queue-get/timeout "wait echo queue signal" echo-server-queue)
   ;; these are not documented
   (test-assert "socket-read-select"
 	       (not (null? (socket-read-select #f client-socket))))
@@ -219,12 +256,15 @@
   (thread-start! recv-thread)
   (thread-sleep! 0.1)
   (thread-start! send-thread)
-  (test-equal "bidirectional port" text 
-	      (utf8->string (thread-join! recv-thread)))
+  (let ((r (join-thread/timeout "bidirectional recv thread" recv-thread 5)))
+    (when r
+      (test-equal "bidirectional port" text 
+		  (utf8->string r))))
   (put-bytevector port (string->utf8 "end\r\n"))
-  )
+  (join-thread/timeout "bidirectional send thread" send-thread 5))
 
-(test-assert "wait server ends" (thread-join! server-thread))
+(test-assert "wait server ends" (join-thread/timeout "wait server thread ends"
+						     server-thread 10))
 (shutdown&close echo-server-socket)
 
 ;; addr info slots
@@ -261,8 +301,10 @@
     (define client (make-client-socket "localhost" (server-service server)))
     (define in (socket-input-port client))
     (define buf (make-bytevector 10))
+    (socket-set-read-timeout! client 2000)
     (test-equal "get-bytevector-n shouldn't block" #vu8(0 1 2 3 4)
 		(get-bytevector-n in 10))
+    (join-thread/timeout "get-bytevector-n server thread" t 5)
     (shutdown&close client)
     (shutdown&close server)))
 
@@ -280,7 +322,8 @@
   (thread-yield!)
   (thread-sleep! 1) ;; wait a bit
   (test-assert "thread-interrupt!" (thread-interrupt! t))
-  (test-equal "result" '() (thread-join! t))
+  (test-equal "result" '() (join-thread/timeout "socket interruption thread join"
+						t 5 '()))
   (socket-close server))
 
 ;; signal related
@@ -304,6 +347,7 @@
   (thread-yield!)
   (thread-sleep! 1)
   (test-assert "interrupted" interrupted?)
+  (join-thread/timeout "signal interruption thread join" t 5)
   (shutdown&close server))
 
 ;; ditto
@@ -342,7 +386,8 @@
     (test-assert "accepted" accepted)
     (test-assert "not recieved" (not recieved))
     (socket-send client #vu8(1))
-    (test-equal "received" #vu8(1) (thread-join! t))
+    (test-equal "received" #vu8(1)
+		(join-thread/timeout "socket-accept loop thread join" t 5 #f))
     (shutdown&close client))
   (shutdown&close server))
 
@@ -387,15 +432,16 @@
 		 ;; whatever is fine
 		 '(1 2 3 4 5))))
     ;; wait until server is done
-    (mutex-lock! server-lock)
-    (mutex-unlock! server-lock)
+    (let ((locked? (mutex-lock! server-lock 5)))
+      (test-assert "socket-select wait acceptors" locked?)
+      (when locked? (mutex-unlock! server-lock)))
     ;; send it (server is waiting for you!)
     (socket-send (car s*) #vu8(1))
     (socket-send (car (last-pair s*)) #vu8(1))
     ;; let server do select
     (mutex-unlock! client-lock)
 
-    (let ((r (thread-join! t)))
+    (let ((r (join-thread/timeout "socket-select worker thread join" t 10 '())))
       (test-equal "socket-select (size)" 2 (length r))
       (test-equal "socket-select (1)" (vector-ref vec 0) (car r))
       (test-equal "socket-select (2)" (vector-ref vec 4) (cadr r))
@@ -427,7 +473,9 @@
 		  (socket-close s))))))
   (define selector (make-socket-selector))
   (define (make-selector-thread)
-    (make-thread (lambda () (socket-selector-wait! selector))))
+    (make-thread
+     (lambda ()
+       (socket-selector-wait! selector default-selector-timeout-usec))))
   (define t2 (make-selector-thread))
   (define s (make-client-socket "localhost" (server-service server)))
 
@@ -437,7 +485,7 @@
   ;; This test may cause race condition, and a bit problematic to
   ;; implement a test to avoid, so disable it.
   ;; (test-error (socket-selector-wait! selector))
-  (let ((s* (thread-join! t2)))
+  (let ((s* (join-thread/timeout "socket-selector first wait thread join" t2 6 '())))
     (test-equal 1 (length s*))
     (test-equal '(#*"ok") (map (lambda (s) (socket-recv s 2))
 			       (map car s*))))
@@ -447,7 +495,8 @@
   (socket-selector-add! selector s)
   ;; 1000 => 1ms (timeout = usec)
   (test-equal "selector (timeout)" '() (socket-selector-wait! selector 1000))
-  (let-values (((s* t*) (socket-selector-wait! selector)))
+  (let-values (((s* t*) (socket-selector-wait! selector
+						default-selector-timeout-usec)))
     (test-equal '() t*)
     (test-equal 1 (length s*))
     (test-equal '(#*"ok2") (map (lambda (s) (socket-recv s 3))
@@ -496,6 +545,22 @@
 	      (unless end? (loop))))))))))
   (define result (make-atomic-fixnum 0))
   (define result-to (make-atomic-fixnum 0))
+  (define (join-client-threads/timeout t*)
+    (define waiter
+      (thread-start!
+       (make-thread
+	(lambda ()
+	  (map thread-join! t*)))))
+    (let ((r (join-thread/timeout "socket-selector client workers join"
+				  waiter 20 #f)))
+      (if r
+	  r
+	  (begin
+	    (for-each (lambda (t)
+			(guard (e (else #f))
+			  (thread-terminate! t)))
+		      t*)
+	    #f))))
   (define (do-test i)
     (define s (make-client-socket "localhost" (server-service server)))
     (socket-set-read-timeout! s 500) ;; 500ms
@@ -513,13 +578,15 @@
 
   (let ((t* (map do-test (iota count))))
     ;; First wait until all the sockets are created
-    (let loop ()
-      (unless (= count (atomic-fixnum-load client-counts))
-	(thread-sleep! delay)
-	(loop)))
+    (wait-until/timeout "socket-selector wait client registration"
+			10 delay
+			(lambda () (= count (atomic-fixnum-load client-counts))))
     ;; then send 
     (for-each thread-start! t*)
-    (test-assert (for-all socket? (map thread-join! t*))))
+    (let ((r (join-client-threads/timeout t*)))
+      (test-assert (and r
+			(= (length r) count)
+			(for-all socket? r)))))
 
   (set! end? #t)
   (let ((s (make-client-socket "localhost" (server-service server))))
@@ -531,8 +598,8 @@
   (socket-selector-interrupt! selector)
   (close-socket-selector! selector)
 
-  (thread-join! t)
-  (thread-join! t2)
+  (join-thread/timeout "socket-selector server accept thread join" t 5)
+  (join-thread/timeout "socket-selector server wait thread join" t2 5)
 
   (socket-shutdown server SHUT_RDWR)
   (socket-close server)
@@ -586,11 +653,15 @@
     (thread-start!
      (make-thread
       (lambda ()
-	(let loop ()
-	  (let-values (((s* t*) (socket-selector-wait! selector)))
-	    (for-each accept (map car s*))
-	    (unless (zero? (socket-selector-size selector))
-	      (loop))))))))
+	(guard (e (else #t))
+	  (let loop ()
+	    (unless (socket-selector-closed? selector)
+	      (let-values (((s* t*) (socket-selector-wait! selector
+							    default-selector-timeout-usec)))
+		(for-each accept (map car s*))
+		(unless (or (socket-selector-closed? selector)
+			    (zero? (socket-selector-size selector)))
+		  (loop))))))))))
   (define (check server-socket)
     (define si (socket-info server-socket))
     (define ip-address (socket-info-ip-address si))
@@ -602,8 +673,13 @@
     (let ((s (make-client-socket "localhost" service ai-family)))
       (socket-send s (string->utf8 "hello"))
       (test-equal (list service ai-family) "hello"
-		  (utf8->string (socket-recv s 255)))))
+		  (utf8->string (socket-recv s 255)))
+      (shutdown&close s)))
   (for-each (lambda (s) (socket-selector-add! selector s)) s*)
-  (for-each check s*))
+  (for-each check s*)
+  (socket-selector-interrupt! selector)
+  (close-socket-selector! selector)
+  (join-thread/timeout "make-server-socket* selector worker join" thread 5)
+  (for-each socket-close s*))
 
 (test-end)
