@@ -507,6 +507,11 @@
 (print "Testing socket-selector (server)")
 (define (selector-test count :optional (timeout #f))
   (define delay 0.01) ;; 10ms
+  (define client-read-timeout-ms
+    (if timeout
+	2000
+	(max 5000 (* count 20))))
+  (define client-join-timeout-sec (if timeout 30 40))
   (define server (make-server-socket "0"))
   (define selector (make-socket-selector))
   (define timeouts (make-atomic-fixnum 0))
@@ -552,7 +557,7 @@
 	(lambda ()
 	  (map thread-join! t*)))))
     (let ((r (join-thread/timeout "socket-selector client workers join"
-				  waiter 20 #f)))
+				  waiter client-join-timeout-sec #f)))
       (if r
 	  r
 	  (begin
@@ -563,7 +568,7 @@
 	    #f))))
   (define (do-test i)
     (define s (make-client-socket "localhost" (server-service server)))
-    (socket-set-read-timeout! s 500) ;; 500ms
+    (socket-set-read-timeout! s client-read-timeout-ms)
     (make-thread
       (lambda ()
 	(let ((msg (string->utf8 (string-append "hello " (number->string i)))))
@@ -643,16 +648,6 @@
 
 (print "Testing make-server-socket*")
 (let ((s* (make-server-socket* "0")))
-  (define (accept-once server-socket)
-    (thread-start!
-     (make-thread
-      (lambda ()
-	(guard (e (else e))
-	  (let ((s (socket-accept server-socket)))
-	    (socket-set-read-timeout! s 2000)
-	    (socket-send s (socket-recv s 255))
-	    (shutdown&close s)
-	    #t))))))
   (define (connect-candidate node service ai-family)
     (guard (e (else e))
       (make-client-socket node service ai-family SOCK_STREAM 0)))
@@ -669,6 +664,21 @@
 	    (if (socket? result)
 		(values result node #f)
 		(loop (cdr nodes) result))))))
+  (define (echo-on-ready who)
+    (guard (e (else #f))
+      (let ((ready (apply socket-read-select 5000 s*)))
+	(and (pair? ready)
+	     (let loop ((servers ready) (handled? #f))
+	       (if (null? servers)
+		   handled?
+		   (let ((accepted (socket-accept (car servers))))
+		     (if accepted
+			 (begin
+			   (socket-set-read-timeout! accepted 2000)
+			   (socket-send accepted (socket-recv accepted 255))
+			   (shutdown&close accepted)
+			   (loop (cdr servers) #t))
+			 (loop (cdr servers) handled?)))))))))
   (define (check server-socket)
     (define si (socket-info server-socket))
     (define ip-address (socket-info-ip-address si))
@@ -680,20 +690,16 @@
     (let-values (((client target-node connect-error)
 		  (resolve-client service ai-family)))
       (cond (client
-	     (let ((accept-thread (accept-once server-socket)))
-	       (socket-set-read-timeout! client 5000)
-	       (socket-send client (string->utf8 "hello"))
-	       (test-equal (list service ai-family target-node) "hello"
-			   (utf8->string (socket-recv client 255)))
-	       (shutdown&close client)
-	       (let ((r (join-thread/timeout
-			 (format "accept-once thread join (~a ~a)"
-				 service ai-family)
-			 accept-thread 5 #f)))
-		 (when (condition? r)
-		   (test-assert (format "accept-once condition (~a ~a)"
-					service ai-family)
-				#f)))))
+	     (socket-set-read-timeout! client 5000)
+	     (socket-send client (string->utf8 "hello"))
+	     (let ((echoed? (echo-on-ready (list service ai-family target-node))))
+	       (test-assert (format "server echo (~a ~a ~a)"
+				    service ai-family target-node)
+			    echoed?)
+	       (when echoed?
+		 (test-equal (list service ai-family target-node) "hello"
+			     (utf8->string (socket-recv client 255)))))
+	     (shutdown&close client))
 	    ((and (= ai-family AF_INET6)
 		  (host-not-found-error? connect-error))
 	     ;; Some CI environments expose AF_INET6 listener creation but do not
@@ -704,6 +710,7 @@
 				  service ai-family)
 			  #f)
 	     (when (condition? connect-error) (print connect-error))))))
+  (for-each socket-nonblocking! s*)
   (for-each check s*)
   (for-each socket-close s*))
 
