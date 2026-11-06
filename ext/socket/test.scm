@@ -647,29 +647,63 @@
     (thread-start!
      (make-thread
       (lambda ()
-	(let ((s (socket-accept server-socket)))
-	  (socket-set-read-timeout! s 2000)
-	  (socket-send s (socket-recv s 255))
-	  (shutdown&close s))))))
+	(guard (e (else e))
+	  (let ((s (socket-accept server-socket)))
+	    (socket-set-read-timeout! s 2000)
+	    (socket-send s (socket-recv s 255))
+	    (shutdown&close s)
+	    #t))))))
+  (define (connect-candidate node service ai-family)
+    (guard (e (else e))
+      (make-client-socket node service ai-family SOCK_STREAM 0)))
+  (define (resolve-client service ai-family)
+    (define candidates
+      (if (= ai-family AF_INET6)
+	  '("::1" "localhost")
+	  '("127.0.0.1" "localhost")))
+    (let loop ((nodes candidates) (last-error #f))
+      (if (null? nodes)
+	  (values #f #f last-error)
+	  (let* ((node (car nodes))
+		 (result (connect-candidate node service ai-family)))
+	    (if (socket? result)
+		(values result node #f)
+		(loop (cdr nodes) result))))))
   (define (check server-socket)
     (define si (socket-info server-socket))
     (define ip-address (socket-info-ip-address si))
     (define ai-family (if (ip-v6-address? ip-address) AF_INET6 AF_INET))
-    (define target-node (if (= ai-family AF_INET6) "::1" "127.0.0.1"))
     (define service (server-service server-socket))
-    (define accept-thread (accept-once server-socket))
     ;; debug print for non reproducible error on my environment
     (print server-socket ip-address ai-family `((AF_INET6 ,AF_INET6)
 						(AF_INET ,AF_INET)))
-    (let ((s (make-client-socket target-node service ai-family SOCK_STREAM 0)))
-      (socket-set-read-timeout! s 5000)
-      (socket-send s (string->utf8 "hello"))
-      (test-equal (list service ai-family target-node) "hello"
-		  (utf8->string (socket-recv s 255)))
-      (shutdown&close s))
-    (join-thread/timeout (format "accept-once thread join (~a ~a)"
+    (let-values (((client target-node connect-error)
+		  (resolve-client service ai-family)))
+      (cond (client
+	     (let ((accept-thread (accept-once server-socket)))
+	       (socket-set-read-timeout! client 5000)
+	       (socket-send client (string->utf8 "hello"))
+	       (test-equal (list service ai-family target-node) "hello"
+			   (utf8->string (socket-recv client 255)))
+	       (shutdown&close client)
+	       (let ((r (join-thread/timeout
+			 (format "accept-once thread join (~a ~a)"
 				 service ai-family)
-			 accept-thread 5))
+			 accept-thread 5 #f)))
+		 (when (condition? r)
+		   (test-assert (format "accept-once condition (~a ~a)"
+					service ai-family)
+				#f)))))
+	    ((and (= ai-family AF_INET6)
+		  (host-not-found-error? connect-error))
+	     ;; Some CI environments expose AF_INET6 listener creation but do not
+	     ;; provide a routable IPv6 loopback (::1).
+	     (test-assert (format "skip IPv6 loopback check (~a)" service) #t))
+	    (else
+	     (test-assert (format "connect failed (~a ~a)"
+				  service ai-family)
+			  #f)
+	     (when (condition? connect-error) (print connect-error))))))
   (for-each check s*)
   (for-each socket-close s*))
 
