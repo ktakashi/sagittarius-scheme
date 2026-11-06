@@ -655,15 +655,16 @@
     (define si (socket-info server-socket))
     (define ip-address (socket-info-ip-address si))
     (define ai-family (if (ip-v6-address? ip-address) AF_INET6 AF_INET))
+    (define target-node (if (= ai-family AF_INET6) "::1" "127.0.0.1"))
     (define service (server-service server-socket))
     (define accept-thread (accept-once server-socket))
     ;; debug print for non reproducible error on my environment
     (print server-socket ip-address ai-family `((AF_INET6 ,AF_INET6)
 						(AF_INET ,AF_INET)))
-    (let ((s (make-client-socket "localhost" service ai-family)))
+    (let ((s (make-client-socket target-node service ai-family SOCK_STREAM 0)))
       (socket-set-read-timeout! s 5000)
       (socket-send s (string->utf8 "hello"))
-      (test-equal (list service ai-family) "hello"
+      (test-equal (list service ai-family target-node) "hello"
 		  (utf8->string (socket-recv s 255)))
       (shutdown&close s))
     (join-thread/timeout (format "accept-once thread join (~a ~a)"
