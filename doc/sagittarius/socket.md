@@ -13,7 +13,7 @@ The example program is from example/socket/echo.scm.
 
 This library provides procedures for socket programming.
 
-###### [!Function] `make-client-socket`  _node_ _srvice_ :opational (_ai_family_ `AF_INET` ) (_ai_socktype_ `SOCK_STREAM`) (_ai_flags_ `(+ AI_V4MAPPED AI_ADDRCONFIG)`) (_ai_protocol `0`)
+###### [!Function] `make-client-socket`  _node_ _srvice_ :opational (_ai_family_ `AF_INET` ) (_ai_socktype_ `SOCK_STREAM`) (_ai_flags_ `0`) (_ai_protocol `0`)
 
 _Node_ and _service_ must be string or #f. Other optional arguments
 must be exact integer.

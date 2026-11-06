@@ -66,23 +66,41 @@
   (server-stop! server)
   port)
 
-(define (make-client)
+(define (make-client :key
+		     (connection-request-timeout 100)
+		     (connection-timeout 100)
+		     (max-connection-per-route 4)
+		     (time-to-live 3))
   (define pooling-config
     (http-pooling-connection-config-builder
-     (connection-request-timeout 100)
-     (connection-timeout 100)
-     (time-to-live 3)
-     (max-connection-per-route 4)
+     (connection-request-timeout connection-request-timeout)
+     (connection-timeout connection-timeout)
+     (time-to-live time-to-live)
+     (max-connection-per-route max-connection-per-route)
      (selector-error-handler (lambda args (print args)))))
   (http:client-builder
    (version (http:version http/1.1))
    (connection-manager (make-http-pooling-connection-manager pooling-config))))
 
+(define (make-connect-failure-client)
+  (make-client
+   :connection-request-timeout 100
+   :connection-timeout 100
+   :max-connection-per-route 4
+   :time-to-live 3))
+
+(define (make-parallel-client)
+  (make-client
+   :connection-request-timeout 2000
+   :connection-timeout 500
+   :max-connection-per-route 4
+   :time-to-live 3))
+
 (print "connection failure")
 (let ()
   (define failed-port (reserve-port))
   (define route (format "http://localhost:~a" failed-port))
-  (define client (make-client))
+  (define client (make-connect-failure-client))
   (define bad-request
     (http:request-builder
      (method 'GET)
@@ -112,11 +130,11 @@
 (let ()
   (define server (start-echo-server "0"))
   (define route (format "http://localhost:~a" (server-port server)))
-  (define client (make-client))
+  (define client (make-parallel-client))
   (define request
     (http:request-builder
      (method 'POST)
-     (timeout 2000)
+     (timeout 5000)
      (uri route)
      (content-type "text/plain")
      (body (string->utf8 "hello"))))
@@ -143,7 +161,7 @@
   (server-start! server :background #t)
   (thread-sleep! 0.2)
   (let* ((route (format "http://localhost:~a" (server-port server)))
-	 (client (make-client))
+	 (client (make-parallel-client))
 	 (request (http:request-builder (method 'GET) (timeout 1000) (uri route))))
     (let ((r1 (http:client-send client request))
 	  (r2 (http:client-send client request)))

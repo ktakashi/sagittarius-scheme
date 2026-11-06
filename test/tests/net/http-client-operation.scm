@@ -28,12 +28,30 @@
   (make-custom-binary-input-port "slow-sse-large-port" read! #f #f close))
 
 (define (start-server)
+  (let-values (((async-request-future async-request-success async-request-failure)
+		(make-piped-future))
+	       ((async-response-future async-response-success async-response-failure)
+		(make-piped-future)))
+    (define async-request-lock (make-mutex "operation-test-async-lock"))
+    (define async-request-signalled? #f)
+    (define (signal-async-request!)
+      (dynamic-wind
+	  (lambda () (mutex-lock! async-request-lock))
+	  (lambda ()
+	    (unless async-request-signalled?
+	      (set! async-request-signalled? #t)
+	      (async-request-success #t)))
+	  (lambda () (mutex-unlock! async-request-lock))))
   (define (app req res)
     (let ((path (http-server:request-path req)))
       (print "  server received request on: " path)
       (cond ((string=? path "/slow")
 	     (thread-sleep! 0.5)
 	     (http-server:response-text! res "slow"))
+	    ((string=? path "/ok-async")
+	     (signal-async-request!)
+	     (future-get async-response-future 5 #f)
+	     (http-server:response-text! res "hello"))
 	    ((string=? path "/discard")
 	     (http-server:response-text! res "discard-this-body"))
 	    ((string=? path "/stream")
@@ -55,9 +73,10 @@
   (do ()
       ((server-running? server))
     (thread-sleep! 0.05))
-  server)
+    (values server async-request-future async-response-success)))
 
-(let ((server (start-server)))
+(let-values (((server async-request-future release-async-response!)
+	      (start-server)))
   (define (make-uri path)
     (format "http://localhost:~a~a" (server-port server) path))
   (define client (http:client-builder (version (http:version http/1.1))))
@@ -94,7 +113,7 @@
 		     (apply bytevector-append (reverse response-body-parts)))))))
       (let* ((request (http:request-builder
 		       (method 'GET)
-		       (uri (make-uri "/ok"))))
+		       (uri (make-uri "/ok-async"))))
 	     (operation
 	      (http:client-start client request
 	       :on-init #f
@@ -113,9 +132,12 @@
 	       :on-error (lambda (op e) (failure e)))))
 	(test-assert "client-start returns operation"
 		     (http:operation? operation))
+	(test-assert "async request reached server"
+		     (future-get async-request-future 5 #f))
 	(test-assert "operation starts asynchronously"
 		     (not (memq (http:operation-state operation)
-				'(completed failed))))
+				'(completed failed cancelled))))
+	(release-async-response! #t)
 	(let ((response (future-get f 5 #f)))
 	  (test-assert "operation completed with response"
 		       (http:response? response))
