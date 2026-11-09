@@ -597,6 +597,189 @@
 		      (z3 (mod-mul z1 h prime)))
 		 (make-jacobian-point x3 y3 z3)))))))
 
+;; Internal López-Dahab point representation for binary-field
+;; scalar multiplication.
+(define (make-ld-point x y z)
+  (make-raw-ec-point x y z))
+
+(define-inline (ld-point-x p) (ec-point-x p))
+(define-inline (ld-point-y p) (ec-point-y p))
+(define-inline (ld-point-z p) (ec-point-z p))
+
+(define ld-infinity-point (make-ld-point 1 0 0))
+
+(define (ld-point-infinity? p)
+  (zero? (ld-point-z p)))
+
+(define (affine->ld p)
+  (if (ec-point-infinity? p)
+      ld-infinity-point
+      (make-ld-point (ec-point-x p) (ec-point-y p) 1)))
+
+(define (ld->affine field p)
+  (if (ld-point-infinity? p)
+      ec-infinity-point
+      (let ((x (ld-point-x p))
+	    (y (ld-point-y p))
+	    (z (ld-point-z p)))
+	(if (= z 1)
+	    (make-ec-point x y)
+	    (let* ((zi (f2m-inverse field z))
+		   (zi2 (f2m-square field zi)))
+	      (make-ec-point (f2m-mul field x zi)
+			     (f2m-mul field y zi2)))))))
+
+(define (batch-ld->affine field points)
+  (define size (vector-length points))
+  (define prefixes (make-vector size))
+  (let gather ((i 0) (acc 1))
+    (if (= i size)
+	(let ((result (make-vector size))
+	      (acc-inv (f2m-inverse field acc)))
+	  (let normalize ((i (- size 1)) (acc-inv acc-inv))
+	    (if (< i 0)
+		result
+		(let ((point (vector-ref points i)))
+		  (if (ld-point-infinity? point)
+		      (begin
+			(vector-set! result i ec-infinity-point)
+			(normalize (- i 1) acc-inv))
+		      (let* ((z (ld-point-z point))
+			     (prefix (vector-ref prefixes i))
+			     (zi (f2m-mul field acc-inv prefix))
+			     (zi2 (f2m-square field zi)))
+			(vector-set! result i
+				     (make-ec-point
+				      (f2m-mul field (ld-point-x point) zi)
+				      (f2m-mul field (ld-point-y point) zi2)))
+			(normalize (- i 1) (f2m-mul field acc-inv z))))))))
+	(let ((point (vector-ref points i)))
+	  (if (ld-point-infinity? point)
+	      (begin
+		(vector-set! prefixes i #f)
+		(gather (+ i 1) acc))
+	      (begin
+		(vector-set! prefixes i acc)
+		(gather (+ i 1)
+			(f2m-mul field acc (ld-point-z point)))))))))
+
+(define (f2m-ld-point-negate field p)
+  (if (ld-point-infinity? p)
+      p
+      (let ((x (ld-point-x p))
+	    (y (ld-point-y p))
+	    (z (ld-point-z p)))
+	(make-ld-point x
+		       (f2m-add field y (f2m-mul field x z))
+		       z))))
+
+;; Ref:
+;;  - https://www.hyperelliptic.org/EFD/g12o/auto-shortw-lopezdahab.html
+;;    doubling "dbl-2005-l"
+(define (f2m-ld-point-twice field curve p)
+  (cond ((ld-point-infinity? p) p)
+	((zero? (ld-point-x p)) ld-infinity-point)
+	(else
+	 (let* ((a2 (elliptic-curve-a curve))
+		(x1 (ld-point-x p))
+		(y1 (ld-point-y p))
+		(z1 (ld-point-z p))
+		(A (f2m-mul field x1 z1))
+		(B (f2m-square field x1))
+		(C (f2m-add field B y1))
+		(D (f2m-mul field A C))
+		(Z3 (f2m-square field A))
+		(X3 (f2m-add field
+			     (f2m-square field C)
+			     (f2m-add field D (f2m-mul field a2 Z3))))
+		(Y3 (f2m-add field
+			     (f2m-mul field (f2m-add field Z3 D) X3)
+			     (f2m-mul field (f2m-square field B) Z3))))
+	   (make-ld-point X3 Y3 Z3)))))
+
+;; Ref:
+;;  - https://www.hyperelliptic.org/EFD/g12o/auto-shortw-lopezdahab.html
+;;    addition "add-2005-dl"
+(define (f2m-ld-point-add field curve p q)
+  (cond ((ld-point-infinity? p) q)
+	((ld-point-infinity? q) p)
+	(else
+	 (let* ((x1 (ld-point-x p))
+		(y1 (ld-point-y p))
+		(z1 (ld-point-z p))
+		(x2 (ld-point-x q))
+		(y2 (ld-point-y q))
+		(z2 (ld-point-z q))
+		(A (f2m-mul field x1 z2))
+		(B (f2m-mul field x2 z1))
+		(E (f2m-add field A B))
+		(G (f2m-mul field y1 (f2m-square field z2)))
+		(H (f2m-mul field y2 (f2m-square field z1)))
+		(I (f2m-add field G H)))
+	   (if (zero? E)
+	       (if (zero? I)
+		   (f2m-ld-point-twice field curve p)
+		   ld-infinity-point)
+	       (let* ((C (f2m-square field A))
+		      (D (f2m-square field B))
+		      (F (f2m-add field C D))
+		      (J (f2m-mul field I E))
+		      (Z3 (f2m-mul field (f2m-mul field F z1) z2))
+		      (X3 (f2m-add field
+				   (f2m-mul field A (f2m-add field H D))
+				   (f2m-mul field B (f2m-add field C G))))
+		      (Y3 (f2m-add field
+				   (f2m-mul field
+					    (f2m-add field
+						     (f2m-mul field A J)
+						     (f2m-mul field F G))
+					    F)
+				   (f2m-mul field (f2m-add field J Z3) X3))))
+		 (make-ld-point X3 Y3 Z3)))))))
+
+;; Ref:
+;;  - https://www.hyperelliptic.org/EFD/g12o/auto-shortw-lopezdahab.html
+;;    addition "madd-2005-dl" (Z2 = 1)
+(define (f2m-ld-mixed-point-add field curve p q)
+  (cond ((ld-point-infinity? p) (affine->ld q))
+	((ec-point-infinity? q) p)
+	(else
+	 (let* ((a2 (elliptic-curve-a curve))
+		(x1 (ld-point-x p))
+		(y1 (ld-point-y p))
+		(z1 (ld-point-z p))
+		(x2 (ec-point-x q))
+		(y2 (ec-point-y q))
+		(z1^2 (f2m-square field z1))
+		(A (f2m-add field y1 (f2m-mul field y2 z1^2)))
+		(B (f2m-add field x1 (f2m-mul field x2 z1))))
+	   (if (zero? B)
+	       (if (zero? A)
+		   (f2m-ld-point-twice field curve p)
+		   ld-infinity-point)
+	       (let* ((C (f2m-mul field B z1))
+		      (Z3 (f2m-square field C))
+		      (D (f2m-mul field x2 Z3))
+		      (X3 (f2m-add field
+				   (f2m-square field A)
+				   (f2m-mul field
+					    C
+					    (f2m-add field
+						     A
+						     (f2m-add field
+							      (f2m-square field B)
+							      (f2m-mul field a2 C))))))
+		      (Y3 (f2m-add field
+				   (f2m-mul field
+					    (f2m-add field D X3)
+					    (f2m-add field
+						     (f2m-mul field A C)
+						     Z3))
+				   (f2m-mul field
+					    (f2m-add field y2 x2)
+					    (f2m-square field Z3)))))
+		 (make-ld-point X3 Y3 Z3)))))))
+
 ;; wnaf := ((v . doubling) ...)
 ;; doubling represents number of times to double the accumulator.
 (define (compute-wnaf n w)
@@ -790,16 +973,82 @@
 			    (loop (cdr wnaf) (twice-n r (cdr v)))))))))
 	     (if neg? (ec-point-negate curve result) result))))))
 
+(define ((wnaf-f2m-ld-ec-point-mul w) curve p k)
+  (define field (elliptic-curve-field curve))
+  (define (precompute p w)
+    (define size (expt 2 (- w 2)))
+    (define odd-multiples (make-vector size))
+    (define p/ld (affine->ld p))
+    (define 2p/ld (f2m-ld-point-twice field curve p/ld))
+    (vector-set! odd-multiples 0 p/ld)
+    (do ((i 1 (+ i 1)))
+	((= i size))
+      (let ((prev (vector-ref odd-multiples (- i 1))))
+	(vector-set! odd-multiples i
+		     (f2m-ld-point-add field curve prev 2p/ld))))
+    (let* ((affine-odds (batch-ld->affine field odd-multiples))
+	   (precomputed (make-vector size)))
+      (do ((i 0 (+ i 1)))
+	  ((= i size) precomputed)
+	(let ((v (vector-ref affine-odds i)))
+	  (vector-set! precomputed i (cons v (ec-point-negate curve v)))))))
+  (define (twice-n q n)
+    (do ((i 0 (+ i 1)) (q q (f2m-ld-point-twice field curve q)))
+	((= i n) q)))
+  (define (twice-plus q p)
+    (f2m-ld-mixed-point-add
+     field curve (f2m-ld-point-twice field curve q) p))
+  (define (initial wnaf precomputed)
+    (let* ((v (car wnaf))
+	   (precomp (vector-ref precomputed (div (abs v) 2)))
+	   (r (if (positive? v) (car precomp) (cdr precomp))))
+      (twice-n (affine->ld r) (cdr wnaf))))
+  (unless (integer? k) (error 'ec-point-mul "integer required for k" k))
+  (let ((n (abs k))
+	(neg? (negative? k)))
+    (cond ((or (zero? n) (ec-point-infinity? p)) ec-infinity-point)
+	  (else
+	   (let* ((precomputed (precompute p w))
+		  (wnaf (compute-wnaf n w))
+		  (result
+		   (ld->affine
+		    field
+		    (let loop ((wnaf (cdr wnaf))
+			       (r (initial (car wnaf) precomputed)))
+		      (if (null? wnaf)
+			  r
+			  (let* ((v (car wnaf))
+				 (j (car v))
+				 (precomp (vector-ref precomputed (div (abs j) 2)))
+				 (r (if (positive? j)
+					(twice-plus r (car precomp))
+					(twice-plus r (cdr precomp)))))
+			    (loop (cdr wnaf) (twice-n r (cdr v)))))))))
+	     (if neg? (ec-point-negate curve result) result))))))
+
 ;;(define ec-point-mul naf-ec-point-mul)
 ;;(define ec-point-mul double-and-add-ec-point-mul)
 ;;(define ec-point-mul (windowed-ec-point-mul 4))
 (define fp-ec-point-mul (wnaf-fp-jacobian-ec-point-mul 6))
+(define f2m-ec-point-mul (wnaf-f2m-ld-ec-point-mul 6))
 (define fallback-ec-point-mul (wnaf-affine-ec-point-mul 6))
+(define (f2m-ld-applicable-point? field p)
+  (or (ec-point-infinity? p)
+      (and (integer? (ec-point-x p))
+	   (integer? (ec-point-y p))
+	   (let ((m (ec-field-f2m-m field)))
+	     (and (<= (bitwise-length (ec-point-x p)) m)
+		  (<= (bitwise-length (ec-point-y p)) m))))))
 (define (ec-point-mul curve p k)
   (define field (elliptic-curve-field curve))
-  (if (ec-field-fp? field)
-      (fp-ec-point-mul curve p k)
-      (fallback-ec-point-mul curve p k)))
+  (cond ((ec-field-fp? field)
+	 (fp-ec-point-mul curve p k))
+	((ec-field-f2m? field)
+	 (if (f2m-ld-applicable-point? field p)
+	     (f2m-ec-point-mul curve p k)
+	     (fallback-ec-point-mul curve p k)))
+	(else
+	 (fallback-ec-point-mul curve p k))))
 
 ;;;;
 ;;; Parameters
