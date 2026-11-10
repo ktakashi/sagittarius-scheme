@@ -43,6 +43,7 @@ PKCS12 KDF
 scrypt, defined in [RFC 7914](https://datatracker.ietf.org/doc/html/rfc7914).
 
 _P_ and _S_ must be bytevectors, represents password and salt.  
-_N_ must be an integer, represents cost parameter.  
-_r_ must be an integer, represents block size.  
-_p_ must be an integer, represents parallelization parameter.  
+_N_ must be an integer greater than 1 and must be a power of 2, represents cost parameter.  
+_r_ must be a positive integer, represents block size.  
+_p_ must be a positive integer, represents parallelization parameter.  
+The product of _r_ and _p_ must be less than `2^30`.

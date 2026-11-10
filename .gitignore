@@ -55,7 +55,7 @@ sagittarius-package
 /ext/crypto/modes/
 /ext/crypto/random.c
 /ext/crypto/salsa.c
-/ext/crypto/scrypt.stub
+/ext/crypto/scrypt.c
 /ext/crypto/stream.c
 /ext/ffi/ffi_stub.c
 /ext/filewatch/filewatch_stub.c

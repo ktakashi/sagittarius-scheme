@@ -1,0 +1,12 @@
+;; -*- mode: scheme; coding: utf-8; -*-
+
+(decl-code
+ (.include <sagittarius/private.h>)
+ (.define "LIBSAGITTARIUS_EXT_BODY")
+ (.include <sagittarius/extend.h>
+	   <sagittarius-scrypt.h>))
+
+(define-c-proc scrypt-block-mix! (bv::<bytevector> r::<integer>)
+  Sg_ScryptBlockMixX)
+(define-c-proc scrypt-romix! (bv::<bytevector> n::<integer> r::<integer>)
+  Sg_ScryptRomixX)

@@ -1,6 +1,7 @@
 (import (rnrs)
 	(sagittarius)
 	(sagittarius crypto kdfs scrypt)
+	(sagittarius crypto logic scrypt)
 	(util bytevector)
 	(srfi :64))
 
@@ -12,6 +13,39 @@
      (test-equal 'proc
 		 (hex-string->bytevector expect)
 		 (proc (hex-string->bytevector input) args ...)))))
+
+(define (reference-scrypt-block-mix B r)
+  (define 2r (* 2 r))
+  (define s (* 64 (- 2r 1)))
+  (define buf (make-bytevector 64))
+  (define (fill-buffer! B s)
+    (bytevector-copy! B s buf 0 64)
+    buf)
+  (let loop ((i 0) (X (bytevector-copy B s (+ s 64))) (Ye '()) (Yo '()))
+    (if (= i 2r)
+	(bytevector-concatenate (append (reverse Ye) (reverse Yo)))
+	(let* ((s (* i 64))
+	       (T (bytevector-xor X (fill-buffer! B s)))
+	       (X (salsa20/8 T))
+	       (e? (even? i)))
+	  (loop (+ i 1) X (if e? (cons X Ye) Ye) (if e? Yo (cons X Yo)))))))
+
+(define (reference-scrypt-ro-mix B N r)
+  (define V (make-vector N))
+  (define index (* (- (* r 2) 1) 64))
+  (define (integerify X) (bytevector-u64-ref X index (endianness little)))
+  (define (step-2 V X N)
+    (do ((i 0 (+ i 1)) (X X (reference-scrypt-block-mix X r)))
+	((= i N) (step-3 V X N))
+      (vector-set! V i X)))
+  (define (step-3 V X N)
+    (let loop ((i 0) (X X))
+      (if (= i N)
+	  X
+	  (let* ((j (mod (integerify X) N))
+		 (T (bytevector-xor X (vector-ref V j))))
+	    (loop (+ i 1) (reference-scrypt-block-mix T r))))))
+  (step-2 V B N))
 
 (test-components
  salsa20/8
@@ -25,18 +59,62 @@
  1)
 
 (test-components
- scrypt-ro-mix
- "79ccc193629debca047f0b70604bf6b62ce3dd4a9626e355fafc6198e6ea2b46d58413673b99b029d665c357601fb426a0b2f4bba200ee9f0a43d19b571a9c71ef1142e65d5a266fddca832ce59faa7cac0b9cf1be2bffca300d01ee387619c4ae12fd4438f203a0e4e1c47ec314861f4e9087cb33396a6873e8f9d2539a4b8e"
+  scrypt-block-mix!
+  "a41f859c6608cc993b81cacb020cef05044b2181a2fd337dfd7b1c6396682f29b4393168e3c9e6bcfe6bc5b7a06d96bae424cc102c91745c24ad673dc7618f8120edc975323881a80540f64c162dcd3c21077cfe5f8d5fe2b1a4168f953678b77d3b3d803b60e4ab920996e59b4d53b65d2a225877d5edf5842cb9f14eefe425"
+  "f7ce0b653d2d72a4108cf5abe912ffdd777616dbbb27a70e8204f3ae2d0f6fad89f68f4811d1e87bcc3bd7400a9ffd29094f0184639574f39ae5a1315217bcd7894991447213bb226c25b54da86370fbcd984380374666bb8ffcb5bf40c254b067d27c51ce4ad5fed829c90b505a571b7f4d1cad6a523cda770e67bceaaf7e89"
+  1)
+
+ (test-components
+  scrypt-ro-mix
+  "79ccc193629debca047f0b70604bf6b62ce3dd4a9626e355fafc6198e6ea2b46d58413673b99b029d665c357601fb426a0b2f4bba200ee9f0a43d19b571a9c71ef1142e65d5a266fddca832ce59faa7cac0b9cf1be2bffca300d01ee387619c4ae12fd4438f203a0e4e1c47ec314861f4e9087cb33396a6873e8f9d2539a4b8e"
  "f7ce0b653d2d72a4108cf5abe912ffdd777616dbbb27a70e8204f3ae2d0f6fad89f68f4811d1e87bcc3bd7400a9ffd29094f0184639574f39ae5a1315217bcd7894991447213bb226c25b54da86370fbcd984380374666bb8ffcb5bf40c254b067d27c51ce4ad5fed829c90b505a571b7f4d1cad6a523cda770e67bceaaf7e89"
  16 1)
 
-(test-error "N is 1" assertion-violation? (scrypt "password" "salt" 1 1 1 64))
-(test-error "N is not power of 2" assertion-violation?
-	    (scrypt "password" "salt" 3 1 1 64))
+ (test-components
+  scrypt-romix!
+  "79ccc193629debca047f0b70604bf6b62ce3dd4a9626e355fafc6198e6ea2b46d58413673b99b029d665c357601fb426a0b2f4bba200ee9f0a43d19b571a9c71ef1142e65d5a266fddca832ce59faa7cac0b9cf1be2bffca300d01ee387619c4ae12fd4438f203a0e4e1c47ec314861f4e9087cb33396a6873e8f9d2539a4b8e"
+  "f7ce0b653d2d72a4108cf5abe912ffdd777616dbbb27a70e8204f3ae2d0f6fad89f68f4811d1e87bcc3bd7400a9ffd29094f0184639574f39ae5a1315217bcd7894991447213bb226c25b54da86370fbcd984380374666bb8ffcb5bf40c254b067d27c51ce4ad5fed829c90b505a571b7f4d1cad6a523cda770e67bceaaf7e89"
+  16 1)
 
-(define (test-scrypt P S N r p dk-len expected)
-  (if (string=? "" P)
-      (test-error (list "Empty password not allowed" N r p)
+ (let* ((input (hex-string->bytevector
+ 	       "f7ce0b653d2d72a4108cf5abe912ffdd777616dbbb27a70e8204f3ae2d0f6fad89f68f4811d1e87bcc3bd7400a9ffd29094f0184639574f39ae5a1315217bcd7894991447213bb226c25b54da86370fbcd984380374666bb8ffcb5bf40c254b067d27c51ce4ad5fed829c90b505a571b7f4d1cad6a523cda770e67bceaaf7e89"))
+        (expected (reference-scrypt-block-mix input 1)))
+   (test-equal "native blockmix matches reference" expected
+ 	      (scrypt-block-mix input 1)))
+
+ (let* ((input (hex-string->bytevector
+ 	       "f7ce0b653d2d72a4108cf5abe912ffdd777616dbbb27a70e8204f3ae2d0f6fad89f68f4811d1e87bcc3bd7400a9ffd29094f0184639574f39ae5a1315217bcd7894991447213bb226c25b54da86370fbcd984380374666bb8ffcb5bf40c254b067d27c51ce4ad5fed829c90b505a571b7f4d1cad6a523cda770e67bceaaf7e89"))
+        (expected (reference-scrypt-ro-mix input 16 1)))
+   (test-equal "native romix matches reference" expected
+ 	      (scrypt-ro-mix input 16 1)))
+
+ (let* ((input (hex-string->bytevector
+ 	       "f7ce0b653d2d72a4108cf5abe912ffdd777616dbbb27a70e8204f3ae2d0f6fad89f68f4811d1e87bcc3bd7400a9ffd29094f0184639574f39ae5a1315217bcd7894991447213bb226c25b54da86370fbcd984380374666bb8ffcb5bf40c254b067d27c51ce4ad5fed829c90b505a571b7f4d1cad6a523cda770e67bceaaf7e89"))
+        (before (bytevector-copy input 0 (bytevector-length input))))
+   (scrypt-block-mix input 1)
+   (test-equal "scrypt-block-mix does not mutate input" before input))
+
+ (let* ((input (hex-string->bytevector
+ 	       "f7ce0b653d2d72a4108cf5abe912ffdd777616dbbb27a70e8204f3ae2d0f6fad89f68f4811d1e87bcc3bd7400a9ffd29094f0184639574f39ae5a1315217bcd7894991447213bb226c25b54da86370fbcd984380374666bb8ffcb5bf40c254b067d27c51ce4ad5fed829c90b505a571b7f4d1cad6a523cda770e67bceaaf7e89"))
+        (before (bytevector-copy input 0 (bytevector-length input))))
+   (scrypt-ro-mix input 16 1)
+   (test-equal "scrypt-ro-mix does not mutate input" before input))
+
+ (test-error "N is 1" assertion-violation? (scrypt "password" "salt" 1 1 1 64))
+ (test-error "N is not power of 2" assertion-violation?
+ 	    (scrypt "password" "salt" 3 1 1 64))
+ (test-error "r is 0" assertion-violation?
+ 	    (scrypt "password" "salt" 16 0 1 64))
+ (test-error "p is 0" assertion-violation?
+ 	    (scrypt "password" "salt" 16 1 0 64))
+ (test-error "native block mix invalid r" assertion-violation?
+ 	    (scrypt-block-mix! (make-bytevector 128) 0))
+ (test-error "native romix invalid N" assertion-violation?
+ 	    (scrypt-romix! (make-bytevector 128) 1 1))
+
+ (define (test-scrypt P S N r p dk-len expected)
+   (if (string=? "" P)
+       (test-error (list "Empty password not allowed" N r p)
 		  (hex-string->bytevector expected)
 		  (scrypt (string->utf8 P)
 			  (string->utf8 S)
