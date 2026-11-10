@@ -117,12 +117,36 @@ IF(APPLE)
 ENDIF()
 TARGET_LINK_LIBRARIES(sagittarius--salsa sagittarius)
 
+# sagittarius--scrypt
+ADD_LIBRARY(sagittarius--scrypt MODULE
+  sagittarius-scrypt.c
+  ${CMAKE_CURRENT_BINARY_DIR}/scrypt.c)
+COPY_TARGET(sagittarius--scrypt ${CMAKE_LIBRARY_OUTPUT_DIRECTORY} TRUE)
+IF (USE_CPP_FOR_BROKEN_LINKER)
+  # ugly solution
+  SET_SOURCE_FILES_PROPERTIES(
+    sagittarius-scrypt.c
+    ${CMAKE_CURRENT_BINARY_DIR}/scrypt.c
+    PROPERTIES LANGUAGE CXX)
+ENDIF()
+ADD_STUBS(sagittarius--scrypt
+  COMMAND ${GENSTUB}
+  FILES scrypt.stub
+  OUTTREE)
+SET_TARGET_PROPERTIES(sagittarius--scrypt PROPERTIES PREFIX "")
+IF(APPLE)
+  SET_TARGET_PROPERTIES(sagittarius--scrypt PROPERTIES SUFFIX ".dylib")
+ENDIF()
+TARGET_LINK_LIBRARIES(sagittarius--scrypt sagittarius)
+
 
 INSTALL(TARGETS sagittarius--tomcrypt
   DESTINATION ${SAGITTARIUS_DYNLIB_PATH})
 INSTALL(TARGETS sagittarius--secure
   DESTINATION ${SAGITTARIUS_DYNLIB_PATH})
 INSTALL(TARGETS sagittarius--ec
+  DESTINATION ${SAGITTARIUS_DYNLIB_PATH})
+INSTALL(TARGETS sagittarius--scrypt
   DESTINATION ${SAGITTARIUS_DYNLIB_PATH})
 INSTALL(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/sagittarius
   DESTINATION ${SAGITTARIUS_SHARE_LIB_PATH})

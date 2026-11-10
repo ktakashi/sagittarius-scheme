@@ -40,37 +40,7 @@
 # define noreturn noreturn_save
 #endif
 
-#define QUARTERROUND(a,b,c,d)	      \
-  do {				      \
-    x[b] ^= (ROL((x[a] + x[d]),  7)); \
-    x[c] ^= (ROL((x[b] + x[a]),  9)); \
-    x[d] ^= (ROL((x[c] + x[b]), 13)); \
-    x[a] ^= (ROL((x[d] + x[c]), 18)); \
-  } while (0)
-
-static void salsa_core(uint8_t *out, uint8_t *in, int rounds)
-{
-  uint32_t x[16];
-  int i;
-
-  memcpy(x, in, sizeof(x));
-  
-  for (i = 0; i < rounds; i += 2) {
-    QUARTERROUND( 0, 4, 8,12);
-    QUARTERROUND( 5, 9,13, 1);
-    QUARTERROUND(10,14, 2, 6);
-    QUARTERROUND(15, 3, 7,11);
-    QUARTERROUND( 0, 1, 2, 3);
-    QUARTERROUND( 5, 6, 7, 4);
-    QUARTERROUND(10,11, 8, 9);
-    QUARTERROUND(15,12,13,14);
-  }
-
-  for (i = 0; i < 16; i++) {
-    x[i] += ((uint32_t *)in)[i];
-    STORE32L(x[i], out + 4 * i);
-  }
-}
+#include "sagittarius-salsa-core.h"
 
 
 SgObject Sg_SalsaCore(SgObject in, int rounds)
@@ -89,7 +59,8 @@ SgObject Sg_SalsaCoreX(SgObject in, int rounds)
       in);
   }
   for (i = 0; i < SG_BVECTOR_SIZE(in); i += 64) {
-    salsa_core(SG_BVECTOR_ELEMENTS(in) + i, SG_BVECTOR_ELEMENTS(in) + i, rounds);
+    sagittarius_salsa_core(SG_BVECTOR_ELEMENTS(in) + i,
+			   SG_BVECTOR_ELEMENTS(in) + i, rounds);
   }
   return in;
 }
