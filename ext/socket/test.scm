@@ -685,7 +685,7 @@
 		(values result node #f)
 		(loop (cdr nodes) result))))))
   (define (echo-on-ready who)
-    (guard (e (else #f))
+    (guard (e (else (print e) #f))
       (let ((ready (apply socket-read-select 5000 s*)))
 	(and (pair? ready)
 	     (let loop ((servers ready) (handled? #f))
