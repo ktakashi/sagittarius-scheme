@@ -6,6 +6,7 @@
 	(sagittarius control)
 	(sagittarius socket)
 	(sagittarius io)
+	(only (sagittarius threads) with-locking-mutex)
 	(clos user)
 	(net server)
 	(binary io)
@@ -23,6 +24,8 @@
 		websocket-connection-port-set!))
 
 (test-begin "RFC Websocket")
+
+(define websocket-test-timeout 10)
 
 (define-class <one-shot-binary-port>
   (<custom-binary-input-port> <read-once-port>)
@@ -128,13 +131,15 @@
       (base64-encode
        (digest-message md (bytevector-append (string->utf8 key) *uuid*)))))
 
-  (define (keep-sending out)
+  (define (keep-sending out mutex)
     (lambda ()
       (shared-queue-put! queue #t)
-      (let loop ((i 0))
-	(unless (= i count)
-	  (websocket-send-frame! out +websocket-text-frame+ #f #*"Hello" #t)
-	  (loop (+ i 1))))))
+      (with-locking-mutex mutex
+	(lambda ()
+	  (let loop ((i 0))
+	    (unless (= i count)
+	      (websocket-send-frame! out +websocket-text-frame+ #f #*"Hello" #t)
+	      (loop (+ i 1))))))))
 
   (define (send-close out)
     (websocket-send-frame! out +websocket-close-frame+ #t #vu8() #t))
@@ -153,8 +158,9 @@
     ;; from buffered port lists. i don't know why.
     ;;(define in/out (buffered-port (socket-port socket #f) (buffer-mode block)))
     (define in/out (socket-port socket #f))
+	(define mutex (make-mutex))
     (unwind-protect
-     (let ((thread (make-thread (keep-sending in/out))))
+	 (let ((thread (make-thread (keep-sending in/out mutex))))
        (get-line in/out) ;; discard
        (let* ((headers (rfc5322-read-headers in/out))
 	      (key (calculate-key headers)))
@@ -179,18 +185,22 @@
 		  (thread-join! thread)
 		  (send-close in/out))
 		 ((= op +websocket-ping-frame+)
-		  (if (bytevector=? #*"invalid" data)
-		      (send-pong in/out #*"fail")
-		      (send-pong in/out data))
+		  (with-locking-mutex mutex
+		    (lambda ()
+		      (if (bytevector=? #*"invalid" data)
+			  (send-pong in/out #*"fail")
+			  (send-pong in/out data))))
 		  (loop))
 		 (else
-		  (send-binary in/out data op fin?)
-		  (unless fin?
-		    (let lp ()
-		      (let-values (((fin? op data)
-				    (websocket-recv-frame in/out)))
-			(send-binary in/out data op fin?)
-			(unless fin? (lp)))))
+		  (with-locking-mutex mutex
+		    (lambda ()
+		      (send-binary in/out data op fin?)
+		      (unless fin?
+			(let lp ()
+			  (let-values (((fin? op data)
+					(websocket-recv-frame in/out)))
+			    (send-binary in/out data op fin?)
+			    (unless fin? (lp)))))))
 		  (loop))))))
      (close-port in/out)))
   (define config (make-server-config :use-ipv6? #t))
@@ -225,34 +235,36 @@
     (test-assert on-open)
     (test-assert (websocket? (websocket-send websocket #*"binary")))
     (test-assert (websocket? (websocket-send websocket bv126)))
-    ;; CI fails...
     (test-assert (websocket? (websocket-send websocket bvFFFF)))
     ;; using splitter
     (test-assert (websocket? (websocket-send websocket bvFFFF 0 1024)))
 
-    (shared-queue-get! queue) ;; wait until thread is ready
+    (shared-queue-get! queue websocket-test-timeout) ;; wait until thread is ready
     (do ((i 0 (+ i 1))) ((= i count))
-      (test-equal (format "Hello (~a)" i) "Hello" (shared-queue-get! tsq 10)))
-    (test-equal #*"binary" (shared-queue-get! sq 1))
-    (test-equal bv126 (shared-queue-get! sq 1))
-    (test-equal (bytevector-length bvFFFF)
-		(bytevector-length (shared-queue-get! sq 1)))
-    (test-equal (bytevector-length bvFFFF)
-		(bytevector-length (shared-queue-get! sq 1)))
-    (test-assert (websocket? (websocket-ping websocket #*"data")))
+      (test-equal (format "Hello (~a)" i) "Hello"
+		  (shared-queue-get! tsq websocket-test-timeout)))
+    (test-equal #*"binary" (shared-queue-get! sq websocket-test-timeout))
+    (test-equal bv126 (shared-queue-get! sq websocket-test-timeout))
+    (test-equal "unfragmented binary message" bvFFFF
+		(shared-queue-get! sq websocket-test-timeout))
+    (test-equal "fragmented binary message" bvFFFF
+		(shared-queue-get! sq websocket-test-timeout))
+    (test-assert (websocket? (websocket-ping websocket #*"data"
+					     websocket-test-timeout)))
     (test-error "websocket ping" websocket-pong-error?
-		(websocket-ping websocket #*"invalid"))
+		(websocket-ping websocket #*"invalid" websocket-test-timeout))
 
-    (test-assert (websocket? (websocket-close websocket :timeout 1)))
+    (test-assert (websocket? (websocket-close websocket
+					      :timeout websocket-test-timeout)))
     ;; double close doesn't effect anything
-    (test-assert (websocket? (websocket-close websocket :timeout 1)))
+    (test-assert (websocket? (websocket-close websocket
+					      :timeout websocket-test-timeout)))
     (test-assert on-close)))
 
 (let ()
   (define count 5)
   (define server (make-test-websocket-server count))
   (server-start! server :background #t)
-  (thread-sleep! 0.1)
 
   (let ((uri (format "ws://localhost:~a" (server-port server))))
     ;; normal test
@@ -261,10 +273,10 @@
     ;; protocol
     (let ((websocket (make-websocket uri :protocols '("chat"))))
       (test-assert (websocket? (websocket-open websocket)))
-      (test-assert (websocket-close websocket :timeout 1))
+      (test-assert (websocket-close websocket :timeout websocket-test-timeout))
       ;; re-open
       (test-assert (websocket? (websocket-open websocket)))
-      (test-assert (websocket-close websocket :timeout 1))
+      (test-assert (websocket-close websocket :timeout websocket-test-timeout))
       )
     (let ((websocket (make-websocket uri :protocols '("not-exist"))))
       (test-error websocket-engine-error? (websocket-open websocket)))
