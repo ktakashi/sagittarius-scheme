@@ -163,6 +163,7 @@
 	    (sagittarius crypto pkcs algorithms)
 	    (sagittarius crypto pkcs cms)
 	    (sagittarius crypto pkcs pbes)
+	    (sagittarius crypto pkcs pbmac1)
 	    (sagittarius crypto pkcs keys)
 	    (sagittarius crypto pkix modules x509)
 	    (sagittarius crypto pkix algorithms)
@@ -174,7 +175,6 @@
 	    (sagittarius crypto kdfs)
 	    (sagittarius crypto keys)
 	    (except (sagittarius crypto mac) verify-mac)
-	    (sagittarius crypto mac hmac)
 	    (sagittarius crypto random)
 	    (sagittarius crypto secure)
 	    (sagittarius combinators)
@@ -187,7 +187,6 @@
 ;; default 10000 is enough? or too much?
 (define *pkcs12-integrity-iteration-count* (make-parameter 10000))
 (define *pkcs12-privacy-iteration-count* (make-parameter 10000))
-(define *pkcs12-pbmac1-max-iterations* (make-parameter 1000000))
 
 (define-record-type pkcs12-integrity-descriptor)
 (define-record-type pkcs12-password-integrity-descriptor
@@ -207,7 +206,9 @@
 (define *pkcs12-integrity-descriptor:pbmac1/pbkdf2/hmac-sha256*
   (make-pkcs12-password-integrity-descriptor
    (lambda (key data prng)
-     (make-pbmac1-mac-data key data prng))))
+     (make-pbmac1-mac-data key data prng
+			   (*pkcs12-integrity-salt-size*)
+			   (*pkcs12-integrity-iteration-count*)))))
 (define (make-pkcs12-password-integrity-descriptor-api (md digest-descriptor?)
 	 :key (iteration (*pkcs12-integrity-iteration-count*))
 	      (salt-size (*pkcs12-integrity-salt-size*)))
@@ -655,8 +656,7 @@
 	 (aid (digest-info-digest-algorithm mac))
 	 (digest (ber-octet-string->bytevector (digest-info-digest mac)))
 	 (data (ber-octet-string->bytevector content))
-	 (pbmac1? (equal? (algorithm-identifier-algorithm aid)
-			  *pbes:pbmac1*))
+	 (pbmac1? (pbmac1-algorithm-identifier? aid))
 	 (salt (and (not pbmac1?)
 		    (ber-octet-string->bytevector (mac-data-mac-salt mac-data))))
 	 (c (and (not pbmac1?)
@@ -667,9 +667,8 @@
     (unless (safe-bytevector=?
 	     digest
 	     (if pbmac1?
-		 (compute-pbmac1 data password
-		  (x509-algorithm-identifier-parameters
-		   (algorithm-identifier->x509-algorithm-identifier aid)))
+		 (generate-mac (pbmac1-algorithm-identifier->mac aid password)
+			       data)
 		 (compute-mac md data password salt c)))
       (error 'verify-mac
        "Mac is invalid - wrong integrity password or corrupted data"))
@@ -679,75 +678,6 @@
 		*pkcs12-integrity-descriptor:pbmac1/pbkdf2/hmac-sha256*
 		(make-pkcs12-password-integrity-descriptor-api md
 		 :iteration c :salt-size (bytevector-length salt))))))
-
-(define (pbmac1-hmac-digest aid)
-  (define oid (x509-algorithm-identifier-oid aid))
-  (define param (x509-algorithm-identifier-parameters aid))
-  (unless (or (not param) (der-null? param))
-    (assertion-violation 'verify-mac "Invalid PBMAC1 HMAC parameters" param))
-  (unless (member oid (map sid (list *pbes:hmac/sha224* *pbes:hmac/sha256*
-				     *pbes:hmac/sha384* *pbes:hmac/sha512*
-				     *pbes:hmac/sha512/224*
-				     *pbes:hmac/sha512/256*)))
-    (assertion-violation 'verify-mac "Unsupported PBMAC1 HMAC" oid))
-  (or (oid->digest-descriptor (hmac-oid->digest-oid oid))
-      (assertion-violation 'verify-mac "Unsupported PBMAC1 digest" oid)))
-
-(define (compute-pbmac1 data password params)
-  (unless (pkcs-pbmac1-params? params)
-    (assertion-violation 'verify-mac "Missing PBMAC1 parameters" params))
-  (let* ((kdf (pkcs-pbmac1-params-key-derivation-func params))
-	 (mac (pkcs-pbmac1-params-message-auth-scheme params))
-	 (kdf-params (x509-algorithm-identifier-parameters kdf)))
-    (unless (and (string=? (x509-algorithm-identifier-oid kdf)
-			    (sid *pbes:pbkdf2*))
-		 (pkcs-pbkdf2-param? kdf-params))
-      (assertion-violation 'verify-mac "Unsupported PBMAC1 KDF" kdf))
-    (let* ((salt (pkcs-pbkdf2-params-salt kdf-params))
-	   (count (pkcs-pbkdf2-params-iteration-count kdf-params))
-	   (length (pkcs-pbkdf2-params-key-length kdf-params))
-	   (prf (pbmac1-hmac-digest (pkcs-pbkdf2-params-prf kdf-params)))
-	   (digest (pbmac1-hmac-digest mac)))
-      (unless (and (positive? (bytevector-length salt))
-		   (<= (bytevector-length salt) 1024)
-		   (integer? count) (exact? count) (positive? count)
-		   (<= count (*pkcs12-pbmac1-max-iterations*))
-		   (integer? length) (exact? length) (<= 20 length 128))
-	(assertion-violation 'verify-mac "Invalid PBMAC1 KDF parameters"
-			     salt count length))
-      (generate-mac
-       (make-mac *mac:hmac*
-	 (pbkdf-2 (string->utf8 password) salt count length
-		  :prf (mac->prf-provider *mac:hmac* :digest prf))
-	 :digest digest)
-       data))))
-
-(define (make-pbmac1-mac-data password data prng)
-  (define salt-size (*pkcs12-integrity-salt-size*))
-  (define count (*pkcs12-integrity-iteration-count*))
-  (unless (and (integer? salt-size) (exact? salt-size)
-	       (<= 1 salt-size 1024)
-	       (integer? count) (exact? count)
-	       (<= 1 count (*pkcs12-pbmac1-max-iterations*)))
-    (assertion-violation 'make-pbmac1-mac-data
-			 "Invalid PBMAC1 salt size or iteration count"
-			 salt-size count))
-  (let* ((salt (random-generator-read-random-bytes prng salt-size))
-	 (mac-aid (make-x509-algorithm-identifier (sid *pbes:hmac/sha256*)
-						   (make-der-null)))
-	 (kdf-aid (make-pbkdf2-x509-algorithm-identifier
-		   salt count :prf mac-aid :key-length 32))
-	 (aid (make-pbmac1-x509-algorithm-identifier kdf-aid mac-aid))
-	 (digest (compute-pbmac1 data password
-		  (x509-algorithm-identifier-parameters aid))))
-    (make <mac-data>
-      :mac (make <digest-info>
-	     :digest-algorithm
-	     (x509-algorithm-identifier->algorithm-identifier aid)
-	     :digest (bytevector->der-octet-string digest))
-      :mac-salt (bytevector->der-octet-string
-		 (random-generator-read-random-bytes prng salt-size))
-      :iterations (integer->der-integer count))))
 
 ;;; Write
 (define (pkcs12-keystore->pfx ks
