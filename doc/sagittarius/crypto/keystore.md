@@ -33,7 +33,9 @@ creating a keystore with `(sagittarius crypto pkcs keystore)`, or use
 `pkcs12-keystore-integrity-descriptor-set!` before serializing it. The
 descriptor is also exported by `(sagittarius crypto keystores pkcs12)`.
 Reading a keystore automatically selects the mechanism from its MAC
-algorithm identifier; traditional PKCS#12 files remain supported.
+algorithm identifier; traditional PKCS#12 files remain supported. Use
+`write-pkcs12-keystore` with a binary output port to save a PBMAC1-protected
+`.p12` file and `read-pkcs12-keystore` with a binary input port to load it.
 
 PBMAC1 generation uses PBKDF2 with HMAC-SHA-256 as both its PRF and MAC,
 and explicitly encodes a 32-byte derived key. It uses UTF-8 password bytes,

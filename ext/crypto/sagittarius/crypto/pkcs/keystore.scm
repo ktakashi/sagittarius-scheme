@@ -663,15 +663,14 @@
 		 (if (mac-data-iterations mac-data)
 		     (der-integer->integer (mac-data-iterations mac-data))
 		     1)))
-	 (md (and (not pbmac1?) (aid->md aid))))
-    (unless (safe-bytevector=?
-	     digest
-	     (if pbmac1?
-		 (generate-mac (pbmac1-algorithm-identifier->mac aid password)
-			       data)
-		 (compute-mac md data password salt c)))
+	 (md (and (not pbmac1?) (aid->md aid)))
+	 (computed-mac
+	  (if pbmac1?
+	      (generate-mac (pbmac1-algorithm-identifier->mac aid password) data)
+	      (compute-mac md data password salt c))))
+    (unless (safe-bytevector=? digest computed-mac)
       (error 'verify-mac
-       "Mac is invalid - wrong integrity password or corrupted data"))
+	     "Mac is invalid - wrong integrity password or corrupted data"))
     (values (asn1-object->asn1-encodable <authenticated-safe>
 					 (bytevector->asn1-object data))
 	    (if pbmac1?

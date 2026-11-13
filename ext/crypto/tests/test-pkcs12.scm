@@ -18,6 +18,7 @@
 	(util file)
 	(srfi :1)
 	(srfi :19)
+	(srfi :39)
 	(srfi :64))
 
 (define p12
@@ -259,6 +260,43 @@
 	    (test-error (string-append "RFC 9879 rejects A." (number->string n))
 			condition? (rfc9879-vector n)))
 	  '(4 5 6))
+
+(let ((ks (make-pkcs12-keystore
+	   :integrity-descriptor
+	   *pkcs12-integrity-descriptor:pbmac1/pbkdf2/hmac-sha256*)))
+  (pkcs12-keystore-add-certificate!
+   ks cert (list (make-pkcs9-friendly-name-attribute "pbmac1-cert")))
+  (let*-values (((dir base ext) (decompose-path (current-load-path)))
+		((port name)
+		 (make-temporary-file
+		  (build-path* dir ".." ".." ".." "build" "pbmac1-"))))
+      (close-port port)
+      (delete-file name)
+      (let ((p12 (string-append name ".p12")))
+	(dynamic-wind
+	 (lambda () #f)
+	 (lambda ()
+	   (call-with-output-file p12
+	     (lambda (out) (write-pkcs12-keystore ks "password" out))
+	     :transcoder #f)
+	   (test-equal
+	    "read PBMAC1 .p12 file with certificate"
+	    '(#t #t)
+	    (let ((ks2 (call-with-input-file p12
+			  (lambda (in) (read-pkcs12-keystore "password" in))
+			  :transcoder #f)))
+	      (list 
+	       (x509-certificate?
+		(pkcs12-keystore-find-certificate
+		 (pkcs12-friendly-name-pred "pbmac1-cert") ks2))
+	       (equal? *pkcs12-integrity-descriptor:pbmac1/pbkdf2/hmac-sha256*
+		       (pkcs12-keystore-integrity-descriptor ks2)))))
+	   (test-error "PBMAC1 .p12 file rejects wrong password" condition?
+	     (call-with-input-file p12
+	       (lambda (in) (read-pkcs12-keystore "wrong" in))
+	       :transcoder #f)))
+	 (lambda ()
+	   (when (file-exists? p12) (delete-file p12)))))))
 
 (let* ((ks (make-pkcs12-keystore
 	    :integrity-descriptor
