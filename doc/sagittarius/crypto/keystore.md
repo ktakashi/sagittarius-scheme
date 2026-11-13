@@ -24,6 +24,48 @@ Returns `#t` if the given _obj_ is PKCS#12 keystore, otherwise `#f`.
 
 Creates an empty PKCS#12 keystore.
 
+### [§4] PKCS#12 integrity protection
+
+The default integrity descriptor remains the traditional PKCS#12
+HMAC-SHA-256 mechanism. To generate RFC 9879 PBMAC1 integrity protection,
+select `*pkcs12-integrity-descriptor:pbmac1/pbkdf2/hmac-sha256*` when
+creating a keystore with `(sagittarius crypto pkcs keystore)`, or use
+`pkcs12-keystore-integrity-descriptor-set!` before serializing it. The
+descriptor is also exported by `(sagittarius crypto keystores pkcs12)`.
+Reading a keystore automatically selects the mechanism from its MAC
+algorithm identifier; traditional PKCS#12 files remain supported.
+
+PBMAC1 generation uses PBKDF2 with HMAC-SHA-256 as both its PRF and MAC,
+and explicitly encodes a 32-byte derived key. It uses UTF-8 password bytes,
+without a BOM or added NUL terminator; an actual NUL in the password is
+preserved. Traditional PKCS#12 integrity uses its existing password encoding.
+The outer `MacData` salt and iteration count are generated for compatibility
+but ignored when reading PBMAC1. The inner PBKDF2 parameters are authoritative.
+
+###### [!Variable] `*pkcs12-integrity-descriptor:pbmac1/pbkdf2/hmac-sha256*`
+
+Selects RFC 9879 PBMAC1 for PKCS#12 output. The existing
+`*pkcs12-integrity-salt-size*` and `*pkcs12-integrity-iteration-count*`
+parameters control its PBKDF2 salt size and iteration count.
+
+###### [!Parameter] `*pkcs12-pbmac1-max-iterations*`
+
+Maximum accepted PBKDF2 iteration count for PBMAC1 verification and
+generation (default 1,000,000). Choose a lower limit when processing
+untrusted files under tighter CPU budgets. PBMAC1 also rejects empty salts,
+salts over 1024 bytes, missing key lengths, and derived key lengths outside
+20 to 128 bytes. Only SHA-2 HMAC algorithms are accepted as PRF and MAC;
+unsupported or malformed parameters cause an error rather than falling back
+to legacy integrity verification.
+
+The `(sagittarius crypto pkcs pbes)` library exports
+`make-pbmac1-x509-algorithm-identifier`, `make-pkcs-pbmac1-params`,
+`pkcs-pbmac1-params?`, and accessors for the nested key derivation and
+message authentication algorithm identifiers. The constructor accepts
+two X.509 algorithm identifiers (KDF and MAC), respectively; it does not
+perform policy validation until the identifier is used for PKCS#12
+verification.
+
 ###### [!Function] `read-pkcs12-keystore` (_password_ `string?`) :optiona _in_
 
 Reads PKCS#12 keystore from _in_, if provided, otherwise `(current-input-port)`.
