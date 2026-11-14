@@ -19,6 +19,7 @@ Below are the MAC algorithms supported by the library.
 ###### [!MAC algorithm] `*mac:kmac*`
 ###### [!MAC algorithm] `*mac:kmac-128*`
 ###### [!MAC algorithm] `*mac:kmac-256*`
+###### [!MAC algorithm] `*mac:pbmac1*`
 
 ###### [!Function] `mac?` _obj_
 
@@ -38,7 +39,7 @@ Returns the type of given _mac_.
 
 Returns MAC size of the given _mac_, if the MAC size is fixed, 
 otherwise `#f`.  
-Only KMAC is variable length.
+KMAC and PBMAC1 using a variable-length underlying MAC can be variable length.
 
 ###### [!Function] `mac-oid` (_mac_ `mac?`)
 

@@ -40,6 +40,11 @@
 	    pkcs-pbes2-params-key-derivation-func
 	    pkcs-pbes2-params-encryption-scheme
 
+	    pkcs-pbmac1-params? <pkcs-pbmac1-params>
+	    make-pkcs-pbmac1-params
+	    pkcs-pbmac1-params-key-derivation-func
+	    pkcs-pbmac1-params-message-auth-scheme
+
 	    pkcs-pbkdf2-param? <pkcs-pbkdf2-params>
 	    make-pkcs-pbkdf2-params
 	    pkcs-pbkdf2-params-salt
@@ -66,7 +71,10 @@
 	    make-pbe-sha1-des-cbc-x509-algorithm-identifier
 	    make-pbe-sha1-rc2-cbc-x509-algorithm-identifier
 	    make-pbes2-x509-algorithm-identifier
+	    make-pbmac1-x509-algorithm-identifier
 	    make-pbkdf2-x509-algorithm-identifier
+	    *pbes:pbmac1*
+	    *pbes:pbkdf2*
 	    ;; PRF OID
 	    *pbes:hmac/sha1*
 	    *pbes:hmac/sha224*
@@ -165,6 +173,25 @@
 (define-method oid->x509-algorithm-parameters-types
   ((oid (equal (sid *pbes:pbes2*))))
   (values <pkcs-pbes2-params> <pbes2-params>))
+
+(define-class <pkcs-pbmac1-params>
+  (<asn1-encodable-container> <x509-algorithm-parameters>)
+  ((key-derivation-func :allocation :virtual :cached #t
+    :slot-ref (make-slot-ref
+	       (.$ pbmac1-params-key-derivation-func
+		   asn1-encodable-container-c)
+	       algorithm-identifier->x509-algorithm-identifier)
+    :reader pkcs-pbmac1-params-key-derivation-func)
+   (message-auth-scheme :allocation :virtual :cached #t
+    :slot-ref (make-slot-ref
+	       (.$ pbmac1-params-message-auth-scheme
+		   asn1-encodable-container-c)
+	       algorithm-identifier->x509-algorithm-identifier)
+    :reader pkcs-pbmac1-params-message-auth-scheme)))
+(define (pkcs-pbmac1-params? o) (is-a? o <pkcs-pbmac1-params>))
+(define-method oid->x509-algorithm-parameters-types
+  ((oid (equal (sid *pbes:pbmac1*))))
+  (values <pkcs-pbmac1-params> <pbmac1-params>))
 
 (define *hmac/sha1-aid*
   (make-x509-algorithm-identifier (sid *pbes:hmac/sha1*)))
@@ -278,6 +305,20 @@
   (make-x509-algorithm-identifier
    (der-object-identifier->oid-string *pbes:pbes2*)
    (make-pkcs-pbes2-params kdf encryption-scheme)))
+
+(define (make-pbmac1-x509-algorithm-identifier kdf mac)
+  (make-x509-algorithm-identifier
+   (sid *pbes:pbmac1*) (make-pkcs-pbmac1-params kdf mac)))
+
+(define (make-pkcs-pbmac1-params
+	 (kdf x509-algorithm-identifier?)
+	 (mac x509-algorithm-identifier?))
+  (make <pkcs-pbmac1-params>
+    :c (make <pbmac1-params>
+	 :key-derivation-func
+	 (x509-algorithm-identifier->algorithm-identifier kdf)
+	 :message-auth-scheme
+	 (x509-algorithm-identifier->algorithm-identifier mac))))
 
 (define (make-pbkdf2-x509-algorithm-identifier salt count . opts)
   (make-x509-algorithm-identifier
