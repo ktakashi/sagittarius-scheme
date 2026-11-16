@@ -39,6 +39,7 @@
 	    write-pkcs12-keystore
 
 	    *pkcs12-integrity-descriptor:hmac/sha-256*
+	    *pkcs12-integrity-descriptor:pbmac1/pbkdf2/hmac-sha256*
 
 	    *pkcs12-privacy-descriptor:pbe/sha1-des3-cbc*
 	    *pkcs12-privacy-descriptor:pbe/sha1-des2-cbc*

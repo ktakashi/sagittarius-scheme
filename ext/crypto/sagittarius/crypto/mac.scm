@@ -36,7 +36,7 @@
 	    mac-oid
 	    
 	    *mac:hmac* *mac:cmac* *mac:kmac* *mac:kmac-128* *mac:kmac-256*
-	    *mac:gmac*
+	    *mac:gmac* *mac:pbmac1*
 
 	    generate-mac generate-mac!
 	    
@@ -80,19 +80,8 @@
 	    (sagittarius crypto mac gmac)
 	    (sagittarius crypto mac hmac)
 	    (sagittarius crypto mac kmac)
+	    (sagittarius crypto mac pbmac1)
 	    (sagittarius crypto secure))
-
-(define-class <mac> (<immutable>)
-  ((type :init-keyword :type :reader mac-type)
-   (state :init-keyword :state :init-value #f :mutable #t
-	  :reader mac-state :writer mac-state-set!)
-   (mac-size :init-keyword :mac-size :reader mac-mac-size)
-   (oid :init-keyword :oid :reader mac-oid)
-   (initializer :init-keyword :initializer :reader mac-initializer)
-   (processor :init-keyword :processor :reader mac-processor)
-   (finalizer :init-keyword :finalizer :reader mac-finalizer)))
-(define-method write-object ((o <mac>) p) (format p "#<mac ~a>" (mac-type o)))
-(define (mac? o) (is-a? o <mac>))
 
 (define (make-mac type key . opts)
   (let-values (((initializer mac-size oid)
@@ -115,15 +104,6 @@
 
 (define (generate-mac! mac msg out . opts)
   (apply mac-done! (mac-process! (mac-init! mac) msg) out opts))
-
-(define (mac-init! (mac mac?))
-  (mac-state-set! mac ((mac-initializer mac)))
-  mac)
-(define (mac-process! (mac mac?) (msg bytevector?) . opts)
-  (apply (mac-processor mac) (mac-state mac) msg opts)
-  mac)
-(define (mac-done! (mac mac?) (out bytevector?) . opts)
-  (apply (mac-finalizer mac) (mac-state mac) out opts))
 
 (define (verify-mac (mac mac?) signing-content auth-mac)
   (let ((m (generate-mac mac signing-content (bytevector-length auth-mac))))

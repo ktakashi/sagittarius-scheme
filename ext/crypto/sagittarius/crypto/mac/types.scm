@@ -32,12 +32,38 @@
 (library (sagittarius crypto mac types)
     (export mac-state-initializer
 	    mac-state-processor
-	    mac-state-finalizer)
+	    mac-state-finalizer
+	    mac? <mac> mac-type mac-mac-size mac-oid
+	    mac-initializer mac-processor mac-finalizer
+	    mac-init! mac-process! mac-done!)
     (import (rnrs)
-	    (clos user))
+	    (clos user)
+	    (sagittarius)
+	    (sagittarius mop immutable))
 
 (define-generic mac-state-initializer)
 (define-generic mac-state-processor)
 (define-generic mac-state-finalizer)
+
+(define-class <mac> (<immutable>)
+  ((type :init-keyword :type :reader mac-type)
+   (state :init-keyword :state :init-value #f :mutable #t
+	  :reader mac-state :writer mac-state-set!)
+   (mac-size :init-keyword :mac-size :reader mac-mac-size)
+   (oid :init-keyword :oid :reader mac-oid)
+   (initializer :init-keyword :initializer :reader mac-initializer)
+   (processor :init-keyword :processor :reader mac-processor)
+   (finalizer :init-keyword :finalizer :reader mac-finalizer)))
+(define-method write-object ((o <mac>) p) (format p "#<mac ~a>" (mac-type o)))
+(define (mac? o) (is-a? o <mac>))
+
+(define (mac-init! (mac mac?))
+  (mac-state-set! mac ((mac-initializer mac)))
+  mac)
+(define (mac-process! (mac mac?) (msg bytevector?) . opts)
+  (apply (mac-processor mac) (mac-state mac) msg opts)
+  mac)
+(define (mac-done! (mac mac?) (out bytevector?) . opts)
+  (apply (mac-finalizer mac) (mac-state mac) out opts))
 
 )

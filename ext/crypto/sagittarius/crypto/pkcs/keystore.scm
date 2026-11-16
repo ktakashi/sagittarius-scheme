@@ -108,6 +108,7 @@
 	    ;; parameters
 	    *pkcs12-integrity-salt-size*
 	    *pkcs12-integrity-iteration-count*
+	    *pkcs12-pbmac1-max-iterations*
 	    *pkcs12-privacy-salt-size*
 	    *pkcs12-privacy-iteration-count*
 
@@ -131,6 +132,7 @@
 	    *pkcs12-privacy-descriptor:pbes2/aes-256-cbc-hmac-sha256*
 	    	    
 	    *pkcs12-integrity-descriptor:hmac/sha-256*
+	    *pkcs12-integrity-descriptor:pbmac1/pbkdf2/hmac-sha256*
 	    (rename (*pkcs12-integrity-descriptor:hmac/sha-256*
 		     *pkcs12-integrity-descriptor:default*)
 		    (*pkcs12-privacy-descriptor:pbes2/aes-256-cbc-hmac-sha256*
@@ -161,6 +163,7 @@
 	    (sagittarius crypto pkcs algorithms)
 	    (sagittarius crypto pkcs cms)
 	    (sagittarius crypto pkcs pbes)
+	    (sagittarius crypto pkcs pbmac1)
 	    (sagittarius crypto pkcs keys)
 	    (sagittarius crypto pkix modules x509)
 	    (sagittarius crypto pkix algorithms)
@@ -200,6 +203,12 @@
 		    (*pkcs12-integrity-salt-size*)
 		    (*pkcs12-integrity-iteration-count*)
 		    data prng))))
+(define *pkcs12-integrity-descriptor:pbmac1/pbkdf2/hmac-sha256*
+  (make-pkcs12-password-integrity-descriptor
+   (lambda (key data prng)
+     (make-pbmac1-mac-data key data prng
+			   (*pkcs12-integrity-salt-size*)
+			   (*pkcs12-integrity-iteration-count*)))))
 (define (make-pkcs12-password-integrity-descriptor-api (md digest-descriptor?)
 	 :key (iteration (*pkcs12-integrity-iteration-count*))
 	      (salt-size (*pkcs12-integrity-salt-size*)))
@@ -636,25 +645,46 @@
       (if upsert (and (not (boolean? added?)) added?) added?))))
 
 (define (verify-mac pfx password)
-  (define (aid->md aid)
-    (define oid (der-object-identifier->oid-string
-		 (algorithm-identifier-algorithm aid)))
-    (or (oid->digest-descriptor oid)
-	(assertion-violation 'verify-mac "Unsupported digest" oid)))
   (define content (content-info-content (pfx-auth-safe pfx)))
   (let* ((mac-data (pfx-mac-data pfx))
 	 (mac (mac-data-mac mac-data))
-	 (salt (ber-octet-string->bytevector (mac-data-mac-salt mac-data)))
-	 (c (der-integer->integer (mac-data-iterations mac-data)))
 	 (aid (digest-info-digest-algorithm mac))
 	 (digest (ber-octet-string->bytevector (digest-info-digest mac)))
-	 (data  (ber-octet-string->bytevector content))
-	 (md (aid->md aid)))
-    (unless (safe-bytevector=? digest (compute-mac md data password salt c))
-      (error 'verify-mac
-       "Mac is invalid - wrong integrity password or corrupted data"))
-    (values (asn1-object->asn1-encodable <authenticated-safe>
-					 (bytevector->asn1-object data))
+	 (data (ber-octet-string->bytevector content)))
+    (let-values (((configured-mac integrity-descriptor)
+		  (algorithm-identifier->mac&integrity-descriptor
+		   aid password mac-data)))
+      (unless (safe-bytevector=? digest (generate-mac configured-mac data))
+	(error 'verify-mac
+	       "Mac is invalid - wrong integrity password or corrupted data"))
+      (values (asn1-object->asn1-encodable <authenticated-safe>
+					   (bytevector->asn1-object data))
+	      integrity-descriptor))))
+
+(define (algorithm-identifier->mac&integrity-descriptor aid password mac-data)
+  (oid->mac&integrity-descriptor
+   (der-object-identifier->oid-string (algorithm-identifier-algorithm aid))
+   aid password mac-data))
+
+;; Currently, we put this in this library, though
+;; if we need to support more like this, consider separating
+;; the library, possibly per algorithm.
+(define-generic oid->mac&integrity-descriptor)
+(define-method oid->mac&integrity-descriptor
+  ((oid (equal (der-object-identifier->oid-string *pbes:pbmac1*)))
+   aid password mac-data)
+  (values (pbmac1-algorithm-identifier->mac aid password)
+	  *pkcs12-integrity-descriptor:pbmac1/pbkdf2/hmac-sha256*))
+(define-method oid->mac&integrity-descriptor (oid aid password mac-data)
+  (let* ((md (or (oid->digest-descriptor oid)
+		 (assertion-violation 'verify-mac "Unsupported digest" oid)))
+	 (salt (ber-octet-string->bytevector (mac-data-mac-salt mac-data)))
+	 (c (if (mac-data-iterations mac-data)
+		(der-integer->integer (mac-data-iterations mac-data))
+		1)))
+    (values (make-mac *mac:hmac*
+		      (derive-mac-key md password salt c)
+		      :digest md)
 	    (make-pkcs12-password-integrity-descriptor-api md
 	     :iteration c :salt-size (bytevector-length salt)))))
 
@@ -719,6 +749,10 @@
 	(error 'unload-pkcs12-keystore "Not yet"))))
 
 (define (make-mac-data md key salt-size c data prng)
+  (define (compute-mac md data password salt c)
+    (let* ((mac-key (derive-mac-key md password salt c))
+	   (hmac (make-mac *mac:hmac* mac-key :digest md)))
+      (generate-mac hmac data)))
   (let* ((salt (random-generator-read-random-bytes prng salt-size))
 	 (digest (compute-mac md data key salt c))
 	 (oid (digest-descriptor-oid md))
@@ -730,11 +764,6 @@
 	     :digest (bytevector->der-octet-string digest))
       :mac-salt (bytevector->der-octet-string salt)
       :iterations (integer->der-integer c))))
-
-(define (compute-mac md data password salt c)
-  (let* ((mac-key (derive-mac-key md password salt c))
-	 (hmac (make-mac *mac:hmac* mac-key :digest md)))
-    (generate-mac hmac data)))
 
 (define (derive-mac-key md password salt c)
   (pkcs12-derive-mac md password salt c (digest-descriptor-digest-size md)))
