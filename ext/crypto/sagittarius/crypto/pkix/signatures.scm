@@ -86,6 +86,7 @@
 (define (x509-algorithm-identifier->signer (sa x509-algorithm-identifier?) 
 					   (private-key private-key?)
 					   . opts)
+  (check-pqc-parameters sa private-key)
   (let ((oid (x509-algorithm-identifier-oid sa))
 	(param (x509-algorithm-identifier-parameters sa)))
     (apply (oid->signer-maker oid) private-key
@@ -95,11 +96,18 @@
 (define (x509-algorithm-identifier->verifier (sa x509-algorithm-identifier?) 
 					     (public-key public-key?)
 					     . opts)
+  (check-pqc-parameters sa public-key)
   (let ((oid (x509-algorithm-identifier-oid sa))
 	(param (x509-algorithm-identifier-parameters sa)))
     (apply (oid->verifier-maker oid) public-key
 	   (append! (x509-algorithm-parameters->keyword-parameters param)
 		    opts))))
+
+(define (check-pqc-parameters algorithm key)
+  (when (and (or (ml-dsa-key? key) (slh-dsa-key? key))
+             (x509-algorithm-identifier-parameters algorithm))
+    (assertion-violation 'x509-signature
+                         "PQC signature parameters must be absent")))
 
 ;; This shouldn't be called X509, though it's defined in X.509 thing...
 (define-class <x509-rsassa-pss-params> (<x509-algorithm-parameters> <immutable>)

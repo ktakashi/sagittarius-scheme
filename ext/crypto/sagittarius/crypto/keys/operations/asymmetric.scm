@@ -36,4 +36,7 @@
 	    (sagittarius crypto keys operations asymmetric dsa)
 	    (sagittarius crypto keys operations asymmetric ecdsa)
 	    (sagittarius crypto keys operations asymmetric eddsa)
-	    (sagittarius crypto keys operations asymmetric ecdh)))
+	    (sagittarius crypto keys operations asymmetric ecdh)
+	    (sagittarius crypto keys operations asymmetric mlkem)
+	    (sagittarius crypto keys operations asymmetric mldsa)
+	    (sagittarius crypto keys operations asymmetric slhdsa)))

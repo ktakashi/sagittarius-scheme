@@ -309,12 +309,17 @@ If the first form is used, then the method automatically detects the key type.
 ###### [!Macro] `private-key-format` _format_
 
 A macro returns a symbol representation of _format_. The _format_ must be
-either `raw` or `private-key-info`.
+`raw`, `private-key-info`, `seed`, or `expanded`. The latter two formats
+are specific to post-quantum keys.
 
 `raw`:
-  Imports/exports raw public key.
+  Imports/exports raw private key.
 `private-key-info`:
   Imports/exports private key info or one asymmetric key.
+`seed`:
+  Imports a PQC generation seed; exports a retained ML-KEM or ML-DSA seed.
+`expanded`:
+  Imports/exports a PQC expanded private key without ASN.1 wrapping.
 
 ###### [!Enum set] `*private-key-formats*`
 
@@ -396,4 +401,112 @@ Calculate a secret key from the given private key and public key.
 ###### [!Function] `oid->key-operation`
 ###### [!Function] `key->oid`
 
+### [§4] Experimental post-quantum keys
+
+ML-KEM (FIPS 203), ML-DSA (FIPS 204), and SLH-DSA (FIPS 205) are
+available through this library. This support is built by default but is
+**experimental**: its isolated backend uses a pinned, unmerged LibTomCrypt
+implementation, not a certified cryptographic module. Pre-standard Kyber,
+Dilithium and SPHINCS+ encodings are not interchangeable with these keys.
+
+###### [!Key scheme] `*key:ml-kem-512*`
+###### [!Key scheme] `*key:ml-kem-768*`
+###### [!Key scheme] `*key:ml-kem-1024*`
+###### [!Key scheme] `*key:ml-dsa-44*`
+###### [!Key scheme] `*key:ml-dsa-65*`
+###### [!Key scheme] `*key:ml-dsa-87*`
+
+The SLH-DSA schemes are `*key:slh-dsa-sha2-128s*`,
+`*key:slh-dsa-sha2-128f*`, `*key:slh-dsa-sha2-192s*`,
+`*key:slh-dsa-sha2-192f*`, `*key:slh-dsa-sha2-256s*`,
+`*key:slh-dsa-sha2-256f*`, `*key:slh-dsa-shake-128s*`,
+`*key:slh-dsa-shake-128f*`, `*key:slh-dsa-shake-192s*`,
+`*key:slh-dsa-shake-192f*`, `*key:slh-dsa-shake-256s*`, and
+`*key:slh-dsa-shake-256f*`.
+
+HashSLH-DSA uses distinct schemes, formed by adding `hash-` before `slh-dsa`
+and the following suffix to each corresponding key name:
+
+| Parameter family | Suffix |
+|---|---|
+| SHA2-128s/f | `-with-sha256` |
+| SHA2-192s/f, SHA2-256s/f | `-with-sha512` |
+| SHAKE-128s/f | `-with-shake128` |
+| SHAKE-192s/f, SHAKE-256s/f | `-with-shake256` |
+
+For example, `*key:hash-slh-dsa-sha2-128f-with-sha256*` is different
+from `*key:slh-dsa-sha2-128f*`. Parameter sets and pure/prehash SLH-DSA
+keys cannot be mixed implicitly.
+
+###### [!Method] `generate-key-pair` _pqc-scheme_ :key _prng_
+###### [!Method] `generate-public-key` _pqc-scheme_ _bytes_
+###### [!Method] `generate-private-key` _pqc-scheme_ _bytes_
+
+Key-pair generation defaults to a secure ChaCha20 random generator with
+32 bytes of initial entropy. The optional _prng_ uses the existing
+random-generator API; insecure or fixed generators are suitable only for tests.
+
+Public _bytes_ are a raw public key. Private _bytes_ are either a generation
+seed or an expanded private key, distinguished by length. Seeds contain
+64 bytes for ML-KEM (`d || z`), 32 bytes for ML-DSA, and `3n` bytes for
+SLH-DSA (`SK.seed || SK.prf || PK.seed`, with `n` equal to 16, 24, or 32).
+SLH-DSA generation seeds are not retained for export.
+
+###### [!Method] `encapsulate` _ml-kem-scheme_ _public-key_ :key _prng_
+###### [!Method] `decapsulate` _ml-kem-scheme_ _private-key_ _ciphertext_
+
+Encapsulation returns two values: ciphertext and a 32-byte shared secret.
+The default _prng_ is secure. Decapsulation requires no randomness and returns
+only the shared secret. Correctly sized invalid ciphertexts produce the
+FIPS 203 implicit-rejection secret, not an exception or validity flag.
+Incorrect lengths and invalid key encodings raise an assertion violation.
+Authenticate the surrounding protocol; a returned secret is not proof of
+ciphertext validity. These methods do not replace `calculate-key-agreement`.
+
+```scheme
+(import (rnrs) (sagittarius crypto keys))
+(define kem-pair (generate-key-pair *key:ml-kem-768*))
+(let-values (((ciphertext secret)
+              (encapsulate *key:ml-kem-768* (key-pair-public kem-pair))))
+  (display (equal? secret
+             (decapsulate *key:ml-kem-768* (key-pair-private kem-pair)
+                          ciphertext)))
+  (newline)) ; prints #t
+(destroy-key! (key-pair-private kem-pair))
+```
+
+###### [!Method] `import-public-key` _pqc-scheme_ _input_ :optional _format_
+###### [!Method] `import-private-key` _pqc-scheme_ _input_ :optional _format_
+###### [!Method] `export-public-key` _pqc-key_ :optional _format_
+###### [!Method] `export-private-key` _pqc-key_ :optional _format_
+
+The default format is `raw`. Public formats are `raw` and
+`subject-public-key-info`; private formats are `raw`, `seed`, `expanded`,
+and `private-key-info`. Raw private export returns the expanded key.
+Seed export fails if no ML-KEM/ML-DSA seed is retained. Input bytevectors
+and exported bytevectors do not alias live key material.
+
+PKIX import/export follows RFC 9935, RFC 9881, and RFC 9909 respectively.
+AlgorithmIdentifier parameters must be absent, not NULL. Bytevector PKIX
+input must contain exactly one DER object. Generic OID-detecting imports
+also support these encodings.
+
+Private-key-info export accepts `:representation` (`auto`, `seed`,
+`expanded`, or `both`) and `:public-key?` (default `#f`). The latter selects
+OneAsymmetricKey with its public key. For ML-KEM and ML-DSA, `auto` prefers
+a retained seed; `both` includes the seed and expanded key and requires
+their consistency on import. SLH-DSA accepts only `auto` and `expanded`;
+its privateKey OCTET STRING contains raw private bytes without inner ASN.1.
+Optional embedded public keys must match the private key.
+
+ML-KEM OIDs are `2.16.840.1.101.3.4.4.1` through `.3`. Pure ML-DSA OIDs
+are `2.16.840.1.101.3.4.3.17` through `.19`; pure SLH-DSA uses `.20`
+through `.31`, and HashSLH-DSA uses `.35` through `.46`. RFC 9881 key
+encodings describe pure ML-DSA keys, not HashML-DSA signature OIDs.
+
+PQC private keys support `destroy-key!`, which wipes retained secret bytes
+and seeds and prevents further private operations. GC wiping is best effort;
+explicit destruction cannot erase exported copies, all runtime temporaries,
+or OS copies. Applications must protect exported secrets and serialize
+destruction against concurrent operations on the same key.
 

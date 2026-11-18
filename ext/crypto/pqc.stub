@@ -1,0 +1,32 @@
+(decl-code
+ (.include <sagittarius/private.h>)
+ (.define "LIBSAGITTARIUS_EXT_BODY")
+ (.include <sagittarius/extend.h> "sagittarius-pqc.h"))
+
+(define-c-proc pqc-sizes (family::<fixnum> parameter::<fixnum>)
+  (return (Sg_PQCSizes family parameter)))
+(define-c-proc pqc-expand (family::<fixnum> parameter::<fixnum> seed::<bytevector>)
+  (return (Sg_PQCExpand family parameter seed)))
+(define-c-proc pqc-import (family::<fixnum> parameter::<fixnum>
+                          key::<bytevector> private?::<boolean>)
+  (return (Sg_PQCImport family parameter key private?)))
+(define-c-proc pqc-encapsulate (parameter::<fixnum> key::<bytevector>
+                              randomness::<bytevector>)
+  (return (Sg_PQCEncapsulate parameter key randomness)))
+(define-c-proc pqc-decapsulate (parameter::<fixnum> key::<bytevector>
+                              ciphertext::<bytevector>)
+  (return (Sg_PQCDecapsulate parameter key ciphertext)))
+(define-c-proc pqc-sign (family::<fixnum> parameter::<fixnum> key::<bytevector>
+                        message::<bytevector> context::<bytevector>
+                        randomness::<bytevector> representative?::<boolean>)
+  (return (Sg_PQCSign family parameter key message context randomness
+                      representative?)))
+(define-c-proc pqc-verify (family::<fixnum> parameter::<fixnum> key::<bytevector>
+                          message::<bytevector> context::<bytevector>
+                          signature::<bytevector> representative?::<boolean>)
+  (return (Sg_PQCVerify family parameter key message context signature
+                        representative?)))
+(define-c-proc pqc-protect! (bytes::<bytevector>)
+  (return (Sg_PQCProtect bytes)))
+(define-c-proc pqc-clear! (bytes::<bytevector>)
+  (return (Sg_PQCClear bytes)))

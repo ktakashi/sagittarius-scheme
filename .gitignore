@@ -52,6 +52,7 @@ sagittarius-package
 /ext/crypto/kdf.c
 /ext/crypto/libtomcrypt/liblibtomcrypt.a
 /ext/crypto/mac.c
+/ext/crypto/pqc.c
 /ext/crypto/modes/
 /ext/crypto/random.c
 /ext/crypto/salsa.c

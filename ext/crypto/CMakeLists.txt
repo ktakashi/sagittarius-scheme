@@ -9,6 +9,27 @@ INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/libtomcrypt/src/headers)
 INCLUDE(${CMAKE_CURRENT_SOURCE_DIR}/../addstub.cmake)
 
+# Experimental PQC backend, isolated from the bundled LibTomCrypt API.
+ADD_LIBRARY(sagittarius--pqc MODULE
+  sagittarius-pqc.c ${CMAKE_CURRENT_BINARY_DIR}/pqc.c
+  pqc/libtomcrypt/mlkem.c
+  pqc/libtomcrypt/mldsa.c
+  pqc/libtomcrypt/slhdsa.c
+  pqc/libtomcrypt/pqc_prehash.c
+  pqc/libtomcrypt/algname_match.c)
+ADD_STUBS(sagittarius--pqc
+  COMMAND ${GENSTUB} FILES pqc.stub OUTTREE)
+SET_TARGET_PROPERTIES(sagittarius--pqc PROPERTIES PREFIX "")
+IF(APPLE)
+  SET_TARGET_PROPERTIES(sagittarius--pqc PROPERTIES SUFFIX ".dylib")
+ENDIF()
+TARGET_LINK_LIBRARIES(sagittarius--pqc sagittarius libtomcrypt)
+IF(USE_CPP_FOR_BROKEN_LINKER)
+  SET_TARGET_PROPERTIES(sagittarius--pqc PROPERTIES LINKER_LANGUAGE CXX)
+ENDIF()
+COPY_TARGET(sagittarius--pqc ${CMAKE_LIBRARY_OUTPUT_DIRECTORY} TRUE)
+INSTALL(TARGETS sagittarius--pqc DESTINATION ${SAGITTARIUS_DYNLIB_PATH})
+
 IF (WATCOM)
   ADD_DEFINITIONS(-DLTC_NO_PROTOTYPES)
 ENDIF()
@@ -174,6 +195,10 @@ FOREACH(TEST_FILE ${TEST_FILES})
       WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/ext)
     SET_PROPERTY(TEST crypto/${TEST_TARGET}
       PROPERTY FAIL_REGULAR_EXPRESSION "FAIL")
+    IF(TEST_TARGET MATCHES "^pqc")
+      SET_TESTS_PROPERTIES(crypto/${TEST_TARGET} PROPERTIES
+        LABELS "pqc" TIMEOUT 600)
+    ENDIF()
   ENDIF()
 ENDFOREACH()
 
