@@ -4,6 +4,10 @@
 
 #include "../../libtomcrypt/src/headers/tomcrypt_private.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define LTC_MLKEM
 #define LTC_MLDSA
 #define LTC_SLHDSA
@@ -26,4 +30,7 @@ int pqc_prehash_process(int, hash_state *, const unsigned char *, unsigned long)
 int pqc_prehash_done(int, hash_state *, unsigned char *, unsigned long *);
 int ltc_algname_match(const char *, const char *);
 
+#ifdef __cplusplus
+}
+#endif
 #endif
