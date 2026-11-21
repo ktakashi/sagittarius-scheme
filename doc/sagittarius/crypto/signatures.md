@@ -37,8 +37,9 @@ Creates a signer of the _scheme_. The _scheme_ must be one of the
 signature algorithms listed above. The _key_ must be an appropriate
 private key for the specified _scheme_.
 
-_opts_ must be a keyword arguments, the procedure ignores unsupported
-keywords. The supporting keyword arguments and its scheme are below
+_opts_ must be keyword arguments. Existing classical algorithms ignore
+unsupported keywords; PQC algorithms reject them. The supported keywords
+and their schemes are below.
 
 `:digest`
 : For all signature algorithms. Specifying digest algorithm. Most of
@@ -96,8 +97,9 @@ Creates a verifier of the _scheme_. The _scheme_ must be one of the
 signature algorithms listed above. The _key_ must be an appropriate
 public key for the specified _scheme_.
 
-_opts_ must be a keyword arguments, the procedure ignores unsupported
-keywords. The supporting keyword arguments and its scheme are below
+_opts_ must be keyword arguments. Existing classical algorithms ignore
+unsupported keywords; PQC algorithms reject them. The supported keywords
+and their schemes are below.
 
 `:digest`
 : For all signature algorithms. Specifying digest algorithm. Most of
@@ -144,6 +146,76 @@ Verifies the given _signature_ against the accumulated messgage.
 It returns `#t` if the given _signature_ is a valid signature.  
 If the signature verification is failed, then returns `#f`.  
 If the signature format is not valid, then raise an error.
+
+### [§4] Experimental post-quantum signatures
+
+PQC support is experimental and uses a pinned, unmerged LibTomCrypt backend.
+It is not a security certification. Keys come from `(sagittarius crypto keys)`;
+no separate public PQC library is needed.
+
+###### [!Signature algorithm] `*signature:ml-dsa-44*`
+###### [!Signature algorithm] `*signature:ml-dsa-65*`
+###### [!Signature algorithm] `*signature:ml-dsa-87*`
+###### [!Signature algorithm] `*signature:hash-ml-dsa-44-with-sha512*`
+###### [!Signature algorithm] `*signature:hash-ml-dsa-65-with-sha512*`
+###### [!Signature algorithm] `*signature:hash-ml-dsa-87-with-sha512*`
+
+ML-DSA signatures use the corresponding ML-DSA parameter-set key. The first
+three schemes default to pure FIPS 204 signing (`:digest #f`). Supplying an
+approved digest selects HashML-DSA, including its FIPS domain separation and
+digest OID; the message must not be prehashed by the caller. Approved digests
+are SHA-224/256/384/512, SHA-512/224 and /256, SHA3-224/256/384/512, and
+SHAKE128/256. SHAKE prehash outputs are respectively 32 and 64 bytes.
+The three explicitly named HashML-DSA schemes fix SHA-512.
+
+All twelve pure SLH-DSA and twelve HashSLH-DSA schemes have the same names
+as their key schemes, replacing `*key:` with `*signature:`. For example,
+`*signature:slh-dsa-sha2-128f*` and
+`*signature:hash-slh-dsa-sha2-128f-with-sha256*` require their respective
+key schemes. The named prehash variant determines its hash; arbitrary
+`:digest` overrides are not supported for SLH-DSA.
+
+PQC signer/verifier options:
+
+| Keyword | Meaning |
+|---|---|
+| `:context` | Bytevector of at most 255 bytes, copied into the state; default empty |
+| `:digest` | ML-DSA prehash selection as described above; otherwise `#f` |
+| `:deterministic?` | Signers only; default `#f`, selecting randomized/hedged signing |
+| `:prng` | Signers only; defaults to a secure ChaCha20 generator with 32 bytes of initial entropy |
+| `:der-encode` | Must be `#f`; PQC signatures always have their raw fixed-length encoding |
+
+Deterministic signing must be selected explicitly with `:deterministic? #t`.
+It uses zero randomness for ML-DSA and `PK.seed` for SLH-DSA, as specified
+by their respective standards. A fixed or insecure _prng_ is for tests only.
+
+```scheme
+(import (rnrs) (sagittarius crypto keys) (sagittarius crypto signatures))
+(define signature-pair (generate-key-pair *key:ml-dsa-44*))
+(define message (string->utf8 "PQC example"))
+(define signature
+  (signer-sign-message
+    (make-signer *signature:ml-dsa-44* (key-pair-private signature-pair))
+    message))
+(display (verifier-verify-signature
+           (make-verifier *signature:ml-dsa-44* (key-pair-public signature-pair))
+           message signature))
+(newline) ; prints #t
+(destroy-key! (key-pair-private signature-pair))
+```
+
+Incremental signer/verifier operations are supported by buffering the message;
+they are not constant-memory streaming. Invalid signatures, including incorrect
+lengths, return `#f`. Invalid options, contexts, key encodings, mismatched key
+parameters, and destroyed private keys raise errors.
+
+`oid->signer-maker` and `oid->verifier-maker` support all named PQC signature
+OIDs. The corresponding constants replace `*signature:` with
+`*signature-algorithm:`. PKIX signing fixes an empty context and its named
+pure/prehash mode. HashML-DSA-SHA512 signature OIDs have suffixes `.32`
+through `.34` under `2.16.840.1.101.3.4.3`; these are not pure ML-DSA
+key OIDs. PQC signature AlgorithmIdentifier parameters must be absent.
+Use separate keys for different signature modes/protocols.
 
 ### [§4] RSA signature specific
 

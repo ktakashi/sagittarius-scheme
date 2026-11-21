@@ -47,6 +47,11 @@
 	    public-key-format?
 
 	    calculate-key-agreement
+	    encapsulate decapsulate
+
+	    ;; Internal PKIX integration hooks.
+	    import-pkix-public-key import-pkix-private-key
+	    export-pkix-private-key
 
 	    private-key-format
 	    *private-key-formats*
@@ -69,6 +74,11 @@
 (define-generic key->oid)
 
 (define-generic calculate-key-agreement) ;; key agreement
+(define-generic encapsulate)
+(define-generic decapsulate)
+(define-generic import-pkix-public-key)
+(define-generic import-pkix-private-key)
+(define-generic export-pkix-private-key)
 
 (define-enumeration public-key-format (raw subject-public-key-info)
   public-key-formats)
@@ -77,7 +87,7 @@
 
 (define-method import-public-key ((key <bytevector>)
 				  (format (eq 'subject-public-key-info)))
-  (import-public-key (open-bytevector-input-port key) format))
+  (import-spki-public-key (bytevector->asn1-object key) key))
 (define-method import-public-key ((key <port>)
 				  (format (eq 'subject-public-key-info)))
   (import-public-key (read-asn1-object key) format))
@@ -89,23 +99,31 @@
 |#
 (define-method import-public-key ((key <der-sequence>)
 				  (format (eq 'subject-public-key-info)))
+  (import-spki-public-key key))
+
+(define (import-spki-public-key key :optional (original #f))
   (let*-values (((aid pk) (deconstruct-asn1-collection key))
 		((oid . maybe-param) (deconstruct-asn1-collection aid)))
     (let ((s (oid->key-operation (der-object-identifier->oid-string oid))))
-      (apply import-public-key s (der-bit-string->bytevector pk) 'raw
-	     (if (null? maybe-param)
-		 '()
-		 (extract-parameter (der-object-identifier->oid-string oid)
-				    (car maybe-param)))))))
+      (import-pkix-public-key s key original))))
 
-(define-enumeration private-key-format (raw private-key-info)
+(define-method import-pkix-public-key (s key :optional (original #f))
+  (let*-values (((aid pk) (deconstruct-asn1-collection key))
+		((oid . maybe-param) (deconstruct-asn1-collection aid)))
+    (apply import-public-key s (der-bit-string->bytevector pk) 'raw
+	   (if (null? maybe-param)
+	       '()
+	       (extract-parameter (der-object-identifier->oid-string oid)
+				  (car maybe-param))))))
+
+(define-enumeration private-key-format (raw private-key-info seed expanded)
   private-key-formats)
 (define *private-key-formats* (enum-set-universe (private-key-formats)))
-(define (private-key-format? s) (enum-set-member? s *public-key-formats*))
+(define (private-key-format? s) (enum-set-member? s *private-key-formats*))
 
 (define-method import-private-key ((key <bytevector>)
 				   (format (eq 'private-key-info)))
-  (import-private-key (open-bytevector-input-port key) format))
+  (import-pki-private-key #f (bytevector->asn1-object key) key))
 (define-method import-private-key ((key <port>)
 				   (format (eq 'private-key-info)))
   (import-private-key (read-asn1-object key) format))
@@ -126,7 +144,7 @@
 				   (format (eq 'private-key-info)))
   (import-pki-private-key m key))
 
-(define (import-pki-private-key m key)
+(define (import-pki-private-key m key :optional (original #f))
   (let*-values (((version pka pk . ignore) (deconstruct-asn1-collection key))
 		((oid . maybe-param) (deconstruct-asn1-collection pka)))
     (let ((s (oid->key-operation (der-object-identifier->oid-string oid))))
@@ -134,13 +152,18 @@
 	(assertion-violation 'import-private-key
 			     "Specified key scheme and actual OID mismatches"
 			     m (der-object-identifier->oid-string oid)))
-      (apply import-private-key s
+      (import-pkix-private-key s key original))))
+
+(define-method import-pkix-private-key (s key :optional (original #f))
+  (let*-values (((version pka pk . ignore) (deconstruct-asn1-collection key))
+		((oid . maybe-param) (deconstruct-asn1-collection pka)))
+    (apply import-private-key s
 	     (adjust-key-value (der-object-identifier->oid-string oid)
 	      (bytevector->asn1-object (der-octet-string->bytevector pk)))
 	     (if (null? maybe-param)
 		 '()
 		 (extract-parameter (der-object-identifier->oid-string oid)
-				    (car maybe-param)))))))
+				    (car maybe-param))))))
 
 ;; internal method
 (define *ed25519-key-oid* "1.3.101.112")
@@ -162,10 +185,15 @@
   (asn1-encodable->bytevector (bytevector->der-octet-string v)))
 
 ;; Use :around specifier to let the subclass of the key match...
-(define-method export-private-key :around (m k (format (eq 'private-key-info)))
-  (export-private-key k format))
+(define-method export-private-key :around (m k (format (eq 'private-key-info))
+                                           . opts)
+  (apply export-private-key k format opts))
 (define-method export-private-key :around ((key <private-key>)
-					   (format (eq 'private-key-info)))
+					   (format (eq 'private-key-info))
+                                           . opts)
+  (apply export-pkix-private-key key opts))
+
+(define-method export-pkix-private-key ((key <private-key>))
   (let ((raw (export-private-key key 'raw))
 	(oid (key->oid key)))
     (asn1-encodable->bytevector

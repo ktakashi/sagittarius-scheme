@@ -46,6 +46,28 @@
 	    *signature:ed25519ph*
 	    *signature:ed448*
 	    *signature:ed448ph*
+	    *signature:ml-dsa-44* *signature:ml-dsa-65* *signature:ml-dsa-87*
+	    *signature:hash-ml-dsa-44-with-sha512*
+	    *signature:hash-ml-dsa-65-with-sha512*
+	    *signature:hash-ml-dsa-87-with-sha512*
+	    *signature:slh-dsa-sha2-128s* *signature:slh-dsa-sha2-128f*
+	    *signature:slh-dsa-sha2-192s* *signature:slh-dsa-sha2-192f*
+	    *signature:slh-dsa-sha2-256s* *signature:slh-dsa-sha2-256f*
+	    *signature:slh-dsa-shake-128s* *signature:slh-dsa-shake-128f*
+	    *signature:slh-dsa-shake-192s* *signature:slh-dsa-shake-192f*
+	    *signature:slh-dsa-shake-256s* *signature:slh-dsa-shake-256f*
+	    *signature:hash-slh-dsa-sha2-128s-with-sha256*
+	    *signature:hash-slh-dsa-sha2-128f-with-sha256*
+	    *signature:hash-slh-dsa-sha2-192s-with-sha512*
+	    *signature:hash-slh-dsa-sha2-192f-with-sha512*
+	    *signature:hash-slh-dsa-sha2-256s-with-sha512*
+	    *signature:hash-slh-dsa-sha2-256f-with-sha512*
+	    *signature:hash-slh-dsa-shake-128s-with-shake128*
+	    *signature:hash-slh-dsa-shake-128f-with-shake128*
+	    *signature:hash-slh-dsa-shake-192s-with-shake256*
+	    *signature:hash-slh-dsa-shake-192f-with-shake256*
+	    *signature:hash-slh-dsa-shake-256s-with-shake256*
+	    *signature:hash-slh-dsa-shake-256f-with-shake256*
 	    
 	    ;; make-signer-state signer-state->signature
 	    ;; make-verifier-state verifier-state-verify-message
@@ -87,6 +109,36 @@
 	    *signature-algorithm:ecdsa-sha3-512*
 	    *signature-algorithm:ed25519*
 	    *signature-algorithm:ed448*
+	    *signature-algorithm:ml-dsa-44*
+	    *signature-algorithm:ml-dsa-65*
+	    *signature-algorithm:ml-dsa-87*
+	    *signature-algorithm:hash-ml-dsa-44-with-sha512*
+	    *signature-algorithm:hash-ml-dsa-65-with-sha512*
+	    *signature-algorithm:hash-ml-dsa-87-with-sha512*
+	    *signature-algorithm:slh-dsa-sha2-128s*
+	    *signature-algorithm:slh-dsa-sha2-128f*
+	    *signature-algorithm:slh-dsa-sha2-192s*
+	    *signature-algorithm:slh-dsa-sha2-192f*
+	    *signature-algorithm:slh-dsa-sha2-256s*
+	    *signature-algorithm:slh-dsa-sha2-256f*
+	    *signature-algorithm:slh-dsa-shake-128s*
+	    *signature-algorithm:slh-dsa-shake-128f*
+	    *signature-algorithm:slh-dsa-shake-192s*
+	    *signature-algorithm:slh-dsa-shake-192f*
+	    *signature-algorithm:slh-dsa-shake-256s*
+	    *signature-algorithm:slh-dsa-shake-256f*
+	    *signature-algorithm:hash-slh-dsa-sha2-128s-with-sha256*
+	    *signature-algorithm:hash-slh-dsa-sha2-128f-with-sha256*
+	    *signature-algorithm:hash-slh-dsa-sha2-192s-with-sha512*
+	    *signature-algorithm:hash-slh-dsa-sha2-192f-with-sha512*
+	    *signature-algorithm:hash-slh-dsa-sha2-256s-with-sha512*
+	    *signature-algorithm:hash-slh-dsa-sha2-256f-with-sha512*
+	    *signature-algorithm:hash-slh-dsa-shake-128s-with-shake128*
+	    *signature-algorithm:hash-slh-dsa-shake-128f-with-shake128*
+	    *signature-algorithm:hash-slh-dsa-shake-192s-with-shake256*
+	    *signature-algorithm:hash-slh-dsa-shake-192f-with-shake256*
+	    *signature-algorithm:hash-slh-dsa-shake-256s-with-shake256*
+	    *signature-algorithm:hash-slh-dsa-shake-256f-with-shake256*
 	    )
     (import (rnrs)
 	    (clos user)
@@ -96,6 +148,8 @@
 	    (sagittarius crypto signatures dsa)
 	    (sagittarius crypto signatures ecdsa)
 	    (sagittarius crypto signatures eddsa)
+	    (sagittarius crypto signatures mldsa)
+	    (sagittarius crypto signatures slhdsa)
 	    (sagittarius crypto keys)
 	    (sagittarius crypto digests)
 	    (sagittarius mop immutable))
@@ -270,4 +324,78 @@
 ;; Seems not defined?
 ;; (define-oid->signer&verifier "1.3.101.114" *signature:ed25519ph*)
 ;; (define-oid->signer&verifier "1.3.101.115" *signature:ed448ph*)
+
+;; PKIX fixes the signing mode and uses an empty context.
+(define-syntax define-pqc-oid
+  (syntax-rules ()
+    ((_ name oid scheme digest)
+     (begin
+       (define name oid)
+       (define-method oid->signer-maker ((m (equal oid)))
+         (lambda (key . rest)
+           (apply make-signer scheme key :digest digest :context #vu8() rest)))
+       (define-method oid->verifier-maker ((m (equal oid)))
+         (lambda (key . rest)
+           (apply make-verifier scheme key :digest digest :context #vu8() rest)))))))
+
+(define-pqc-oid *signature-algorithm:ml-dsa-44*
+  "2.16.840.1.101.3.4.3.17" *signature:ml-dsa-44* #f)
+(define-pqc-oid *signature-algorithm:ml-dsa-65*
+  "2.16.840.1.101.3.4.3.18" *signature:ml-dsa-65* #f)
+(define-pqc-oid *signature-algorithm:ml-dsa-87*
+  "2.16.840.1.101.3.4.3.19" *signature:ml-dsa-87* #f)
+(define-pqc-oid *signature-algorithm:hash-ml-dsa-44-with-sha512*
+  "2.16.840.1.101.3.4.3.32" *signature:hash-ml-dsa-44-with-sha512* *digest:sha-512*)
+(define-pqc-oid *signature-algorithm:hash-ml-dsa-65-with-sha512*
+  "2.16.840.1.101.3.4.3.33" *signature:hash-ml-dsa-65-with-sha512* *digest:sha-512*)
+(define-pqc-oid *signature-algorithm:hash-ml-dsa-87-with-sha512*
+  "2.16.840.1.101.3.4.3.34" *signature:hash-ml-dsa-87-with-sha512* *digest:sha-512*)
+(define-pqc-oid *signature-algorithm:slh-dsa-sha2-128s*
+  "2.16.840.1.101.3.4.3.20" *signature:slh-dsa-sha2-128s* #f)
+(define-pqc-oid *signature-algorithm:slh-dsa-sha2-128f*
+  "2.16.840.1.101.3.4.3.21" *signature:slh-dsa-sha2-128f* #f)
+(define-pqc-oid *signature-algorithm:slh-dsa-sha2-192s*
+  "2.16.840.1.101.3.4.3.22" *signature:slh-dsa-sha2-192s* #f)
+(define-pqc-oid *signature-algorithm:slh-dsa-sha2-192f*
+  "2.16.840.1.101.3.4.3.23" *signature:slh-dsa-sha2-192f* #f)
+(define-pqc-oid *signature-algorithm:slh-dsa-sha2-256s*
+  "2.16.840.1.101.3.4.3.24" *signature:slh-dsa-sha2-256s* #f)
+(define-pqc-oid *signature-algorithm:slh-dsa-sha2-256f*
+  "2.16.840.1.101.3.4.3.25" *signature:slh-dsa-sha2-256f* #f)
+(define-pqc-oid *signature-algorithm:slh-dsa-shake-128s*
+  "2.16.840.1.101.3.4.3.26" *signature:slh-dsa-shake-128s* #f)
+(define-pqc-oid *signature-algorithm:slh-dsa-shake-128f*
+  "2.16.840.1.101.3.4.3.27" *signature:slh-dsa-shake-128f* #f)
+(define-pqc-oid *signature-algorithm:slh-dsa-shake-192s*
+  "2.16.840.1.101.3.4.3.28" *signature:slh-dsa-shake-192s* #f)
+(define-pqc-oid *signature-algorithm:slh-dsa-shake-192f*
+  "2.16.840.1.101.3.4.3.29" *signature:slh-dsa-shake-192f* #f)
+(define-pqc-oid *signature-algorithm:slh-dsa-shake-256s*
+  "2.16.840.1.101.3.4.3.30" *signature:slh-dsa-shake-256s* #f)
+(define-pqc-oid *signature-algorithm:slh-dsa-shake-256f*
+  "2.16.840.1.101.3.4.3.31" *signature:slh-dsa-shake-256f* #f)
+(define-pqc-oid *signature-algorithm:hash-slh-dsa-sha2-128s-with-sha256*
+  "2.16.840.1.101.3.4.3.35" *signature:hash-slh-dsa-sha2-128s-with-sha256* #f)
+(define-pqc-oid *signature-algorithm:hash-slh-dsa-sha2-128f-with-sha256*
+  "2.16.840.1.101.3.4.3.36" *signature:hash-slh-dsa-sha2-128f-with-sha256* #f)
+(define-pqc-oid *signature-algorithm:hash-slh-dsa-sha2-192s-with-sha512*
+  "2.16.840.1.101.3.4.3.37" *signature:hash-slh-dsa-sha2-192s-with-sha512* #f)
+(define-pqc-oid *signature-algorithm:hash-slh-dsa-sha2-192f-with-sha512*
+  "2.16.840.1.101.3.4.3.38" *signature:hash-slh-dsa-sha2-192f-with-sha512* #f)
+(define-pqc-oid *signature-algorithm:hash-slh-dsa-sha2-256s-with-sha512*
+  "2.16.840.1.101.3.4.3.39" *signature:hash-slh-dsa-sha2-256s-with-sha512* #f)
+(define-pqc-oid *signature-algorithm:hash-slh-dsa-sha2-256f-with-sha512*
+  "2.16.840.1.101.3.4.3.40" *signature:hash-slh-dsa-sha2-256f-with-sha512* #f)
+(define-pqc-oid *signature-algorithm:hash-slh-dsa-shake-128s-with-shake128*
+  "2.16.840.1.101.3.4.3.41" *signature:hash-slh-dsa-shake-128s-with-shake128* #f)
+(define-pqc-oid *signature-algorithm:hash-slh-dsa-shake-128f-with-shake128*
+  "2.16.840.1.101.3.4.3.42" *signature:hash-slh-dsa-shake-128f-with-shake128* #f)
+(define-pqc-oid *signature-algorithm:hash-slh-dsa-shake-192s-with-shake256*
+  "2.16.840.1.101.3.4.3.43" *signature:hash-slh-dsa-shake-192s-with-shake256* #f)
+(define-pqc-oid *signature-algorithm:hash-slh-dsa-shake-192f-with-shake256*
+  "2.16.840.1.101.3.4.3.44" *signature:hash-slh-dsa-shake-192f-with-shake256* #f)
+(define-pqc-oid *signature-algorithm:hash-slh-dsa-shake-256s-with-shake256*
+  "2.16.840.1.101.3.4.3.45" *signature:hash-slh-dsa-shake-256s-with-shake256* #f)
+(define-pqc-oid *signature-algorithm:hash-slh-dsa-shake-256f-with-shake256*
+  "2.16.840.1.101.3.4.3.46" *signature:hash-slh-dsa-shake-256f-with-shake256* #f)
 )
