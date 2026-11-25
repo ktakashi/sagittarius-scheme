@@ -48,10 +48,13 @@
   :class <predicate-specializable-generic>)
 ;; possibly server, but later
 
-(define (ssh-kex-send/receive transport make-init-class reply-class compute-k)
+(define (ssh-kex-send/receive transport make-init-class reply-class compute-k
+			      :key (validate-reply (lambda (packet message) #t))
+				   (shared-secret-encoding :mpint))
   (ssh-write-ssh-message transport (make-init-class))
   (let* ((reply (ssh-read-packet transport))
 	 (kex-reply (bytevector->ssh-message reply-class reply)))
+    (validate-reply reply kex-reply)
     ;; verify signature
     (let-values (((K h) (compute-k transport kex-reply)))
       ;; send newkeys
@@ -59,7 +62,8 @@
       ;; receive newkeys
       (ssh-read-packet transport)
       ;; compute keys
-      (ssh-compute-keys! transport K h #t client-configure))))
+      (ssh-compute-keys! transport K h #t client-configure
+			 :shared-secret-encoding shared-secret-encoding))))
 (define (client-configure transport
 			  client-cipher server-cipher
 			  client-mac server-mac)

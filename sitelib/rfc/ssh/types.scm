@@ -64,6 +64,9 @@
 
 	    <ssh-msg-kex-ecdh-init>
 	    <ssh-msg-kex-ecdh-reply>
+
+	    <ssh-msg-kex-hybrid-init>
+	    <ssh-msg-kex-hybrid-reply>
 	    
 	    <ssh-dss-public-key>
 	    <ssh-rsa-public-key>
@@ -407,6 +410,16 @@
   ((type :byte +ssh-msg-kex-ecdh-reply+)
    (K-S  :string)
    (Q-S  :string)
+   (signature :string)))
+
+;; RFC 10042
+(define-ssh-message <ssh-msg-kex-hybrid-init> (<ssh-message>)
+  ((type :byte +ssh-msg-kex-hybrid-init+)
+   (C-INIT :string)))
+(define-ssh-message <ssh-msg-kex-hybrid-reply> (<ssh-message>)
+  ((type :byte +ssh-msg-kex-hybrid-reply+)
+   (K-S :string)
+   (S-REPLY :string)
    (signature :string)))
 
 ;; auxility data

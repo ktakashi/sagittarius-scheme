@@ -47,10 +47,13 @@
   :class <predicate-specializable-generic>)
 
 (define new-keys (make-bytevector 1 +ssh-msg-newkeys+))
-(define (ssh-kex-receive/send transport init-class compute-k make-reply)
+(define (ssh-kex-receive/send transport init-class compute-k make-reply
+			      :key (validate-init (lambda (packet message) #t))
+				   (shared-secret-encoding :mpint))
   (define (message-hash m) (digest-message (~ transport 'kex-digester) m))
   (let* ((init (ssh-read-packet transport))
 	 (kex-init (bytevector->ssh-message init-class init)))
+    (validate-init init kex-init)
     (let*-values (((type signer verifier K-S) (host-key-signer transport))
 		  ((K h-seed . rest) (compute-k K-S kex-init)))
       (let* ((H (message-hash (ssh-message->bytevector h-seed)))
@@ -66,7 +69,8 @@
 	    (error 'ssh-kex-receive/send "Unexpected message" r)))
 	(ssh-write-packet transport new-keys)
 	(unless (~ transport 'session-id) (set! (~ transport 'session-id) H))
-	(ssh-compute-keys! transport K H #f server-configure)))))
+	(ssh-compute-keys! transport K H #f server-configure
+			   :shared-secret-encoding shared-secret-encoding)))))
 
 (define (server-configure transport
 			  client-cipher server-cipher

@@ -4,8 +4,10 @@
 	(rfc ssh)
 	(rfc ssh connection) ;; for test
 	(rfc ssh server)
+	(rfc ssh transport kex hybrid)
 	(rfc ssh server types) ;; for test
 	(sagittarius socket)
+	(sagittarius crypto digests)
 	(sagittarius crypto keys)
 	(util concurrent)
 	(clos user)
@@ -74,6 +76,66 @@
   (report-error e))
 
 (test-begin "SSH")
+
+;; Hybrid KEX wire format and secret combination
+(test-group "hybrid KEX encoding"
+  (let* ((C-INIT (make-bytevector (+ 1184 32) #x11))
+	 (init (make <ssh-msg-kex-hybrid-init> :C-INIT C-INIT))
+	 (packet (ssh-message->bytevector init))
+	 (decoded (bytevector->ssh-message <ssh-msg-kex-hybrid-init> packet)))
+    (test-equal "hybrid init message number"
+      +ssh-msg-kex-hybrid-init+ (bytevector-u8-ref packet 0))
+    (test-equal "hybrid init one string length"
+      (+ 1 4 1184 32) (bytevector-length packet))
+    (test-assert "hybrid init payload roundtrip"
+      (bytevector=? C-INIT (slot-ref decoded 'C-INIT)))
+    (test-assert "hybrid init packet canonical"
+      (ssh-hybrid-valid-packet? packet decoded +ssh-msg-kex-hybrid-init+))
+    (test-assert "hybrid init rejects trailing bytes"
+      (not (ssh-hybrid-valid-packet?
+	    (bytevector-append packet #vu8(0)) decoded
+	    +ssh-msg-kex-hybrid-init+))))
+  (test-error "hybrid init rejects incorrect component lengths" condition?
+    (ssh-hybrid-client-init-components #vu8(0)))
+  (let* ((S-REPLY (make-bytevector (+ 1088 32) #x22))
+	 (reply (make <ssh-msg-kex-hybrid-reply>
+		  :K-S #vu8(1 2)
+		  :S-REPLY S-REPLY
+		  :signature #vu8(3 4)))
+	 (packet (ssh-message->bytevector reply))
+	 (decoded (bytevector->ssh-message <ssh-msg-kex-hybrid-reply> packet)))
+    (test-equal "hybrid reply message number"
+      +ssh-msg-kex-hybrid-reply+ (bytevector-u8-ref packet 0))
+    (test-assert "hybrid reply payload roundtrip"
+      (bytevector=? S-REPLY (slot-ref decoded 'S-REPLY)))
+    (test-assert "hybrid reply packet canonical"
+      (ssh-hybrid-valid-packet? packet decoded +ssh-msg-kex-hybrid-reply+)))
+  (test-error "hybrid reply rejects incorrect component lengths" condition?
+    (ssh-hybrid-server-reply-components #vu8(0)))
+  (test-equal "hybrid K is SHA-256 of both fixed-length secrets"
+    #vu8(248 24 175 211 122 109 195 188 146 251 68 115 16 17 39 112
+	 6 219 78 250 110 144 35 205 116 104 192 35 53 210 42 77)
+    (ssh-hybrid-combine-secrets (make-bytevector 32 1)
+				(make-bytevector 32 2)))
+  (test-error "hybrid K rejects non-32-byte inputs" condition?
+    (ssh-hybrid-combine-secrets (make-bytevector 31 1)
+				(make-bytevector 32 2)))
+  (let ((hash-message
+	 (make <SSH-HYBRID-H>
+	   :V-C "SSH-2.0-client"
+	   :V-S "SSH-2.0-server"
+	   :I-C #vu8(20 30)
+	   :I-S #vu8(20 31)
+	   :K-S #vu8(1 2)
+	   :C-INIT (make-bytevector (+ 1184 32) #x11)
+	   :S-REPLY (make-bytevector (+ 1088 32) #x22)
+	   :K (make-bytevector 32 #x33))))
+    (test-equal "RFC 10042 hybrid exchange-hash vector"
+      #vu8(241 127 162 27 30 116 81 120 14 252 160 157 134 164 99 135
+	   188 131 209 244 123 244 79 67 222 223 49 225 168 163 197 134)
+      (digest-message
+       (ssh-kex-digest +kex-mlkem768x25519-sha256+)
+       (ssh-message->bytevector hash-message)))))
 
 ;; KEX and other algorithm testing
 (let ()
@@ -146,6 +208,11 @@
 		     (*ssh-authentication-error-handler* print-auth-error))
 	(let ((transport (socket->server-ssh-transport socket host-keys)))
 	  (wait-packet transport)
+	  (when (and kex (= (length kex) 1))
+	    (test-equal "negotiated KEX" (car kex) (slot-ref transport 'kex)))
+	  (unless kex
+	    (test-equal "preferred default KEX"
+	      +kex-mlkem768x25519-sha256+ (slot-ref transport 'kex)))
 	  (when kex (test-assert kex #t))
 	  (when mac (test-assert mac #t))
 	  (when enc (test-assert enc #t))
@@ -191,8 +258,14 @@
 			+kex-ecdh-sha2-nistk409+
 			+kex-ecdh-sha2-nistb409+
 			+kex-ecdh-sha2-nistt571+
+			+kex-mlkem768x25519-sha256+
 			+kex-curve25519-sha256+
 			+kex-curve448-sha512+))
+	(set! client-kex-list save)
+	(set! client-kex-list
+	      (list +kex-mlkem768x25519-sha256+ +kex-curve25519-sha256+))
+	(shared-queue-put! client-queue #t)
+	(test-ssh-server host-keys :kex (list +kex-curve25519-sha256+))
 	(set! client-kex-list save)))
     (test-group "test public key algorithms"
       (let ((save client-public-key-list))
