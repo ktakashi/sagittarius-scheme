@@ -250,6 +250,9 @@
 ;; RFC 8732
 (define-constant +kex-curve25519-sha256+ "curve25519-sha256")
 (define-constant +kex-curve448-sha512+   "curve448-sha512")
+(define-constant +kex-mlkem768x25519-sha256+ "mlkem768x25519-sha256")
+(define-constant +ssh-msg-kex-hybrid-init+ 30)
+(define-constant +ssh-msg-kex-hybrid-reply+ 31)
 
 (define-constant +enc-aes256-ctr+   "aes256-ctr")
 (define-constant +enc-aes192-ctr+   "aes192-ctr")

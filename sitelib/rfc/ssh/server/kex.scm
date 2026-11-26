@@ -47,11 +47,13 @@
 	    (rfc ssh server types)
 	    (rfc ssh server kex api)
 	    (rfc ssh server kex dh)
-	    (rfc ssh server kex ecdh))
+	    (rfc ssh server kex ecdh)
+	    (rfc ssh server kex mlkem))
 
 (define *ssh-server-kex-list*
   ;; the same as client but ext-info-s :)
   (make-parameter (name-list
+		   +kex-mlkem768x25519-sha256+
 		   +kex-curve25519-sha256+	       ;; SHOUD
 		   +kex-curve448-sha512+	       ;; MAY
 		   +kex-ecdh-sha2-nistp256+	       ;; SHOULD

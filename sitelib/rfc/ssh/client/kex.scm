@@ -37,7 +37,8 @@
 	    (rfc ssh transport)
 	    (rfc ssh client kex api)
 	    (rfc ssh client kex dh)
-	    (rfc ssh client kex ecdh))
+	    (rfc ssh client kex ecdh)
+	    (rfc ssh client kex mlkem))
 
 (define ssh-client-key-exchange
   (ssh-key-exchange ssh-client-exchange-kex-message #t))

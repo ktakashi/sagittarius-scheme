@@ -42,6 +42,7 @@
 	    (rfc ssh transport kex api)
 	    (rfc ssh transport kex dh)
 	    (rfc ssh transport kex ecdh)
+	    (rfc ssh transport kex hybrid)
 	    (clos user)
 	    (sagittarius)
 	    (sagittarius crypto ciphers)
@@ -89,9 +90,10 @@
       (exchange-kex-message (~ transport 'kex)
 	transport host-packet peer-packet))))
 
-(define (ssh-compute-keys! transport K H client? configure)
+(define (ssh-compute-keys! transport K H client? configure
+			   :key (shared-secret-encoding :mpint))
   (define k (let-values (((out e) (open-bytevector-output-port)))
-	      (ssh-write-message :mpint K out #f)
+	      (ssh-write-message shared-secret-encoding K out #f)
 	      (e)))
   (define d (~ transport 'kex-digester))
   (define (digest salt) (digest-message d (bytevector-append k H salt)))

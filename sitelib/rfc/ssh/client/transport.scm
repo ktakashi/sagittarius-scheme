@@ -61,6 +61,7 @@
 (define *ssh-client-kex-list*
   ;; The keyword is from in RFC9142
   (make-parameter (name-list
+		   +kex-mlkem768x25519-sha256+
 		   +kex-curve25519-sha256+	       ;; SHOUD
 		   +kex-curve448-sha512+	       ;; MAY
 		   +kex-ecdh-sha2-nistp256+	       ;; SHOULD
