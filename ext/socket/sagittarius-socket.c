@@ -987,8 +987,13 @@ SgObject Sg_SocketAccept(SgSocket *socket)
     }
   }
   toggle_nagle(fd, 1);
-  return make_socket(fd, SG_SOCKET_SERVER, 
-		     make_sockaddr(addrlen, (struct sockaddr *)&addr, TRUE));
+  SgSocket *accepted = make_socket(fd, SG_SOCKET_SERVER,
+                                   make_sockaddr(addrlen,
+                                                 (struct sockaddr *)&addr,
+                                                 TRUE));
+  /* BSD accept can inherit O_NONBLOCK; new sockets must be blocking. */
+  Sg_SocketBlocking(accepted);
+  return accepted;
 }
 
 void Sg_SocketShutdown(SgSocket *socket, int how)
