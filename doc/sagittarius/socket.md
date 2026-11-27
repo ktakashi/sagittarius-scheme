@@ -120,7 +120,8 @@ _Socket_ must be a socket object created by
 `make-server-socket`.
 
 Wait for an incoming connection request and returns a fresh connected client
-socket.
+socket. The returned socket is blocking, even if _socket_ is nonblocking.
+Use `socket-nonblocking!` to make the returned socket nonblocking if needed.
 
 This procedures is a thin wrapper of POSIX's `accept(2)`.
 

@@ -449,6 +449,32 @@
       (vector-for-each shutdown&close vec)
       (shutdown&close server))))
 
+(print "Testing socket-accept blocking mode")
+(test-group "socket-accept blocking mode"
+  (for-each
+   (lambda (nonblocking?)
+     (let ((server (make-server-socket "0")))
+       (when nonblocking? (socket-nonblocking! server))
+       (let ((client (make-client-socket "127.0.0.1" (server-service server))))
+	 (socket-read-select default-selector-timeout-usec server)
+	 (let* ((accepted (socket-accept server))
+		(sender (make-thread
+			 (lambda ()
+			   (thread-sleep! 0.1)
+			   (socket-send client #vu8(42))))))
+	   (socket-set-read-timeout! accepted 2000)
+	   (thread-start! sender)
+	   (test-equal
+	    (format "accepted socket waits for data (nonblocking listener: ~a)"
+		    nonblocking?)
+	    #vu8(42)
+	    (socket-recv accepted 1))
+	   (join-thread/timeout "socket-accept delayed sender join" sender 5)
+	   (shutdown&close accepted))
+	 (shutdown&close client))
+       (shutdown&close server)))
+   '(#f #t)))
+
 ;; condition
 (test-error "&host-not-found" host-not-found-error?
 	    (make-client-socket "localhost" "123456789"))
@@ -686,7 +712,7 @@
 		(loop (cdr nodes) result))))))
   (define (echo-on-ready who)
     (guard (e (else (print e) #f))
-      (let ((ready (apply socket-read-select 5000 s*)))
+      (let ((ready (apply socket-read-select default-selector-timeout-usec s*)))
 	(and (pair? ready)
 	     (let loop ((servers ready) (handled? #f))
 	       (if (null? servers)
