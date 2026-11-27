@@ -112,6 +112,21 @@
 		 (lambda ()
 		   (assertion-violation? (thread-join! t))))))
 
+(let ()
+  (define (join-reason thread)
+    (guard (e ((uncaught-exception? e) (uncaught-exception-reason e)))
+      (thread-join! thread)))
+  (define failed (thread-start! (make-thread (lambda () (raise 4)))))
+  (test-equal "first join observes the exception" 4 (join-reason failed))
+  (test-equal "repeated join preserves the exception" 4 (join-reason failed))
+  (let* ((failed (thread-start! (make-thread (lambda () (raise 7)))))
+         (waiters (map (lambda (ignored)
+                         (thread-start!
+                          (make-thread (lambda () (join-reason failed)))))
+                       '(1 2 3))))
+    (test-equal "concurrent joiners all observe the exception" '(7 7 7)
+                (map thread-join! waiters))))
+
 (let ((m (make-mutex 'mutex-1)))
   (test-assert 'mutex? (mutex? m))
   (test-equal "mutex name" (mutex-name m) 'mutex-1)

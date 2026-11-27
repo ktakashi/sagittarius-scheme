@@ -81,6 +81,9 @@ is raised. If the _thread_ terminated normally, the content of the
 end-result field is returned, otherwise the content of the end-exception
 field is raised.
 
+Joining does not consume the exception: repeated or concurrent joiners observe
+the same abnormal termination.
+
 ###### [!Function] `thread-suspend!`  _thread_ _:optional_ _timeout_ _timeout-val_
 
 Suspends execution of the _thread_. Users can resume the _thread_by calling `thread-resume!`.

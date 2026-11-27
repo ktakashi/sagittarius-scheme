@@ -163,10 +163,6 @@ SgObject Sg_ThreadJoin(SgVM *vm, SgObject timeout, SgObject timeoutval)
   if (!tout) {
     result = vm->result;
     errorP = vm->threadErrorP;
-    if (errorP) {
-      vm->result = SG_UNDEF;
-      vm->threadErrorP = FALSE;
-    }
   }
   SG_INTERNAL_MUTEX_SAFE_LOCK_END();
 
