@@ -4,61 +4,31 @@ description: Create a user story with requirements, tasks, and dependencies. Use
 disable-model-invocation: true
 argument-hint: "Describe the feature or enhancement..."
 ---
-# Create User Story
+# Create a user story
 
-Create a concise user story based on the provided description.
+Use `$ARGUMENTS` or the user's feature description. This is an **explicit**
+planning skill: do not invoke it for a routine fix or create planning files
+unless requested.
 
-## Process
+1. Extract a short lowercase, hyphenated feature name. Inspect only the related
+   library/API/tests; use [inspect-scheme-library](../inspect-scheme-library/SKILL.md)
+   for a compact interface inventory.
+2. Ask material scope/behavior questions in one structured interaction. Record
+   confirmed decisions separately from assumptions; do not invent requirements.
+3. Create `.copilot/{feature}/requirements.md` with these sections:
 
-1. **Analyze** the user's description to understand the feature scope
-2. **Extract** a short feature name (lowercase, hyphenated) for the directory path
-3. **Clarify** any ambiguous requirements by asking the user
-4. **Create** the output file at `.copilot/{feature}/requirements.md`
+   | Section | Required content |
+   | --- | --- |
+   | User Story | As a [role], I want [capability], so that [benefit] |
+   | Pre-requisites / Dependencies | Concrete external/internal prerequisites |
+   | Detailed Tasks | A short actionable checklist with observable acceptance criteria |
+   | Clarifications | Confirmed answers and remaining assumptions |
+   | Next Steps | User review, then planning or implementation |
 
-## Output Format
+4. Include compatibility and error behavior when they affect the API. Specify
+   verifiable outcomes, not implementation guesses or speculative versions.
+5. Present the file through the structured review/approval tool. Only after
+   approval, register it in `.copilot/README.md`; preserve existing entries.
 
-Create the file `.copilot/{feature}/requirements.md` with the following structure:
-
-```markdown
-# {Feature Title}
-
-## User Story
-
-As a [role], I want [capability] so that [benefit].
-
-## Pre-requisites / Dependencies
-
-- List external dependencies
-- List internal dependencies  
-- List required knowledge or setup
-
-## Detailed Tasks
-
-1. [ ] Task 1 - Brief description
-2. [ ] Task 2 - Brief description
-3. [ ] Task 3 - Brief description
-   - Sub-task if needed
-
-## Clarifications
-
-- Any clarified points from discussion
-- Assumptions made
-
-## Next Steps
-
-After user approval, update `.copilot/README.md` to include this feature.
-```
-
-## Guidelines
-
-- Keep the user story **concise** - avoid unnecessary verbosity
-- Tasks should be **actionable** and **verifiable**
-- Dependencies should be **specific** with versions where applicable
-- Ask for clarification when requirements are ambiguous
-
-## Post-Creation
-
-After creating the user story:
-1. Present the created `requirements.md` to the user for review
-2. Address any feedback or modifications requested
-3. Once approved, update `.copilot/README.md` to register this feature
+Stop after producing the requested story. Do not automatically plan or
+implement it, and do not create unrelated tracking files.

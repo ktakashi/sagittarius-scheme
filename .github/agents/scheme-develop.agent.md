@@ -90,6 +90,14 @@ When functionality already exists elsewhere in the repository, reuse it unless t
 
 ## Repository Investigation
 
+For routine builds, tests, library inventories, compiler diagnostics, and
+documentation checks, start with the relevant
+[repository skill](../skills/README.md) and its shared scripts. Use their
+compact output instead of reconstructing environment setup or launching
+another agent for a command. Keep small fixes in a direct workflow; create
+story/plan artifacts only when requested. Skills do not override the user's
+model selection.
+
 Before making substantial changes:
 
 1. Locate related libraries and implementations.

@@ -1,75 +1,62 @@
 ---
 name: compiler-development
-description: Guide for developing Sagittarius compiler. Use this when you need to develop or optimize the compiler.
+description: Develop or optimize the Sagittarius Scheme compiler, inspect intermediate forms and VM instructions, and regenerate its bootstrap C sources.
 ---
-# Sagittarius Scheme Compiler Development Guide
-This guide provides an overview of the Sagittarius Scheme compiler architecture, optimization strategies, and best practices for development.
+# Sagittarius compiler development
 
-## Compiler Architecture
-The Sagittarius compiler is written in Scheme, and consists of several phases:
+Read the Scheme instructions before editing. Start with
+[boot/compiler.scm](../../../boot/compiler.scm), then the affected pass, its
+IR constructors, and focused tests. Do not read every pass by default.
 
-1. **Expansion**: Macro expansion and syntactic transformations
-2. **Optimization**: Code transformations for performance improvements
-3. **Code Generation**: Emitting C code from the optimized intermediate representation
+## Source map
 
-# File location
+| Source | Responsibility |
+| --- | --- |
+| `boot/compiler.scm` | Entry points, pass sequencing, compiler-state restoration |
+| `boot/lib/pass1*.scm` | Expansion/translation to intermediate forms |
+| `boot/lib/pass2.scm` | IR optimization |
+| `boot/lib/pass3.scm` | Further IR rewriting/inlining |
+| `boot/lib/pass4.scm` | Free-variable analysis and lambda lifting |
+| `boot/lib/pass5.scm` | VM instruction emission |
+| `boot/lib/iform.scm` | IR nodes and accessors |
+| `boot/lib/compiler-util.scm`, `smatch.scm` | Shared helpers and matching |
 
-The compiler source code is located in the `boot/` directory
-- `boot/compiler.scm` - Main compiler entry point
-- `boot/lib/pass*.scm` - Optimization passes
-- `boot/lib/compiler-util.scm` - Utility library for compiler
-- `boot/lib/iform.scm` - Intermediate form definitions
-- `boot/lib/smatch.scm` - Pattern matching utilities, use `include` syntax to include in the compiler source files
+Normal compilation emits **VM instructions**, not C. `dist.sh precomp`
+separately translates bootstrap libraries/compiler sources into generated C.
+Never patch that generated C as the source of an optimization.
 
-# Building the compiler
+## Inspect a pass without a scratch script
 
-The compiler is built by the compiler from the host Sagittarius by running the command below:
-
-For POSIX
-```shell
-./dist.sh precomp
+```sh
+bash .github/skills/scripts/sagittarius.sh compiler-pass 2 '((lambda (x) (+ x 1)) 5)'
+bash .github/skills/scripts/sagittarius.sh compiler-pass 5 '((lambda (x) (+ x 1)) 5)'
 ```
 
-For Windows
-```bat
-dist.bat precomp
-```
+The [Scheme helper](../scripts/scheme-tools.scm) calls the existing
+`compile-p1` through `compile-p5` diagnostics. Passes 1..4 print IR; pass 5
+dumps VM instructions. It accepts exactly one expression and exits, rather
+than entering the REPL.
 
-This will generate the C code for the compiler in `src/` directory. To execute the compiler
-you need to build the Sagittarius first by running the command below:
+## Change, rebuild, validate
 
-For POSIX
-```shell
-make sash -j$(nproc)
-```
+1. Capture the smallest expression exposing the problem and its current pass
+   output. Preserve evaluation order, binding identity, tail position,
+   multiple values, and exception behavior.
+2. Change the source pass; reuse its IR helpers and mutation conventions.
+3. During iteration, regenerate and rebuild:
 
-For Windows (Ninja)
-```bat
-ninja sash -j %NUMBER_OF_PROCESSORS%
-```
+   ```sh
+   bash .github/skills/scripts/sagittarius.sh generate precomp
+   bash .github/skills/scripts/sagittarius.sh build sash
+   ```
 
-# Analysis helper
+4. Run the pass diagnostic again and the focused semantic regression using
+   [run-test](../run-test/SKILL.md). IR appearance alone is not correctness.
+5. Complete the generation/build checks required by `AGENTS.md`, including
+   full `generate gen` after precompiled-source changes.
+6. For an optimization claim, use
+   [benchmark-sagittarius](../benchmark-sagittarius/SKILL.md) with comparable
+   before/after samples. Never infer speedup from fewer instructions alone.
 
-To analyze the optimisation result, you can use the `compile-p*` procedure to print the intermediate form of the code after each pass. The below example shows how to use it.
-
-```scheme
-(import (sagittarius compiler))
-
-(compile-p1 '((lambda (x) (+ x 1)) 5)) ;; shows result of pass1
-(compile-p2 '((lambda (x) (+ x 1)) 5)) ;; shows result of pass2
-(compile-p3 '((lambda (x) (+ x 1)) 5)) ;; shows result of pass3
-(compile-p4 '((lambda (x) (+ x 1)) 5)) ;; shows result of pass4
-(compile-p5 '((lambda (x) (+ x 1)) 5)) ;; shows result of pass5 (generated VM instructions)
-```
-
-You can run the script with the command below:
-
-POSIX:
-```shell
-./build/sagittarius -Llib -Lsitelib -L'ext/*' -Dbuild ${file}
-```
-
-Windows:
-```bat
-.\build\sash.exe -Llib -Lsitelib -Lext/* -Dbuild %file%
-```
+For native Windows use `dist.bat precomp` and
+`cmake --build <configured-dir> --target sash`; the shell helpers target POSIX.

@@ -1,158 +1,61 @@
 ---
 name: run-test
-description: Guide for executing Sagittarius tests. Use this when asked to execute tests.
+description: Run, select, repeat, and triage Sagittarius CTest or SRFI-64 tests. Use for test execution, targeted regressions, and concurrency stress checks.
 ---
 
-Using CTest
-===========
+# Running Sagittarius tests
 
-Sagittarius' tests can be executed via `ctest` command
+Use the [workflow helper](../scripts/sagittarius.sh) from the workspace root.
+It selects the configured CMake tree, sets local load/dynamic paths, isolates
+temporary files and caches, and preserves failures. Do not reconstruct these
+commands or launch another agent just to execute them.
 
-Run all `ctest` commands from the configured CMake working directory that contains `CTestTestfile.cmake` (in this repository, typically the repository root).
+## Select the smallest useful test set
 
-Execute full test
------------------
-
-Use the command below to execute full test
-
-```shell
-ctest --output-on-failure -j 6
+```sh
+bash .github/skills/scripts/sagittarius.sh list-tests 'continuations|threads'
+bash .github/skills/scripts/sagittarius.sh test '^sagittarius/continuations\.scm$'
+bash .github/skills/scripts/sagittarius.sh test-file test/tests/sagittarius/continuations.scm
+bash .github/skills/scripts/sagittarius.sh --repeat 10 test '^threads$'
 ```
 
-The value of the `-j` option can be changed. It's better not to exceed the
-number of CPU core.
+- Combine related CTest selectors into one regex. Zero matches is an error.
+- Multiple `test-file` arguments run independently: an empty test file cannot
+  hide behind another file's passing summary.
+- Use `--build-dir DIR` **before** the command for a different configured tree.
+  Do not configure `build/` blindly: it can contain an in-source build's binary.
+- If the interpreter is missing, follow [build-sagittarius](../build-sagittarius/SKILL.md).
+- New `test/tests/*.scm` files are discovered by the root CMake
+  `GLOB_RECURSE ... CONFIGURE_DEPENDS`; rebuild/reconfigure and check `list-tests`.
+  Extension tests belong in `ext/<name>/test.scm`.
 
-**CAUTION**
-The full test may take up to 10 minutes. The heavy tests contains `crypto`
-in its name.
+## Full suite and time limits
 
-Execute individual tests
-------------------------
-
-Executing individual tests has multiple options.
-
-### Using -R option
-
-Using `-R` option filters the tests by name.
-
-Example command
-```shell
-ctest --output-on-failure -R sagittarius
+```sh
+bash .github/skills/scripts/sagittarius.sh --jobs 4 test-all
+bash .github/skills/scripts/sagittarius.sh --timeout 300 test-file ext/crypto/test.scm
 ```
 
-This executes the tests whose name contain `sagittarius`
+`test-all` is explicit, not the default. It can take ten minutes. Use the full
+suite when required by the change or repository instructions, not for every
+intermediate edit. Keep parallelism at or below available CPU cores.
 
-### Using -I option
+Default operation budgets are 900s for CTest and 120s per direct test file.
+`--timeout` changes that budget; CTest's registered per-test limits remain in
+effect. Repeated runs stop on the first failure.
 
-Using `-I` option executes the specific range of the test
+## Failure triage
 
-Example: execute tests for even numbers until 50
-```shell
-ctest --output-on-failure -I 2,50,2
-```
+1. Read the failed command's output, not the entire suite log.
+2. A `FAIL`/`XPASS` test record, a nonzero exit, or a missing SRFI-64 summary
+   is not a pass.
+3. Re-run only the failing selector after investigating it. A timeout normally
+   exits 124 (137 on a GNU timeout forced kill); do not retry repeatedly without
+   a new hypothesis.
+4. On a native crash, retain/report the stack trace; do not blindly retry.
+5. The helper already uses a fresh workspace cache. Never clear the user's
+   global Sagittarius cache to diagnose one test.
 
-The format is `-I Start,End,Stride`; `-I 2,50,2` runs tests 2, 4, 6, ... 50.
-
-### Check the test name and number
-
-Use this command to check the name and test number
-
-```shell
-ctest -N
-```
-
-Using Sagittarius directly
---------------------------
-
-You can run the test by using `sagittarius` command as well.
-
-Basic command
--------------
-
-If `./build/sagittarius` does not exist, build first with `cmake -B build . && cmake --build build -j 6` before running any tests.
-
-```shell
-./build/sagittarius -Llib -Lsitelib -L'ext/*' -Dbuild test/runner.scm {test-file}
-```
-
-Test files live under `test/tests/`; pass the path relative to the repository root, e.g. `test/tests/sagittarius/continuations.scm`.
-
-The command can be used to execute other Scheme files, if you want to check
-outside of the tests.
-
-Example: run continuation tests
-```shell
-./build/sagittarius -Llib -Lsitelib -L'ext/*' -Dbuild test/runner.scm \
- test/tests/sagittarius/continuations.scm
-```
-
-Test result analysis
-====================
-
-When the tests failed, then you may see some patterns. Below are some of the
-example pattern that showing test failures
-
-After a failure: re-run only the failing test with `-R <name>`; if the output is empty (Example 2), clear the cache and retry once; if SEGV, report the native stack trace to the user and do not retry.
-
-Example 1: unexpected failures
-```
-%%%% Starting test {test name}
-FAIL {test unit name 1}
-        expected value: ...
-          actual value: ...
-FAIL {test unit name 2}
-        expected value: ...
-          actual value: ...
-FAIL {test unit name 3}
-        expected value: ...
-          actual value: ...
-# of expected passes      16
-# of unexpected failures  3
-```
-You clearly see test failures
-
-
-Example 2: no output
-```
-%%%% Starting test {test name}
-```
-The summary of the tests is missing. This means either test hanged or
-application is finished unexpectedly
-
-If a single test produces no summary within 2 minutes, terminate it and re-run with `ctest --output-on-failure --timeout 120 -R <name>`, then report that the test timed out.
-
-Example 3: SEGV
-You'll see native stack trace when SEGV happened.
-
-
-Clean up cache file
-===================
-
-When the code change happens, you might need to clear the cache file.
-You can use the command below to clear the cache.
-
-```shell
-./build/sagittarius -c -e '(exit)'
-```
-
-**IMPORTANT**
-Make sure you use `-e` option with `(exit)` expression to exit the
-application, otherwise the application goes into REPL, and waits for
-the input.
-
-Inline execution
-================
-
-You can execute a Scheme script directly by passing expressions via
-`-e` command.
-
-Example: say hello
-```shell
-./build/sagittarius -Llib -Lsitelib -L'ext/*' -Dbuild \
- -e '(display "hello")(newline)(exit)'
-```
-
-**IMPORTANT**
-The same rule as the cleanup cache file command  is applied here.
-Make sure the last expression is `(exit)`.
+Report the exact selector/files, pass counts, failed assertions, and any
+platforms not exercised. Do not infer a full-suite pass from a targeted run.
 
